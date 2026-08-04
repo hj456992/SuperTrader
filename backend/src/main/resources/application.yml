@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: supertrader-demo-backend
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+# The ONLY HTTP service. Bind to localhost.
+server:
+  port: 8080
+  address: 127.0.0.1
+
+# DeepSeek model configuration. The API KEY is NEVER stored here — it is read
+# only from the environment variable DEEPSEEK_API_KEY at runtime.
+app:
+  deepseek:
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
+    api-key-env: DEEPSEEK_API_KEY
+    timeout-seconds: 30
+  agentscope:
+    enabled: true
+    workspace: ${java.io.tmpdir}/agentscope-supertrader
+  agent-demo:
+    enabled: true
+    # RELATIVE to the backend working dir (backend/), resolves to .run/agent-demo.json
+    store-file: ${AGENT_DEMO_FILE:../.run/agent-demo.json}
+    model-timeout-seconds: ${DEEPSEEK_TIMEOUT_SECONDS:30}
+    max-concurrent-runs: 2
+    max-run-queue: 16
+    owner-id: local-owner-demo
+    workspace-id: ws-agent-demo
+  workspaces:
+    file: ${WORKSPACES_FILE:../.run/workspaces.json}
+  teams:
+    file: ${TEAMS_FILE:../.run/teams.json}
+  strategies:
+    file: ${STRATEGIES_FILE:../.run/strategies.json}
+  taskcenter:
+    file: ${TASK_CENTER_FILE:../.run/task-center.json}
+    datasets-dir: ${DATASETS_DIR:../datasets}
+    knowledge-dir: ${KNOWLEDGE_DIR:../knowledge}
+
+logging:
+  level:
+    com.supertrader.demo: INFO
+    org.springframework.web: WARN

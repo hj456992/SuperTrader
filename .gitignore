@@ -1,0 +1,25 @@
+# Runtime data
+.run/
+*.log
+*.pid
+*.tmp
+
+# Build output
+backend/target/
+frontend/dist/
+frontend/node_modules/
+e2e/node_modules/
+e2e/test-results/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment (never commit keys)
+.env
+.env.*
