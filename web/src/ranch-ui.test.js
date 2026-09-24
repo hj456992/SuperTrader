@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { requestPayload, mutationOwnsContext } from './ranch-ui.js';
+import { requestPayload, mutationOwnsContext, apply } from './ranch-ui.js';
 test('an open form keeps its captured revision after polling advances state',()=>{
  const form={revision:3,name:'older form value'};
  assert.deepEqual(requestPayload(form,4),{revision:3,name:'older form value'});
@@ -14,4 +14,66 @@ test('a slow mutation cannot own a dialog or page opened after it started',()=>{
  assert.equal(mutationOwnsContext(origin,{...origin,selected:'b'}),false);
  assert.equal(mutationOwnsContext(origin,{...origin,page:'library'}),false);
  assert.equal(mutationOwnsContext(origin,{...origin,tab:'materials'}),false);
+});
+
+// Only the browser and HTTP boundary are replaced; apply mounts the real UI and handlers.
+function mounted(t,initial) {
+ const listeners={},timers=new Map();let timerId=0,cleanup,current=initial,read,write;
+ const app={innerHTML:'',contains:b=>b.inApp===true,addEventListener(){},replaceChildren(){this.innerHTML='';}};
+ const modal={open:false,contains:()=>false,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){},close(){this.open=false;}};
+ const notice={textContent:'',classList:{add(){},remove(){}}};
+ const oldDocument=globalThis.document;
+ globalThis.document={activeElement:null,querySelector:s=>({'#app':app,'#modal':modal,'#notice':notice}[s]),addEventListener:(type,fn)=>{listeners[type]=fn;}};
+ t.after(()=>{cleanup?.();if(oldDocument===undefined)delete globalThis.document;else globalThis.document=oldDocument;});
+ t.mock.method(globalThis,'setTimeout',(fn,ms)=>{timers.set(++timerId,{fn,ms});return timerId;});
+ t.mock.method(globalThis,'clearTimeout',id=>timers.delete(id));
+ const requests=[];
+ t.mock.method(globalThis,'fetch',async(url,options)=>{requests.push({url,body:options.body&&JSON.parse(options.body)});return {ok:true,json:async()=>options.body&&write?write(url):url.endsWith('-state')&&read?read():structuredClone(current)};});
+ apply({effect:fn=>{cleanup=fn();}});
+ return {app,notice,requests,setState:value=>{current=value;},setRead:fn=>{read=fn;},setWrite:fn=>{write=fn;},click:async(action,dataset={})=>{const b={inApp:true,dataset:{action,...dataset}};await listeners.click({target:{closest:()=>b}});},poll:()=>{const entry=[...timers.entries()].find(([,v])=>v.ms===1300||v.ms===5000);assert.ok(entry,'state polling remains scheduled');timers.delete(entry[0]);return entry[1].fn();},pollDelay:()=>[...timers.values()].find(v=>v.ms===1300||v.ms===5000)?.ms};
+}
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+const runningState={revision:1,people:[{id:'p1',name:'甲',materials:[]}],self:{materials:[]},library:[],job:{id:'run-1',status:'running',targetId:'p1',kind:'profile'}};
+test('stop sends the run id captured on the rendered button',async t=>{
+ const ui=mounted(t,runningState);await settle();await ui.click('cancel',{runId:'run-1'});
+ assert.deepEqual(ui.requests.find(r=>r.url.endsWith('-cancel')).body,{runId:'run-1',revision:1});
+});
+test('cancelling keeps fast polling and blocks conflicting starts and repeated stops',async t=>{
+ const ui=mounted(t,{...runningState,job:{...runningState.job,status:'cancelling'}});await settle();await ui.click('person',{id:'p1'});await ui.click('analyze');await ui.click('strategy');await ui.click('cancel',{runId:'run-1'});
+ assert.equal(ui.requests.filter(r=>r.body).length,0);assert.equal(ui.pollDelay(),1300);
+});
+test('a delayed poll cannot overwrite a newer cancelling response',async t=>{
+ const ui=mounted(t,runningState);await settle();let resolveOld;
+ ui.setRead(()=>new Promise(resolve=>{resolveOld=resolve;}));const oldPoll=ui.poll();await settle();
+ ui.setRead(null);ui.setState({...runningState,job:{...runningState.job,status:'cancelling'}});await ui.click('cancel',{runId:'run-1'});
+ assert.match(ui.app.innerHTML,/正在停止/);resolveOld(runningState);await oldPoll;
+ assert.match(ui.app.innerHTML,/正在停止/);assert.equal(ui.pollDelay(),1300);
+});
+test('completion notices do not follow a user to a different person or a different run',async t=>{
+ const data={...runningState,people:[...runningState.people,{id:'p2',name:'乙',materials:[]}]};
+ const ui=mounted(t,data);await settle();await ui.click('person',{id:'p2'});
+ ui.setState({...data,job:{...data.job,status:'done'}});await ui.poll();assert.equal(ui.notice.textContent,'');
+ ui.setState({...data,job:{...data.job,id:'run-2',status:'running'}});await ui.poll();await ui.click('person',{id:'p1'});
+ ui.setState({...data,job:{...data.job,id:'run-3',status:'done'}});await ui.poll();assert.equal(ui.notice.textContent,'');
+});
+
+test('an acknowledged run can be stopped while the start response is still pending',async t=>{
+ const ui=mounted(t,{...runningState,job:{status:'idle'}});await settle();await ui.click('person',{id:'p1'});
+ let resolveStart;ui.setWrite(url=>url.endsWith('-analyze')?new Promise(resolve=>{resolveStart=resolve;}):{});
+ const start=ui.click('analyze');await settle();ui.setState(runningState);await ui.poll();
+ await ui.click('cancel',{runId:'run-1'});
+ assert.equal(ui.requests.filter(r=>r.url.endsWith('-cancel')).length,1);
+ resolveStart({});await start;
+});
+test('a stale stop button cannot cancel a different run',async t=>{
+ const ui=mounted(t,{...runningState,job:{...runningState.job,id:'run-2'}});await settle();await ui.click('cancel',{runId:'run-1'});
+ assert.equal(ui.requests.filter(r=>r.url.endsWith('-cancel')).length,0);
+});
+test('reopening reads saved legacy and v1 profiles without starting a new run',async t=>{
+ const ui=mounted(t,{...runningState,people:[{...runningState.people[0],profile:{summary:'已保存的旧画像',facets:[]}}],self:{materials:[],profile:{summary:'已保存的本人画像',knowledgeStatus:'empty_library'}},job:{id:'old-run',targetId:'self',status:'interrupted'}});await settle();
+ await ui.click('person',{id:'p1'});assert.match(ui.app.innerHTML,/已保存的旧画像/);assert.doesNotMatch(ui.app.innerHTML,/任务已中断/);
+ await ui.click('self');assert.match(ui.app.innerHTML,/已保存的本人画像/);assert.match(ui.app.innerHTML,/任务已中断/);assert.equal(ui.requests.filter(r=>r.body).length,0);
+});
+test('legacy jobs without run ids keep the existing cancel fallback',async t=>{
+ const ui=mounted(t,{...runningState,job:{status:'running'}});await settle();await ui.click('cancel');assert.deepEqual(ui.requests.find(r=>r.url.endsWith('-cancel')).body,{revision:1});
 });

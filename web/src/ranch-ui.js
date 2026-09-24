@@ -1,3 +1,4 @@
+import {jobActive, jobForPage} from './ranch-job.js';
 import {sourceSelection, sourceFields, conversationOptions, platformNames, sourcePlatform, createSourceRequestGate, sourceReady} from './ranch-sources.js';
 import {esc, renderRanch} from './ranch-view.js';
 export const name='ranch-ui';
@@ -7,7 +8,7 @@ export function apply(ctx){ctx.effect(()=>mount(),'ranch-ui mount');}
 function mount(){
  const app=document.querySelector('#app'),modal=document.querySelector('#modal'),noticeEl=document.querySelector('#notice');
  const abort=new AbortController();
- let dialogEpoch=0;
+ let dialogEpoch=0,stateRequest=0,cancelPending=false;
  let data={revision:0,people:[],self:{name:'我',materials:[]},library:[],job:{status:'idle'}},ui={page:'ranch',tab:'profile',selected:null},busy=false,timer,noticeTimer,sources=[],disposed=false;
  const drafts=new Map();
  const sourceGate=createSourceRequestGate();
@@ -17,9 +18,16 @@ function mount(){
  const person=()=>ui.page==='self'?data.self:data.people.find(p=>p.id===ui.selected);
  async function api(action,body){const r=await fetch('/api/ranch-'+action,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json','X-Garden-Request':'1'},body:body===undefined?undefined:JSON.stringify(requestPayload(body,data.revision)),signal:abort.signal});let result;try{result=await r.json();}catch{throw new Error('服务返回了无法读取的内容，请稍后重试。');}if(!r.ok)throw new Error(r.status===409?'资料已在其他页面或操作中更新。你的输入仍保留，请先复制需要保留的修改，关闭并重新打开表单，核对最新内容后再保存。':result.error||result.message||'操作失败');return result;}
  function notice(text){if(!noticeEl)return;noticeEl.textContent=text;noticeEl.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>noticeEl.classList.remove('show'),6000);}
- function render(){if(disposed)return;const active=document.activeElement;const focusId=active?.id;const start=active?.selectionStart,end=active?.selectionEnd;app.innerHTML=renderRanch(data,{...ui,draft:drafts.get(target())||''});if(focusId&&active?.closest('#app')){const restored=document.getElementById(focusId);restored?.focus();if(restored?.setSelectionRange&&start!=null)restored.setSelectionRange(start,end);}}
- async function refresh(){data=await api('state');render();poll();}
- function poll(){clearTimeout(timer);timer=setTimeout(async()=>{try{const next=await api('state');const changed=next.revision!==data.revision||JSON.stringify(next.job)!==JSON.stringify(data.job);const previous=data.job?.status;data=next;if(changed)render();if(previous==='running'&&next.job?.status==='done')notice('已保存新的分析结果。');poll();}catch(err){if(err.name!=='AbortError'){notice('暂时无法连接服务，正在重试。');poll();}}},data.job?.status==='running'?1300:5000);}
+ function render(){if(disposed)return;const active=document.activeElement;const focusId=active?.id;const start=active?.selectionStart,end=active?.selectionEnd;app.innerHTML=renderRanch(data,{...ui,stopping:cancelPending,draft:drafts.get(target())||''});if(focusId&&active?.closest('#app')){const restored=document.getElementById(focusId);restored?.focus();if(restored?.setSelectionRange&&start!=null)restored.setSelectionRange(start,end);}}
+ async function refresh(announce=false){
+  const request=++stateRequest,next=await api('state');
+  if(disposed||request!==stateRequest)return;
+  const previous=data.job,changed=next.revision!==data.revision||JSON.stringify(next.job)!==JSON.stringify(previous);
+  data=next;if(changed||!announce)render();
+  if(announce&&jobActive(previous)&&previous.id===next.job?.id&&previous.targetId===next.job?.targetId&&next.job?.status==='done'&&jobForPage(next.job,ui))notice('已保存新的分析结果。');
+  poll();
+ }
+ function poll(){if(disposed)return;clearTimeout(timer);timer=setTimeout(async()=>{try{await refresh(true);}catch(err){if(err.name!=='AbortError'&&!disposed){notice('暂时无法连接服务，正在重试。');poll();}}},jobActive(data.job)?1300:5000);}
  function open(title,content){dialogEpoch++;modal.className='ranch-dialog';modal.innerHTML=`<button class="dialog-close" data-action="close" aria-label="关闭">×</button><div class="eyebrow">THE LITTLE RANCH</div><h2>${title}</h2><p class="dialog-error" role="alert"></p>${content}`;modal.querySelectorAll('form').forEach(form=>{form.dataset.revision=String(data.revision);form.dataset.targetId=target()||'';});if(!modal.open)modal.showModal();modal.querySelector('input,textarea,select')?.focus();}
  const field=(label,name,value='',type='input',extra='')=>`<label class="field">${label}${type==='textarea'?`<textarea name="${name}" rows="3" ${extra}>${esc(value)}</textarea>`:`<input name="${name}" value="${esc(value)}" ${extra}/>`}</label>`;
  const submit=(text)=>`<div class="form-actions"><button type="button" data-action="close" class="secondary">取消</button><button type="submit" class="primary">${text}</button></div>`;
@@ -102,8 +110,15 @@ function mount(){
  if(action==='material-remove'){confirmDialog('移除这份材料？','依赖这份材料的画像与攻略会失效，需要重新生成。','material-remove',b.dataset.id);return;}
  if(action==='knowledge-delete'){confirmDialog('从书架移除资料？','这份资料及其保留书摘会被移除；引用它的攻略会一并移除，其余攻略标记为待更新。','knowledge-delete',b.dataset.id);return;}
  if(action==='knowledge-toggle'){const book=data.library.find(v=>v.id===b.dataset.id);await mutate(action,{id:book.id,enabled:!book.enabled},false);return;}
- if(action==='analyze'||action==='strategy'){if(data.job?.status==='running')return;await mutate(action,{id:target(),...(action==='strategy'?{situation:drafts.get(target())||''}:{})},false);return;}
- if(action==='cancel'){await mutate('cancel',{},false);return;}
+ if(action==='analyze'||action==='strategy'){if(jobActive(data.job))return;await mutate(action,{id:target(),...(action==='strategy'?{situation:drafts.get(target())||''}:{})},false);return;}
+ if(action==='cancel'){
+  if(cancelPending||data.job?.status==='cancelling')return;
+  const runId=b.dataset.runId;if(runId&&data.job?.id!==runId)return;
+  cancelPending=true;render();
+  try{await api('cancel',runId?{runId}:{});await refresh();}
+  catch(err){try{await refresh();}catch{}throw err;}
+  finally{cancelPending=false;render();}return;
+ }
  if(action==='copy'){await navigator.clipboard.writeText(b.dataset.reply||'');notice('参考回应已复制，可按自己的语气调整。');}
  }catch(err){notice(err.message);}}
  async function handleSubmit(event){const form=event.target.closest('form[data-form]');if(!form||!modal.contains(form))return;event.preventDefault();if(busy)return;const origin=context();const action=form.dataset.form;const body={...Object.fromEntries(new FormData(form)),revision:Number(form.dataset.revision)};const formTarget=form.dataset.targetId;if(['person-update','material-add','link-source','analyze','strategy'].includes(action))body.id=formTarget;if(action==='material-remove'){body.id=formTarget;body.materialId=form.dataset.id;}if(['person-delete','knowledge-delete'].includes(action))body.id=form.dataset.id;

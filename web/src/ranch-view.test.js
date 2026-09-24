@@ -34,3 +34,39 @@ test('a failed job exposes a dismiss action even after its target was deleted',(
  const html=renderRanch({...state,people:[],job:{status:'error',targetId:'deleted',error:'<script>旧错误</script>'}},{page:'ranch'});
  assert.match(html,/data-action="cancel"[^>]*>关闭提示/); assert.ok(!html.includes('<script>')); assert.match(html,/旧错误/);
 });
+test('v1 profile separates book methods, fact sources, counterevidence and limits',()=>{
+ const html=renderProfile({summary:'初步',knowledgeStatus:'used',knowledge:[{id:'K-1',title:'<书>',location:'第 1 节',text:'<方法>'}],facets:[{category:'交流',text:'有时偏好独处',kind:'inferred',evidenceIds:['m1'],knowledgeIds:['K-1'],counterEvidenceIds:['m2'],scope:'<仅当前材料>',confidenceReason:'<证据有限>'}],uncertainties:['<仍未知>']},{...person,materials:[{id:'m1',speaker:'them',text:'独处'},{id:'m2',speaker:'them',text:'也想聚会'}]});
+ assert.match(html,/聊天与自述依据/); assert.match(html,/书籍方法参考/); assert.match(html,/反证与不同情况/);assert.match(html,/也想聚会/);assert.match(html,/适用范围.*&lt;仅当前材料&gt;/);assert.match(html,/判断依据.*&lt;证据有限&gt;/);assert.match(html,/&lt;书&gt;/);assert.match(html,/&lt;方法&gt;/);assert.match(html,/&lt;仍未知&gt;/);assert.doesNotMatch(html,/<方法>|<书>/);
+});
+test('missing books and unmatched methods explicitly limit the profile',()=>{
+ for(const [knowledgeStatus,copy] of [['empty_library',/没有可用书籍/],['no_match',/未找到相关书籍方法/]])assert.match(renderProfile({summary:'有限认识',knowledgeStatus},person),copy);
+});
+test('profile cannot resolve books as facts or another persons material as target evidence',()=>{
+ const html=renderProfile({summary:'初步',knowledge:[{id:'K-1',title:'方法书',text:'书摘'}],facets:[{text:'判断',evidenceIds:['K-1','other','me'],knowledgeIds:['missing']}]},{...person,materials:[{id:'K-1',speaker:'them',text:'错误混入的书籍事实'},{id:'me',speaker:'me',text:'自己的发言不代表对方'}]},{materials:[{id:'other',speaker:'me',text:'他处发言'}]});
+ assert.doesNotMatch(html,/错误混入的书籍事实|他处发言|自己的发言不代表对方/);assert.match(html,/来源已不可用/);assert.match(html,/书籍方法来源已不可用/);
+});
+test('real phases and bounded escaped events belong only to their target page',()=>{
+ const job={id:'run-1',status:'running',kind:'profile',targetId:'p1',phase:'knowledge',step:2,maxSteps:6,message:'<正在检索>',events:[{seq:1,type:'phase',phase:'preparing',message:'<材料准备完毕>'}]};
+ const html=renderRanch({...state,job},{page:'person',selected:'p1',tab:'profile'});
+ assert.match(html,/检索书籍方法/);assert.match(html,/2\s*\/\s*6/);assert.match(html,/&lt;正在检索&gt;/);assert.match(html,/&lt;材料准备完毕&gt;/);assert.match(html,/data-run-id="run-1"/);
+ const switched=renderRanch({...state,job,people:[person,{...person,id:'p2',name:'另一人'}]},{page:'person',selected:'p2',tab:'profile'});
+ assert.doesNotMatch(switched,/正在检索|材料准备完毕|data-action="cancel"/);assert.match(switched,/data-action="analyze"[^>]*disabled/);
+});
+test('cancelling blocks both generation paths and interrupted preserves saved profile',()=>{
+ const data={...state,people:[{...person,profile:{summary:'已保存画像'}}],job:{id:'run-2',targetId:'p1',status:'cancelling'}};
+ for(const [tab,action] of [['profile','analyze'],['strategy','strategy']]){
+  const html=renderRanch(data,{page:'person',selected:'p1',tab});assert.match(html,/正在停止/);assert.match(html,new RegExp('data-action="'+action+'"[^>]*disabled'));assert.doesNotMatch(html,/data-action="cancel"/);
+ }
+ const html=renderRanch({...data,job:{...data.job,status:'interrupted'}},{page:'person',selected:'p1',tab:'profile'});
+ assert.match(html,/任务已中断/);assert.match(html,/已保存画像/);assert.doesNotMatch(html,/data-action="analyze"[^>]*disabled/);
+});
+test('switching people never carries over profile book excerpts',()=>{
+ const data={...state,people:[{...person,profile:{summary:'甲',knowledgeStatus:'used',knowledge:[{id:'K-a',title:'甲的方法',text:'甲的书摘'}]}},{...person,id:'p2',profile:{summary:'乙'}}]};
+ assert.match(renderRanch(data,{page:'person',selected:'p1',tab:'profile'}),/甲的书摘/);
+ assert.doesNotMatch(renderRanch(data,{page:'person',selected:'p2',tab:'profile'}),/甲的书摘/);
+});
+test('progress retains only the recent phase events and escapes the run attribute',()=>{
+ const events=Array.from({length:12},(_,i)=>({seq:i,type:'phase',phase:'evidence',message:`步骤-${i}`}));events.push({type:'internal',message:'不应展示的内部事件'});
+ const html=renderRanch({...state,job:{id:'" autofocus="bad',status:'running',targetId:'p1',events}},{page:'person',selected:'p1',tab:'profile'});
+ assert.doesNotMatch(html,/步骤-0<|步骤-3<|不应展示的内部事件|data-run-id="" autofocus=/);assert.match(html,/步骤-4</);assert.match(html,/步骤-11</);assert.match(html,/data-run-id="&quot; autofocus=&quot;bad"/);
+});
