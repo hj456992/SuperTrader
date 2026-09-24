@@ -105,6 +105,10 @@ class Probe:
         own = {m['id'] for m in self.person(after)['materials'] if m['speaker'] == ('me' if pid == 'self' else 'them')}
         if pid == 'self':
             own.update(m['id'] for m in after['self']['materials'] if m['speaker'] == 'me')
+            if any(after['self'].get(key, '').strip() for key in ('about', 'style', 'boundaries')):
+                own.add('self-description')
+        elif self.person(after).get('notes', '').strip():
+            own.add('person-notes')
         known = {piece['id'] for piece in profile.get('knowledge', [])}
         for facet in profile['facets']:
             evidence = set(facet.get('evidenceIds', []))
@@ -161,17 +165,24 @@ class Probe:
         before = self.state()
         self.require(len(before['library']) == 1, 'one-fictional-book')
         book_id = before['library'][0]['id']
-        old_refs = sum(len(target.get('profile', {}).get('knowledge', []))
-                       for target in [before['self'], self.person(before)] if target.get('profile'))
+        targets = [before['self'], self.person(before)]
+        old_refs = sum(piece.get('documentId') == book_id for target in targets
+                       if target.get('profile') for piece in target['profile'].get('knowledge', []))
+        history_refs = sum(piece.get('documentId') == book_id for target in targets
+                           for profile in target.get('analyses', []) for piece in profile.get('knowledge', []))
         after = self.command('knowledge-delete', id=book_id)
         self.require(not after['library'], 'book-removed')
         for target in [after['self'], self.person(after)]:
             for profile in [target.get('profile'), *target.get('analyses', [])]:
                 if profile:
-                    self.require(all(piece['documentId'] != book_id for piece in profile.get('knowledge', [])), 'deleted-book-current-history-revoked')
+                    self.require(all(piece['documentId'] != book_id for piece in profile.get('knowledge', [])), 'no-deleted-book-references-remain')
             for strategy in target.get('strategies', []):
                 self.require(strategy.get('stale'), 'strategy-marked-stale')
-        return {'previousBookReferences': old_refs}
+        if old_refs > 0 and history_refs > 0:
+            self.checks.append('deleted-book-current-history-revoked')
+        return {'previousBookReferences': old_refs, 'previousHistoryReferences': history_refs,
+                'currentRevocation': 'covered' if old_refs > 0 else 'not_covered',
+                'historyRevocation': 'covered' if history_refs > 0 else 'not_covered'}
 
 
 def main():

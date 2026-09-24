@@ -41,7 +41,7 @@
 8. 重新建立浏览会话，确认已保存本人/人物画像仍可读取。
 9. 重启中断检查：开启新画像并确认 running 后，仅对本任务进程做异常中断；正常 Ctrl+C 可能完成取消并持久化 cancelled，不能拿它强行验证 interrupted。异常中断后从同一 SHA/同一 schema/端口重启，期望旧 job=interrupted、旧已存画像保留、revision 未受运行进度影响。精确记录正常退出与异常中断的区别，不停止其他 PID。
 10. 删除虚构书籍前保存其 documentId 与画像 current/history 引用；调用 `/api/ranch-knowledge-delete` `{revision,id:书籍documentId}`，确认当前画像与 analyses 不再有可用的已删书引用，策略已被标为过期。未曾产生书摘引用时本项只能验证删除流程，不能宣称覆盖引用撤回。
-11. 取消/重启/删书变更完成后通知 TL 与前端，交接最终虚构状态供浏览器验收；此时保留本任务实例。未经协调不与前端同时取消或重启。
+11. 删书完成后重新上传同一虚构书籍，并运行本人、对方两次真实画像，重建有书成功状态；这是 TL 已明确授权的两次请求，不伪造引用。取消/重启/删书变更及状态恢复完成后通知 TL 与前端，交接最终虚构状态供浏览器验收；此时保留本任务实例。未经协调不与前端同时取消或重启。
 12. 前端验收结束并由 TL 协调后，停止本任务持有的进程，确认48749释放；核对 schema 精确归属后仅删除 `ailiao_profile_smoke_0e2d7c0a95d2` 及其对象。通过 pg_namespace 只读检查名称不存在，报告 PID退出、端口释放、schema清理布尔证据。
 
 ## 时间与失败处理
@@ -60,3 +60,5 @@ python3 tests/ops/profile_http_smoke.py --expected-sha "$SMOKE_SHA" --confirm-is
 ```
 
 不要并发执行这些阶段；每一阶段只输出检查名、状态及数量，不输出 Cookie、凭据、模型正文。重启中断检查与进程/schema清理由 ops 控制本任务 Popen 对象另行执行，不能由 HTTP 探针猜测或杀进程。此脚本目前仅通过语法/帮助入口验证，尚未对真实服务执行。
+
+TL 评审修订：白名单在自述/报告非空时允许 self-description/person-notes（本 fixture 当前为空，不额外造报告）。删书探针分别输出 currentRevocation/historyRevocation=covered 或 not_covered；只有删除前两个位置都真实存在匹配书籍引用，才记录整体撤回覆盖。未覆盖保持未覆盖，不构造模型引用来使测试通过。
