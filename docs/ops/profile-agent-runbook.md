@@ -57,7 +57,7 @@ GARDEN_PORT=48749 WECHAT_HISTORY_EMBEDDED=0 python3 run.py
 4. 从 `/api/ranch-state` 取 revision；调用 `POST /api/ranch-analyze`，分别以 `id:"self"` 和实际新建人物 id 验证。JSON 写请求需要该测试实例 Cookie、`Origin: http://127.0.0.1:48749`、`X-Garden-Request: 1`、`Content-Type: application/json`。Cookie 只保存在客户端内存，不写 curl cookie 文件。
 5. 轮询同一实例 state.job 到终态，核对真实阶段、runId、knowledgeStatus、实际读取的书摘和聊天引用，确认至少一次工具结果影响之后模型调用。保存后重新打开页面，检查画像仍可读取；修改相处目标不能重写画像事实。真实模型调用单独标记为真实 smoke，会使用既有模型服务。
 6. 新任务运行时用 `POST /api/ranch-cancel {runId}` 取消；确认最终 cancelled 且迟到结果未保存，再做旧 runId 不影响新任务检查。确切取消竞态以确定性 Java/QA 测试补充，不能只靠手动点击宣称覆盖。
-7. 中断检查仅针对自己在独立终端启动的测试进程：任务处于 running/cancelling 时 Ctrl+C，待该进程退出后按相同测试配置重启，确认 job 显示 interrupted，业务 revision 不因进度而增长，不宣称自动恢复模型任务。不使用 `pkill java`、`killall` 或扫描并终止其他实例。
+7. 中断检查仅针对本任务亲自创建并持有的测试进程：正常 Ctrl+C 可能完成取消并持久化 cancelled；验证 interrupted 时，在确认 running 后异常中断该测试进程，待其退出后按相同测试配置重启，确认旧 job 显示 interrupted、已存画像保留、业务 revision 不因进度而增长。不宣称自动恢复模型任务；不使用 `pkill java`、`killall` 或扫描并终止其他实例。
 
 ## 备份与回滚
 
