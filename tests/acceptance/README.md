@@ -43,3 +43,9 @@ MAVEN_OPTS='-Dmaven.repo.local=/Users/hou/Documents/Codex/2026-09-22/garden-prod
 `release` 离线运行全部 Java 测试 **包括独立 gates**，再运行全部前端与 QA Node 测试，不会因默认 Surefire 命名规则漏掉 gates。不要用过期共享 `~/.m2` 的合同替代后端核验的产物。
 
 `ProfileAgentAcceptanceRuntimeTest` 调用真实 RanchAnalyzer/ProfileRuntime/DSH AgentScope/工具调度器；仅复用后端测试 Harness 的插件装配，模型传输和内存 Repository 是测试边界。self/person 各做实际观察有/无配对：用材料预算先隐藏观察，经 book_search→chat_search→模型读取 tool-result 后返回不同输出，断言最终保存内容不同。取消与修订使用 latch 控制边界，保存优先场景断言并发取消不能把已保存结果改称 cancelled。静默流取消专门断言无任何 chunk 也必须有界释放，失败后才释放应急测试信号以免挂住套件。
+
+## Provider 传输数值门槛
+
+`ProfileAgentAcceptanceTransportTest` 只读 `${DSH_JAVA_HOME:-/Users/hou/Documents/Codex/projects/dsh-java}/plugins/model-deepseek/target/model-deepseek.jar`，反射调用真实插件的纯 `wireRequest` 转换并做真实 JSON 序列化。不会实例化网络 Adapter、读取密钥、调用 provider stream 或发 HTTP。
+
+它加载同一 JAR 的实际模型目录，将其元数据接入现有 ModelRegistry，再通过真实 AgentScope 的本人/对象两步链路，要求**每一次最终 provider JSON 的 max_tokens 是整数且恰为6000**。省略不接受：已核实目录默认是256000L，会扩大预算。另有控制用例证明实际 serializer 把6000d写成浮点6000.0、整数6000写成整数。构建环境必须准备这个现有插件产物；缺失时明确失败，不跳过此门槛。
