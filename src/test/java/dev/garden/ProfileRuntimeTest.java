@@ -15,8 +15,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProfileRuntimeTest {
  @Test void ownAndPersonProfilesUseRealToolObservationInSecondModelStep() throws Exception {
   for(String target:List.of("self","person")) {
-   var calls=new AtomicInteger();
+   var calls=new AtomicInteger();var sentLimits=new ArrayList<Object>();
    try(var harness=new Harness(request->{
+    sentLimits.add(request.get("maxTokens"));
     int step=calls.incrementAndGet();
     if(step==1)return tool("book_search","{\"query\":\"沟通\"}");
     assertTrue(request.get("messages").toString().contains("避免把一次表达当成稳定偏好"));
@@ -27,7 +28,9 @@ class ProfileRuntimeTest {
     var state=Store.JSON.createObjectNode();state.putArray("library").addObject().put("enabled",true);
     var result=runtime.generate(input,state,
       (query,limit)->book(),"test-"+target,()->false,(phase,step,message)->{},a->{});
-    assertEquals(2,calls.get());assertEquals("used",result.path("knowledgeStatus").asText());
+    assertEquals(2,calls.get());
+    for(var limit:sentLimits){assertTrue(Store.JSON.valueToTree(limit).isIntegralNumber(),"provider max_tokens must serialize as an integer: "+limit);assertEquals(6000,((Number)limit).intValue());}
+    assertEquals("used",result.path("knowledgeStatus").asText());
     assertEquals("K-demo-0",result.path("knowledge").get(0).path("id").asText());
     assertEquals("仅在本次表达中喜欢散步",result.path("summary").asText());
    }

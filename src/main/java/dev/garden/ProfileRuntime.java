@@ -69,6 +69,13 @@ final class ProfileRuntime {
      }
     }));
    }
+   // AgentOptions uses Double, while the provider requires an integer max_tokens.
+   // Normalize before prepareCall so the prepared config and transmitted budget stay identical.
+   ctx.own(ctx.waterfall().on("agent/request",(payload,next)->next.get().thenApply(proposed->{
+    var config=new LinkedHashMap<>(dev.dsh.contract.session.value.SessionJson.record(proposed));
+    config.put("maxTokens",6000);
+    return config;
+   }),false));
    // Some providers are silent while waiting on the network. Abort must cancel their subscription,
    // rather than waiting for another chunk before the base loop notices the signal.
    ctx.own(ctx.waterfall().on("llm/stream",(payload,next)->next.get().thenApply(stream->{

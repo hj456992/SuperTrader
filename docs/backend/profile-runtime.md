@@ -55,3 +55,11 @@ ProfileRuntimeTest.Harness 使用真实 PluginManager + Agent/Session/Projection
 QA 在 a59b21e 发现任务已 cancelled 但模型 provider 订阅没有收到取消，原 51 项测试未覆盖该断言。后端以原生 Flux.create（先登记 sink.onCancel，再通知已订阅）独立复现红测。根因是本机 Reactor 3.8.4 的 FluxTakeUntilOther：other.onError 只向下游发错误，不取消主订阅；other.onComplete 才执行 cancelMainAndComplete。应用作用域 abort Mono 因此改为 sink.success，Agent 的 aborted 信号及保存屏障保持不变。没有修改底座。
 
 针对性验证 `mvn -o -Dmaven.repo.local=.local/m2 -q -Dtest=RanchJobTest,ProfileBudgetTest test` 退出 0，7/7：用户取消与超时均断言真实 provider 取消回调，不能仅以任务终态代替释放。QA 将保留独立原断言复测。
+
+## 真实供应商整数预算兼容
+
+集成 smoke 首次 self-empty 在第 1 步被供应商拒绝：`max_tokens` 为浮点数 `6000.0`，接口要求 u32；业务 revision 保持不变、零保存。AgentOptions 合同的 maxTokens 为 Double，DeepSeekAdapter 将该 Number 原样序列化。DeepSeekCatalog 的省略默认是 256000L，不能通过省略字段放大原 6000 输出预算。
+
+应用现在在既有 agent/request 作用域瀑布、prepareCall 之前将 maxTokens 写为 Integer 6000，确保准备配置和最终请求的数字类型一致；未改公共合同或底座适配器。ProfileRuntimeTest 在真实 self/person 两步工具循环的每一次 provider 请求上断言整数类型和数值 6000，原 6000.0 已先复现失败。此修复没有再次发起真实模型请求，后续 smoke 仍由监督任务批准并由运维执行。
+
+该整数修复的后端完整 `mvn -o -Dmaven.repo.local=.local/m2 -q package` 退出 0，52/52。QA 已使用现有 DeepSeek target JAR 的真实 wireRequest 与 Jackson 复现修复前 `max_tokens=6000.0` 红门槛；修复后的独立序列化验收由 QA 报告。
