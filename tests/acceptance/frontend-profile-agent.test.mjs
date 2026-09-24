@@ -137,3 +137,14 @@ test('QA A16/A22: disposal during an outstanding state read neither cancels nor 
   assert.equal(ui.requests.filter(r=>r.body).length,0);
   assert.equal(ui.notice.textContent,'');
 });
+
+for (const status of ['error','interrupted']) test(`QA A22: ${status} close prompt works when backend preserves terminal job`,async t=>{
+  const initial=running();initial.job={...initial.job,status,error:'QA终态提示'};
+  const ui=mount(t,initial);await settle();
+  const close=ui.app.innerHTML.match(/<button data-action="([^"]+)"([^>]*)>关闭提示<\/button>/);
+  assert.ok(close,'terminal state should have dismiss action');
+  const runId=close[2].match(/data-run-id="([^"]+)"/)?.[1];
+  // The submitted backend preserves terminal outcomes on cancel; GET continues to return the same job.
+  ui.setPost(()=>({}));await ui.click(close[1],runId?{runId}:{});
+  assert.doesNotMatch(ui.app.innerHTML,/>关闭提示<\/button>/,'dismiss must hide terminal banner even if persisted outcome remains');
+});

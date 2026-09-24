@@ -7,8 +7,12 @@ case "${1:-baseline}" in
     "$MAVEN_BIN" test
     node --test web/src/*.test.js tests/acceptance/*.test.mjs
     ;;
+  release)
+    "$MAVEN_BIN" -o '-Dtest=*Test,ProfileAgentAcceptanceGates' test
+    node --test web/src/*.test.js tests/acceptance/*.test.mjs
+    ;;
   gates)
     "$MAVEN_BIN" -Dtest=ProfileAgentAcceptanceGates test
     ;;
-  *) echo 'Usage: tests/acceptance/run.sh [baseline|gates]' >&2; exit 2 ;;
+  *) echo 'Usage: tests/acceptance/run.sh [baseline|gates|release]' >&2; exit 2 ;;
 esac

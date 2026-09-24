@@ -31,3 +31,15 @@ tests/acceptance/run.sh gates
 - 重复取消安全；旧 runId 不能取消新任务；运行进度不增加业务 revision。
 
 这些流程目前是待接入的验收规格，不是已实现/已通过的循环或取消测试。不可用自建假循环来填充通过数。
+
+## 后端集成后统一门槛
+
+后端提供已有 DSH 产物的任务专用 Maven 仓库后，完整验收使用：
+
+```sh
+MAVEN_OPTS='-Dmaven.repo.local=/Users/hou/Documents/Codex/2026-09-22/garden-product-design/work/ailiao-upgrade/backend/.local/m2' tests/acceptance/run.sh release
+```
+
+`release` 离线运行全部 Java 测试 **包括独立 gates**，再运行全部前端与 QA Node 测试，不会因默认 Surefire 命名规则漏掉 gates。不要用过期共享 `~/.m2` 的合同替代后端核验的产物。
+
+`ProfileAgentAcceptanceRuntimeTest` 调用真实 RanchAnalyzer/ProfileRuntime/DSH AgentScope/工具调度器；仅复用后端测试 Harness 的插件装配，模型传输和内存 Repository 是测试边界。self/person 各做实际观察有/无配对：用材料预算先隐藏观察，经 book_search→chat_search→模型读取 tool-result 后返回不同输出，断言最终保存内容不同。取消与修订使用 latch 控制边界，保存优先场景断言并发取消不能把已保存结果改称 cancelled。静默流取消专门断言无任何 chunk 也必须有界释放，失败后才释放应急测试信号以免挂住套件。
