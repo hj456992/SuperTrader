@@ -1,0 +1,28 @@
+{
+  "fixtureNotice": "完全虚构的 QA 材料；不对应真实用户、聊天、书籍或出版物。",
+  "state": {
+    "revision": 7,
+    "self": {"name":"测试用户青禾","about":"","style":"","boundaries":"","profile":null,"materials":[
+      {"id":"M-self-direct","speaker":"me","text":"我喜欢提前一天确认安排。","at":"2026-01-01T08:00:00Z"}
+    ]},
+    "people": [
+      {"id":"person-lan","name":"虚构小岚","notes":"据用户描述，小岚最近工作忙。","goalType":"friendship","goal":"先认识朋友","stage":"egg","profile":null,"analyses":[],"strategies":[],"sourceLinks":[],"materials":[
+        {"id":"M-lan-1","speaker":"them","text":"我一般周末愿意散步。","at":"2026-01-02T08:00:00Z"},
+        {"id":"M-me-in-lan","speaker":"me","text":"我喜欢提前确认集合时间。","at":"2026-01-02T08:01:00Z"},
+        {"id":"M-context","speaker":"context","text":"旁人说：小岚每次都会参加。<script>fake()</script>","at":"2026-01-02T08:02:00Z"},
+        {"id":"M-lan-counter","speaker":"them","text":"但这个周末我只想休息，请不要替我确认散步。","at":"2026-01-03T08:00:00Z"}
+      ]},
+      {"id":"person-yu","name":"虚构小屿","notes":"","goalType":"friendship","goal":"聊园艺","stage":"egg","profile":null,"analyses":[],"strategies":[],"sourceLinks":[],"materials":[
+        {"id":"M-yu-1","speaker":"them","text":"我每个周末都参加长跑。","at":"2026-01-04T08:00:00Z"},
+        {"id":"M-me-in-yu","speaker":"me","text":"我临时有事会提前说明。","at":"2026-01-04T08:01:00Z"}
+      ]}
+    ],
+    "library": [{"id":"qa-method","title":"虚构倾听练习","enabled":true}]
+  },
+  "book": {"id":"qa-method","title":"虚构倾听练习","pages":[
+    {"location":"虚构第1节","text":"倾听时先确认具体情境和当前意愿。遇到冲突证据，应保留不确定性，不把一般偏好当作本次同意。"},
+    {"location":"虚构第2节","text":"园艺浇水应检查土壤湿度。"}
+  ]},
+  "legacyProfile": {"summary":"小岚曾表达周末散步的意愿，当前是否参加仍需确认。","facets":[{"category":"活动","text":"一般愿意周末散步。","kind":"explicit","evidenceIds":["M-lan-1"]}],"uncertainties":["不能把一般意愿当作本次同意。"],"createdAt":"2026-01-02T09:00:00Z","stale":false,"model":"qa-fiction"},
+  "loopOracle": {"initialEvidenceId":"M-lan-1","observationEvidenceId":"M-lan-counter","bookQuery":"倾听 当前意愿 冲突证据","forbiddenSummary":"已同意本周末散步","requiredSummary":"本周末希望休息，不能视为已同意散步。"}
+}
