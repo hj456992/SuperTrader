@@ -1,0 +1,20 @@
+{
+  "notice": "All content is fictional and created only for the isolated profile smoke test.",
+  "self": {"name": "小禾", "about": "", "style": "", "boundaries": ""},
+  "person": {"name": "林舟", "goalType": "friendship", "goal": "通过一次轻松散步了解对方的日常安排。", "notes": ""},
+  "materials": [
+    {"target": "self", "speaker": "me", "label": "虚构本人材料一", "text": "小禾：我安排见面前会先确认自己的时间。我喜欢把计划写下来，再答复对方。"},
+    {"target": "self", "speaker": "me", "label": "虚构本人材料二", "text": "小禾：上次临时改时间让我有些慌张；如果提前告诉我，我比较容易调整。"},
+    {"target": "person", "speaker": "them", "label": "虚构人物材料一", "text": "林舟：我喜欢提前一天约好散步的时间，不太习惯临时改变地点。"},
+    {"target": "person", "speaker": "them", "label": "虚构人物材料二", "text": "林舟：周末我通常想在安静的地方散步。不过如果朋友急需帮忙，我也会临时调整计划。"},
+    {"target": "person", "speaker": "me", "label": "虚构本人跨人物材料", "text": "小禾：我这周要先核对自己的安排，确认后再回复你。"},
+    {"target": "person", "speaker": "context", "label": "虚构背景，不得归给目标", "text": "旁人苏遥：我每天参加大型聚会，喜欢热闹的人群。"}
+  ],
+  "book": {
+    "filename": "fictional-profile-method.txt",
+    "title": "虚构练习册：谨慎理解沟通与计划偏好",
+    "text": "本篇完全虚构，仅用于软件验收。人物画像、沟通倾向、时间安排、计划偏好、边界与冲突证据的观察方法：先区分每个人自己的发言与旁人的背景，再区分直接表达和推断。反复表达提前安排，可以谨慎概括为当前情境下重视可预期的沟通；不能因此诊断稳定人格。遇到临时调整的例子，需要保留反例与具体条件。理解自己和他人的沟通时，先复述明确表达，再提出开放问题核实，不把资料不足变成确定结论。这些方法不是任何人物的事实证据。"
+  },
+  "changedGoal": "仅保持普通朋友关系，尊重双方独立安排。",
+  "strategySituation": "我想询问林舟下周是否愿意一起散步，我自己的空闲时间尚未确定。"
+}
