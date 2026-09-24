@@ -88,6 +88,13 @@ class ProfileAgentAcceptanceRuntimeTest {
                     var saved=RanchData.target(repo.read(),target).path("profile");summaries.add(saved.path("summary").asText());
                     assertEquals(id,saved.path("runId").asText());assertEquals("used",saved.path("knowledgeStatus").asText());assertEquals(BOOK,saved.path("knowledge").get(0).path("id").asText());
                     assertEquals(8,repo.read().path("revision").asInt());assertEquals(7,saved.path("basedOnRevision").asInt());
+                    assertFalse(repo.jobs.toString().contains(phrase),"job events must not expose original chat");
+                    var phases=new HashSet<String>();
+                    for(var job:repo.jobs) {
+                        phases.add(job.path("phase").asText());assertTrue(job.path("events").size()<=32);assertTrue(job.path("step").asInt()<=6);
+                        int seq=0;for(var event:job.path("events")){assertTrue(event.path("seq").asInt()>seq);seq=event.path("seq").asInt();assertEquals("phase",event.path("type").asText());}
+                    }
+                    assertTrue(phases.containsAll(Set.of("knowledge","evidence","validating","saving","finished")));
                 }
             }
             assertNotEquals(summaries.get(0),summaries.get(1),"changing actual observations must change committed content");
@@ -107,11 +114,18 @@ class ProfileAgentAcceptanceRuntimeTest {
     }
 
     @Test void invalidPersonAndNeverReadBookIdsNeverReachPersistence()throws Exception {
-        for(String invalid:List.of("other-person","book-never-read","other-counter")) {
+        for(String invalid:List.of("other-person","book-never-read","other-counter","known-but-unread-chat")) {
             var repo=new Repo();var calls=new AtomicInteger();var result=output("拒绝保存。","M-lan-1",null,true);var facet=(ObjectNode)result.path("facets").get(0);
             if(invalid.equals("other-person"))facet.withArray("evidenceIds").add("M-yu-1");
             if(invalid.equals("book-never-read"))facet.putArray("knowledgeIds").add("K-qa-method-1"); // Exists in library, query below reads only page 1.
             if(invalid.equals("other-counter"))facet.withArray("counterEvidenceIds").add("M-me-in-lan");
+            if(invalid.equals("known-but-unread-chat")) {
+                var person=RanchData.target(repo.state,"person-lan");
+                ((ObjectNode)person.path("materials").get(0)).put("at","2026-01-07T00:00:00Z");
+                for(int i=0;i<160;i++)person.withArray("materials").addObject().put("id","unread-padding-"+i).put("speaker","them").put("text","QA中性片段").put("at","2026-01-06T00:00:00Z");
+                assertFalse(RanchData.profileInput(RanchData.input(repo.state,"person-lan")).toString().contains("M-lan-counter"));
+                facet.withArray("evidenceIds").add("M-lan-counter");
+            }
             try(var h=new ProfileRuntimeTest.Harness(r->calls.incrementAndGet()==1?ProfileRuntimeTest.tool("book_search","{\"query\":\"冲突证据\"}"):ProfileRuntimeTest.answer(result.toString()));var a=analyzer(h,repo)) {
                 a.start(repo.read(),"person-lan","profile","");awaitTerminal(a);assertEquals("error",a.status().get("status"),invalid);assertEquals(0,repo.saves);assertEquals(7,repo.read().path("revision").asInt());
             }
