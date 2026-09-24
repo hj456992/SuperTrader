@@ -107,3 +107,10 @@ for(const status of ['error','interrupted'])test(`closing ${status} is local, su
  assert.match(ui.app.innerHTML,/新任务检索/);await ui.click(close[1],{runId:close[2]});assert.match(ui.app.innerHTML,/新任务检索/);assert.equal(ui.requests.filter(r=>r.body).length,0);
  ui.setState({...initial,job:{...initial.job,id:'run-2'}});await ui.poll();assert.match(ui.app.innerHTML,/关闭提示/);
 });
+for(const action of ['new','edit'])test(`${action} person form explains that relationship goals cannot change profile facts`,async t=>{
+ const ui=mounted(t,{...runningState,job:{status:'idle'}});await settle();
+ if(action==='edit')await ui.click('person',{id:'p1'});
+ await ui.click(action);
+ assert.match(ui.modal.innerHTML,/name="goal"[^>]*>[^]*交往目标用于相处建议，不改变人物事实。/);
+ assert.equal(ui.requests.filter(r=>r.body).length,0);
+});
