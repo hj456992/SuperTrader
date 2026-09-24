@@ -2,7 +2,9 @@
 
 日期：2026-09-24。基线：`88cdbac`。工作树：`work/ailiao-upgrade/qa`，分支：`ailiao/qa-profile-agent`。本报告只声称已执行部分的结论。
 
-**最新结果（后端d4ed559、前端f6bd81b，与TL 33193f4生产代码一致）：完整release Java77/77、Node60/60，0失败/跳过。最终provider JSON每步max_tokens整数6000已通过真实插件serializer回归，见 `provider-transport-review.md`。原goal/知识引用、静默流取消与超时、终态提示关闭缺陷均有红绿证据并已通过。以下保留分阶段历史；最终范围与限制以 `runtime-profile-agent-review.md` 为准。实际模型/数据库/浏览器smoke仍由TL单列。**
+**最新定向结果（后端df23b58，与TL d62253a生产代码一致）：时间来源独立回归5/5通过，修复前5/5红；初始输入/聊天工具只提供确证spokenAt，采集回退不冒充发言时间，原存储与排序保持，见 `time-provenance-review.md`。本轮未重复TL的完整release或真实模型smoke。**
+
+**上一轮完整结果（后端d4ed559、前端f6bd81b，与TL 33193f4生产代码一致）：完整release Java77/77、Node60/60，0失败/跳过。最终provider JSON每步max_tokens整数6000已通过真实插件serializer回归，见 `provider-transport-review.md`。原goal/知识引用、静默流取消与超时、终态提示关闭缺陷均有红绿证据并已通过。以下保留分阶段历史；运行时范围与限制见 `runtime-profile-agent-review.md`。实际模型/数据库/浏览器smoke仍由TL单列。**
 
 ## 已执行的原始基线
 

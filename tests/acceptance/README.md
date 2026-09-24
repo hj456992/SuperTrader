@@ -49,3 +49,7 @@ MAVEN_OPTS='-Dmaven.repo.local=/Users/hou/Documents/Codex/2026-09-22/garden-prod
 `ProfileAgentAcceptanceTransportTest` 只读 `${DSH_JAVA_HOME:-/Users/hou/Documents/Codex/projects/dsh-java}/plugins/model-deepseek/target/model-deepseek.jar`，反射调用真实插件的纯 `wireRequest` 转换并做真实 JSON 序列化。不会实例化网络 Adapter、读取密钥、调用 provider stream 或发 HTTP。
 
 它加载同一 JAR 的实际模型目录，将其元数据接入现有 ModelRegistry，再通过真实 AgentScope 的本人/对象两步链路，要求**每一次最终 provider JSON 的 max_tokens 是整数且恰为6000**。省略不接受：已核实目录默认是256000L，会扩大预算。另有控制用例证明实际 serializer 把6000d写成浮点6000.0、整数6000写成整数。构建环境必须准备这个现有插件产物；缺失时明确失败，不跳过此门槛。
+
+## 材料时间来源门槛
+
+`ProfileAgentAcceptanceTimeTest` 使用虚构材料验证本人/对象初始消息和实际 chat_search/chat_context 工具结果：录入/采集/导入时间及仅有 sourceKey 的旧记录不得作为发言日期，只有有效的原始消息时间可传为 spokenAt。同时验证原 at 的最新材料排序、输入/state 不变，以及 Live 微信/飞书、Log、legacy 的时间来源映射。5项在修复前全红、df23b58后全绿；详见 `docs/qa/time-provenance-review.md`。模型传输使用既有 Harness 替身，不访问真实来源或网络。
