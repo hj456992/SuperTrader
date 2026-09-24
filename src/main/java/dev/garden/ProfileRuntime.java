@@ -75,9 +75,10 @@ final class ProfileRuntime {
     if(!(stream instanceof org.reactivestreams.Publisher<?> publisher))throw new IllegalStateException("模型未返回流");
     var signal=(AgentAbortSignal)((Map<?,?>)payload).get("signal");
     reactor.core.publisher.Mono<Void> abort=reactor.core.publisher.Mono.create(sink->{
-     var registration=signal.onAbort(()->sink.error(new CancellationException("画像模型调用已取消")));
+     // takeUntilOther cancels its main subscription on completion, not on other.onError.
+     var registration=signal.onAbort(sink::success);
      sink.onDispose(()->registration.dispose());
-     if(signal.aborted())sink.error(new CancellationException("画像模型调用已取消"));
+     if(signal.aborted())sink.success();
     });
     return reactor.core.publisher.Flux.from(publisher).takeUntilOther(abort);
    }),true));

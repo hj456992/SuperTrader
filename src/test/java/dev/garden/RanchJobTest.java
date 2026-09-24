@@ -29,6 +29,19 @@ class RanchJobTest {
    assertEquals("cancelled",analyzer.status().get("status"));assertEquals(id,analyzer.status().get("id"));assertTrue(repo.read().path("self").path("profile").isMissingNode());assertEquals(0,repo.saves);
   }finally{release.countDown();}
  }
+ @Test void cancellingSilentModelReleasesProviderSubscriptionBeforeReportingTerminal()throws Exception {
+  var entered=new CountDownLatch(1);var cancelled=new CountDownLatch(1);var repo=new MemoryRepository();
+  var source=new AtomicReference<reactor.core.publisher.FluxSink<Map<String,Object>>>();
+  try(var h=new ProfileRuntimeTest.Harness(r->reactor.core.publisher.Flux.<Map<String,Object>>create(sink->{
+    sink.onCancel(cancelled::countDown);source.set(sink);entered.countDown();
+   }));var analyzer=new RanchAnalyzer(h.context.require(dev.dsh.contract.llm.ModelRegistry.KEY),repo,new RanchKnowledge(repo),new ProfileRuntime(h.context))) {
+   analyzer.start(repo.read(),"self","profile","");assertTrue(entered.await(5,TimeUnit.SECONDS));
+   try {
+    analyzer.cancel();assertTrue(cancelled.await(2,TimeUnit.SECONDS),"Cancellation must reach the actual provider subscription");
+    awaitDone(analyzer);assertEquals("cancelled",analyzer.status().get("status"));assertEquals(0,repo.saves);
+   }finally{if(source.get()!=null)source.get().complete();}
+  }
+ }
  @Test void unfinishedPersistedJobBecomesInterruptedWithoutBusinessRevisionChange()throws Exception{
   var repo=new MemoryRepository();repo.job=Store.JSON.createObjectNode().put("status","running").put("id","prior");
   try(var analyzer=new RanchAnalyzer(null,repo,new RanchKnowledge(repo),null)){assertEquals("interrupted",analyzer.status().get("status"));assertEquals("interrupted",repo.readJob().path("status").asText());assertEquals(0,repo.read().path("revision").asInt());}

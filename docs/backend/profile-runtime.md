@@ -49,3 +49,9 @@ ProfileRuntimeTest.Harness 使用真实 PluginManager + Agent/Session/Projection
 最终后端本地验证：`mvn -o -Dmaven.repo.local=.local/m2 -q package` 退出 0，51 个 Java 测试、0 failures、0 errors。已检查产物 garden-demo.jar 不包含 dev/dsh 或 io/agentscope 类，避免插件类加载器内复制共享合同/SDK。日志中的 SLF4J 未配置 provider 警告和取消用例的预期异常不代表失败。实际 PostgreSQL HTTP smoke、真实模型质量验收及 QA 独立取消竞态门槛由监督任务整合，本提交不冒充已完成这些环境验证。
 
 运维 589728d 只读审查：run.py 的六个新插件及 garden inject 与本文一致，ModelRegistry 的键为 llmRuntime；未装配 SessionPersistence，保留内存会话。agent-loop 没有单独 readiness 服务，当前装配顺序在 garden 前；创建若遇到未注册 factory 会明确失败。未新增底座服务或启动预检 Agent。build.sh 需通过 MAVEN_OPTS 的 maven.repo.local 使用上述一致制品缓存。
+
+## QA 订阅释放缺陷修正
+
+QA 在 a59b21e 发现任务已 cancelled 但模型 provider 订阅没有收到取消，原 51 项测试未覆盖该断言。后端以原生 Flux.create（先登记 sink.onCancel，再通知已订阅）独立复现红测。根因是本机 Reactor 3.8.4 的 FluxTakeUntilOther：other.onError 只向下游发错误，不取消主订阅；other.onComplete 才执行 cancelMainAndComplete。应用作用域 abort Mono 因此改为 sink.success，Agent 的 aborted 信号及保存屏障保持不变。没有修改底座。
+
+针对性验证 `mvn -o -Dmaven.repo.local=.local/m2 -q -Dtest=RanchJobTest,ProfileBudgetTest test` 退出 0，7/7：用户取消与超时均断言真实 provider 取消回调，不能仅以任务终态代替释放。QA 将保留独立原断言复测。

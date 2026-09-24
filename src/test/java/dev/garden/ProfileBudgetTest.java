@@ -21,10 +21,11 @@ class ProfileBudgetTest {
   }
  }
  @Test void stalledModelTimesOutWithoutPartialResult()throws Exception{
-  var started=new java.util.concurrent.atomic.AtomicBoolean();
-  try(var h=new ProfileRuntimeTest.Harness(r->{started.set(true);return reactor.core.publisher.Flux.never();})){
+  var started=new java.util.concurrent.atomic.AtomicBoolean();var cancelled=new java.util.concurrent.atomic.AtomicBoolean();
+  try(var h=new ProfileRuntimeTest.Harness(r->{started.set(true);return reactor.core.publisher.Flux.<Map<String,Object>>never().doOnCancel(()->cancelled.set(true));})){
    assertThrows(java.util.concurrent.TimeoutException.class,()->new ProfileRuntime(h.context,Duration.ofSeconds(1)).generate(ProfileRuntimeTest.input("self"),Store.JSON.createObjectNode(),(q,l)->ProfileRuntimeTest.book(),"timeout",()->false,(a,b,c)->{},a->{}));
    assertTrue(started.get(),"timeout must exercise an actually subscribed silent model");
+   assertTrue(cancelled.get(),"timeout must cancel the subscribed provider");
   }
  }
 }
