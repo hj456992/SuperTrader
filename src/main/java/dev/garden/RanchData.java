@@ -50,7 +50,7 @@ final class RanchData {
  /** Include newest complete materials under a character budget; never truncate away speaker attribution. */
  static ObjectNode input(ObjectNode state,String id){
   var p=target(state,id);boolean self="self".equals(id);var out=Store.JSON.createObjectNode();
-  out.put("target",self?"self":"person");out.put("name",p.path("name").asText());
+  out.put("targetId",id);out.put("target",self?"self":"person");out.put("name",p.path("name").asText());
   if(self){for(var key:List.of("about","style","boundaries"))out.set(key,p.path(key));}
   else{out.put("notes",p.path("notes").asText());out.put("goalType",p.path("goalType").asText());out.put("goal",p.path("goal").asText());}
   var all=new ArrayList<JsonNode>();p.path("materials").forEach(all::add);
@@ -75,7 +75,7 @@ final class RanchData {
  }
  /** Physically separates non-target context from citable profile evidence. */
  static ObjectNode profileInput(ObjectNode input){
-  var result=input.deepCopy();var own=ownEvidence(input);var materials=result.putArray("materials");var context=result.putArray("conversationContext");
+  var result=input.deepCopy();result.remove(List.of("goal","goalType"));var own=ownEvidence(input);var materials=result.putArray("materials");var context=result.putArray("conversationContext");
   for(var material:input.path("materials")){if(own.contains(material.path("id").asText()))materials.add(material);else context.add(material);}
   var ids=result.putArray("allowedProfileEvidenceIds");own.stream().sorted().forEach(ids::add);return result;
  }
@@ -86,12 +86,17 @@ final class RanchData {
   for(var id:ids){if(!id.isTextual()||!allowed.contains(id.asText()))throw new IllegalArgumentException("unknown evidenceIds");if(required.contains(id.asText()))own=true;}
   if(!required.isEmpty()&&!own)throw new IllegalArgumentException("missing own evidence");
  }
- static void validateProfile(ObjectNode result,ObjectNode input){
+ static void validateProfile(ObjectNode result,ObjectNode input){validateProfile(result,input,Store.JSON.createArrayNode());}
+ static void validateProfile(ObjectNode result,ObjectNode input,ArrayNode knowledge){
+  var knownBooks=new HashSet<String>();knowledge.forEach(k->knownBooks.add(k.path("id").asText()));
   string(result,"summary",1600,true);var facets=result.path("facets");
   if(!facets.isArray()||facets.isEmpty()||facets.size()>12)throw new IllegalArgumentException("invalid facets");
   var own=ownEvidence(input);if(own.isEmpty())throw new IllegalArgumentException("missing personal evidence");
   for(var f:facets){string(f,"category",80,true);string(f,"text",600,true);
    if(!Set.of("explicit","inferred").contains(f.path("kind").asText()))throw new IllegalArgumentException("invalid kind");references(f.path("evidenceIds"),own,own);
+   if(f.has("knowledgeIds"))references(f.path("knowledgeIds"),knownBooks,Set.of());
+   if(f.has("counterEvidenceIds"))references(f.path("counterEvidenceIds"),own,Set.of());
+   for(var field:List.of("scope","confidenceReason"))if(f.has(field))string(f,field,800,false);
    if(f.path("evidenceIds").toString().contains("person-notes")&&f.path("kind").asText().equals("explicit"))throw new IllegalArgumentException("user report must be inferred");
   }
   if(!result.path("uncertainties").isArray()||result.path("uncertainties").size()>20)throw new IllegalArgumentException("invalid uncertainties");

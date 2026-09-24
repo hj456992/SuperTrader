@@ -21,7 +21,7 @@ SessionStore 是内存会话目录，SessionPersistence 在工厂中可选。本
 | agents | dsh-java-agent | plugins/agent/target/agent.jar | 无 |
 | prompt-context | dsh-java-context | plugins/context/target/context.jar | 无 |
 | tools | dsh-java-tools | plugins/tools/target/tools.jar | systemPrompt |
-| agent-loop | dsh-java-agent-loop | plugins/agent-loop/target/agent-loop.jar | agents,sessions,sessionProjections,systemPrompt,tools,toolScheduler,llm |
+| agent-loop | dsh-java-agent-loop | plugins/agent-loop/target/agent-loop.jar | agents,sessions,sessionProjections,systemPrompt,tools,toolScheduler,llmRuntime |
 | garden（已有） | 保留已有 name | garden-demo.jar | 原 inject 加 agents,systemPrompt,tools |
 
 不需要 presets、approval、fs-local、tool-fs、attachments、remote-gateway，也不需要新服务或数据库。工厂直接 followup 已准入的文本 UserMessage，不走附件/API-session 入口。新插件除已有业务 PG 写入均为进程内状态。应用 POM 增加 tools-contract provided；测试使用现有插件实现 test scope，生产 JAR 不打入底座/SDK 第二份类型。
@@ -33,3 +33,11 @@ SessionStore 是内存会话目录，SessionPersistence 在工厂中可选。本
 在运维预先提供的隔离数据库中，用虚构本人/人物材料及虚构 TXT 书籍，GET /api/ranch-state 取得 revision 后 POST /api/ranch-analyze {revision,id:"self"} 或人物 id；轮询 state.job 到终态，检查 profile.runId、knowledgeStatus/knowledge、进度事件与可核查引用。POST /api/ranch-cancel {runId} 定向取消。不得使用真实聊天/运行数据库作测试夹具。
 
 当前证据：合同源码核验；后续将追加确定性真实底座装配测试结果。此文不声称已通过真实模型 smoke。
+
+## 确定性装配验证与构建缓存
+
+本机共享 ~/.m2/repository 的旧 SNAPSHOT 缺少 Agent.whenIdle/scoped ToolRegistry；不得使用其成功编译作为新路径验证。当前 backend/.local/m2 是该缓存的独立 APFS clone，dev/dsh 的 JAR 已替换为 dsh-java 现有 target 制品（2026-09-22）；未修改共享缓存或底座源码。命令：`/Users/hou/.local/apache-maven-3.9.16/bin/mvn -o -Dmaven.repo.local=.local/m2 test`。其它角色可将该目录绝对路径作为 maven.repo.local；发布构建须采用一致的新合同/插件/host 制品。
+
+ProfileRuntimeTest.Harness 使用真实 PluginManager + Agent/Session/Projection/Context/Tools/ModelRegistry/AgentLoop 插件，只替换 ModelRegistry.AdapterCall.stream。其 self/person 两步检索测试已通过；ProfileToolBoundaryTest 实际三步执行书籍检索、冲突上下文检索、再生成改变后的结果，并拒绝跨会话展开。RanchJobTest 覆盖任务身份、进度不增 revision、模型运行中取消不保存、旧 runId 不取消当前任务、重启中断。模型替身包含真实 block-end 完整块协议。所有材料均为测试中虚构文本，没有真实模型调用。
+
+保存前校验为 `RanchData.validateProfile(result, readInput, actualReadKnowledge)`，只承认实际进入初始输入/工具观察的材料；两参兼容入口不允许书籍引用。补查观察明确给出新增白名单。删除书籍会移除引用它的当前及历史画像，禁用则标记过期。

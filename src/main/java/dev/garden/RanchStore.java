@@ -6,7 +6,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 /** Isolated documents; legacy conversation storage is never migrated or rewritten. */
-final class RanchStore {
+final class RanchStore implements RanchRepository {
     RanchStore() throws Exception {
         try(var c=connect();var s=c.createStatement()) {
             s.execute("CREATE TABLE IF NOT EXISTS garden_ranch_documents (id text PRIMARY KEY, document jsonb NOT NULL)");
@@ -24,7 +24,7 @@ final class RanchStore {
         p.setProperty("connectTimeout","5");p.setProperty("socketTimeout","15");
         return new org.postgresql.Driver().connect(System.getenv("GARDEN_DB_URL"),p);
     }
-    synchronized ObjectNode read() throws Exception {return get("state");}
+    public synchronized ObjectNode read() throws Exception {return get("state");}
     private ObjectNode get(String id) throws Exception {
         try(var c=connect();var q=c.prepareStatement("SELECT document::text FROM garden_ranch_documents WHERE id=?")) {
             q.setString(1,id);try(var rows=q.executeQuery()) {
@@ -33,7 +33,7 @@ final class RanchStore {
             }
         }
     }
-    synchronized ObjectNode update(long expected,Consumer<ObjectNode> mutation) throws Exception {
+    public synchronized ObjectNode update(long expected,Consumer<ObjectNode> mutation) throws Exception {
         var state=read();
         if(state.path("revision").asLong()!=expected)throw new IllegalStateException("资料已更新，请刷新后重试。");
         mutation.accept(state);state.put("revision",expected+1);
@@ -43,13 +43,24 @@ final class RanchStore {
         }
         return state;
     }
-    synchronized void putBook(String id,ObjectNode book) throws Exception {
+    public synchronized void putBook(String id,ObjectNode book) throws Exception {
         try(var c=connect();var q=c.prepareStatement("INSERT INTO garden_ranch_documents VALUES (?,?::jsonb)")) {
             q.setString(1,"book:"+id);q.setString(2,book.toString());q.executeUpdate();
         }
     }
-    synchronized ObjectNode book(String id) throws Exception {return get("book:"+id);}
-    synchronized void deleteBook(String id) throws Exception {
+    public synchronized ObjectNode book(String id) throws Exception {return get("book:"+id);}
+    public synchronized void deleteBook(String id) throws Exception {
         try(var c=connect();var q=c.prepareStatement("DELETE FROM garden_ranch_documents WHERE id=?")) {q.setString(1,"book:"+id);q.executeUpdate();}
+    }
+    /** Runtime progress has its own document and never increments business revision. */
+    public synchronized ObjectNode readJob() throws Exception {
+        try(var c=connect();var q=c.prepareStatement("SELECT document::text FROM garden_ranch_documents WHERE id='profile-job'")) {
+            try(var rows=q.executeQuery()){return rows.next()?(ObjectNode)Store.JSON.readTree(rows.getString(1)):Store.JSON.createObjectNode().put("status","idle");}
+        }
+    }
+    public synchronized void writeJob(ObjectNode job) throws Exception {
+        try(var c=connect();var q=c.prepareStatement("INSERT INTO garden_ranch_documents VALUES ('profile-job',?::jsonb) ON CONFLICT (id) DO UPDATE SET document=EXCLUDED.document")) {
+            q.setString(1,job.toString());q.executeUpdate();
+        }
     }
 }

@@ -12,7 +12,7 @@ final class RanchService {
  Object command(String action,JsonNode body)throws Exception{
   if("source-list".equals(action))return sources.platformCatalog(RanchData.text(body,"platform",30));
   if("source-members".equals(action))return sources.liveMembers(RanchData.text(body,"conversationId",200));
-  if("cancel".equals(action)){analyzer.cancel();return state();}
+  if("cancel".equals(action)){analyzer.cancel(RanchData.text(body,"runId",100));return state();}
   if(!body.path("revision").canConvertToLong()||body.path("revision").asLong()<0)throw new IllegalArgumentException("缺少有效版本，请刷新。");
   long revision=body.path("revision").asLong();
   if(action.startsWith("knowledge-"))return knowledge.command(action,body);

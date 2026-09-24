@@ -11,8 +11,8 @@ import java.util.regex.Pattern;
 
 /** Local passage retrieval. Books supply methods, never evidence about a person. */
 final class RanchKnowledge {
-    private final RanchStore store;
-    RanchKnowledge(RanchStore store) {this.store=store;}
+    private final RanchRepository store;
+    RanchKnowledge(RanchRepository store) {this.store=store;}
 
     ArrayNode retrieve(ObjectNode state,String query,int limit) throws Exception {
         var passages=Store.JSON.createArrayNode();
@@ -55,6 +55,7 @@ final class RanchKnowledge {
             if(action.equals("knowledge-delete"))library.remove(found);
             else ((ObjectNode)library.get(found)).put("enabled",body.path("enabled").asBoolean());
             invalidateStrategies(s);
+            invalidateProfiles(s,id,action.equals("knowledge-delete"));
             // Deletion also removes retained quotes, not only their visible metadata.
             if(action.equals("knowledge-delete"))for(var person:s.path("people")) {
                 var strategies=(ArrayNode)person.path("strategies");
@@ -68,6 +69,19 @@ final class RanchKnowledge {
         if(action.equals("knowledge-delete"))store.deleteBook(id);
         return updated;
     }
+    /** Removing a source clears retained profile quotes as well as current pointers. */
+    private static void invalidateProfiles(ObjectNode state,String documentId,boolean deleted) {
+        var targets=new ArrayList<JsonNode>();targets.add(state.path("self"));state.path("people").forEach(targets::add);
+        for(var target:targets)if(target instanceof ObjectNode person){
+            if(referencesBook(person.path("profile"),documentId)){
+                if(deleted)person.putNull("profile");else ((ObjectNode)person.path("profile")).put("stale",true);
+            }
+            if(person.path("analyses") instanceof ArrayNode history)for(int i=history.size()-1;i>=0;i--)if(referencesBook(history.get(i),documentId)){
+                if(deleted)history.remove(i);else ((ObjectNode)history.get(i)).put("stale",true);
+            }
+        }
+    }
+    private static boolean referencesBook(JsonNode profile,String id){for(var passage:profile.path("knowledge"))if(passage.path("documentId").asText().equals(id))return true;return false;}
     private static void invalidateStrategies(ObjectNode state) {
         for(var p:state.path("people"))for(var strategy:p.path("strategies"))((ObjectNode)strategy).put("stale",true);
     }

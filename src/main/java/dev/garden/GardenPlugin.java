@@ -21,7 +21,7 @@ public final class GardenPlugin implements Plugin {
                 });
                 var ranchStore = new RanchStore();
                 var knowledge = new RanchKnowledge(ranchStore);
-                var ranchAnalyzer = new RanchAnalyzer(context.require(ModelRegistry.KEY), ranchStore, knowledge);
+                var ranchAnalyzer = new RanchAnalyzer(context.require(ModelRegistry.KEY), ranchStore, knowledge, new ProfileRuntime(context));
                 var liveSources = new RanchLiveSources(context.require(new ServiceKey<>("feishu.browse", java.util.function.Function.class)));
                 context.own(() -> {liveSources.close(); return CompletableFuture.completedFuture(null);});
                 var ranch = new RanchService(ranchStore, ranchAnalyzer, knowledge, new RanchSources(store,liveSources));
