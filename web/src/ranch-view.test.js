@@ -32,7 +32,7 @@ test('historical profiles remain inspectable with their own evidence and uncerta
 });
 test('a failed job exposes a dismiss action even after its target was deleted',()=>{
  const html=renderRanch({...state,people:[],job:{status:'error',targetId:'deleted',error:'<script>旧错误</script>'}},{page:'ranch'});
- assert.match(html,/data-action="cancel"[^>]*>关闭提示/); assert.ok(!html.includes('<script>')); assert.match(html,/旧错误/);
+ assert.match(html,/data-action="dismiss-job"[^>]*>关闭提示/); assert.ok(!html.includes('<script>')); assert.match(html,/旧错误/);
 });
 test('v1 profile separates book methods, fact sources, counterevidence and limits',()=>{
  const html=renderProfile({summary:'初步',knowledgeStatus:'used',knowledge:[{id:'K-1',title:'<书>',location:'第 1 节',text:'<方法>'}],facets:[{category:'交流',text:'有时偏好独处',kind:'inferred',evidenceIds:['m1'],knowledgeIds:['K-1'],counterEvidenceIds:['m2'],scope:'<仅当前材料>',confidenceReason:'<证据有限>'}],uncertainties:['<仍未知>']},{...person,materials:[{id:'m1',speaker:'them',text:'独处'},{id:'m2',speaker:'them',text:'也想聚会'}]});
@@ -78,4 +78,13 @@ test('strategy describes target profile and both parties materials without requi
  const html=renderRanch(state,{page:'person',selected:'p1',tab:'strategy'});
  assert.match(html,/结合目标画像、双方材料、关系目标与启用资料/);
  assert.doesNotMatch(html,/结合双方画像/);
+});
+test('cancelled banner only promises a saved profile when its own target has one',()=>{
+ const job={id:'run-1',status:'cancelled',targetId:'p1',kind:'profile'};
+ const noProfile=renderRanch({...state,job},{page:'person',selected:'p1',tab:'profile'});
+ assert.match(noProfile,/任务已停止/);assert.doesNotMatch(noProfile,/已保存的画像仍可查看/);
+ const withProfile=renderRanch({...state,job,people:[{...person,profile:{summary:'已有画像'}}]},{page:'person',selected:'p1',tab:'profile'});
+ assert.match(withProfile,/已保存的画像仍可查看/);
+ const selfMissing=renderRanch({...state,job:{...job,targetId:'self'},people:[{...person,profile:{summary:'他人已有画像'}}]},{page:'self',tab:'profile'});
+ assert.doesNotMatch(selfMissing,/已保存的画像仍可查看/);
 });

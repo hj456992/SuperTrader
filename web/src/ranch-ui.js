@@ -1,4 +1,4 @@
-import {jobActive, jobForPage} from './ranch-job.js';
+import {jobActive, jobForPage, jobIdentity} from './ranch-job.js';
 import {sourceSelection, sourceFields, conversationOptions, platformNames, sourcePlatform, createSourceRequestGate, sourceReady} from './ranch-sources.js';
 import {esc, renderRanch} from './ranch-view.js';
 export const name='ranch-ui';
@@ -108,9 +108,13 @@ function mount(){
  if(action==='link-source'){await sourceDialog();return;}if(action==='upload'){uploadDialog();return;}
  if(action==='delete-person'){confirmDialog('移除这位伙伴？','此人的材料、画像与攻略将一并移除；原有聊天记录保留。','person-delete',target());return;}
  if(action==='material-remove'){confirmDialog('移除这份材料？','依赖这份材料的画像与攻略会失效，需要重新生成。','material-remove',b.dataset.id);return;}
- if(action==='knowledge-delete'){confirmDialog('从书架移除资料？','这份资料及其保留书摘会被移除；相关画像中的引用将失效，需重新生成。引用它的攻略会一并移除，其余攻略标记为待更新。','knowledge-delete',b.dataset.id);return;}
+ if(action==='knowledge-delete'){confirmDialog('从书架移除资料？','这份资料及其保留书摘会被移除；引用它的相关当前及历史画像会被移除，需重新生成。引用它的攻略会一并移除，其余攻略标记为待更新。','knowledge-delete',b.dataset.id);return;}
  if(action==='knowledge-toggle'){const book=data.library.find(v=>v.id===b.dataset.id);await mutate(action,{id:book.id,enabled:!book.enabled},false);return;}
  if(action==='analyze'||action==='strategy'){if(jobActive(data.job))return;await mutate(action,{id:target(),...(action==='strategy'?{situation:drafts.get(target())||''}:{})},false);return;}
+ if(action==='dismiss-job'){
+  if(!['error','interrupted'].includes(data.job?.status)||(b.dataset.runId||'')!==(data.job?.id||''))return;
+  ui.dismissedJobId=jobIdentity(data.job);render();return;
+ }
  if(action==='cancel'){
   if(cancelPending||data.job?.status==='cancelling')return;
   const runId=b.dataset.runId;if(runId&&data.job?.id!==runId)return;

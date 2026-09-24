@@ -78,10 +78,10 @@ test('legacy jobs without run ids keep the existing cancel fallback',async t=>{
  const ui=mounted(t,{...runningState,job:{status:'running'}});await settle();await ui.click('cancel');assert.deepEqual(ui.requests.find(r=>r.url.endsWith('-cancel')).body,{revision:1});
 });
 
-test('knowledge deletion explains profile reference invalidation before removing anything',async t=>{
+test('knowledge deletion explains removal of current and historical profiles before removing anything',async t=>{
  const ui=mounted(t,{...runningState,job:{status:'idle'}});await settle();
  await ui.click('knowledge-delete',{id:'book-1'});
- assert.match(ui.modal.innerHTML,/画像.*引用.*失效.*重新生成/);
+ assert.match(ui.modal.innerHTML,/相关当前及历史画像会被移除.*重新生成/);
  assert.match(ui.modal.innerHTML,/引用它的攻略会一并移除/);
  assert.equal(ui.requests.filter(r=>r.body).length,0);
 });
@@ -95,4 +95,15 @@ test('successful upload announces availability for profiles and strategies',asyn
  ui.submit(form);await settle();
  assert.equal(ui.requests.filter(r=>r.url.endsWith('-knowledge-upload')).length,1);
  assert.match(ui.notice.textContent,/画像和攻略参考/);
+});
+for(const status of ['error','interrupted'])test(`closing ${status} is local, survives polling, and cannot hide a new run`,async t=>{
+ const initial={...runningState,job:{...runningState.job,status,error:'受控失败'}};
+ const ui=mounted(t,initial);await settle();await ui.click('person',{id:'p1'});
+ const close=ui.app.innerHTML.match(/<button data-action="([^"]+)"[^>]*data-run-id="([^"]+)"[^>]*>关闭提示/);assert.ok(close);
+ await ui.click(close[1],{runId:close[2]});
+ assert.doesNotMatch(ui.app.innerHTML,/关闭提示|受控失败|任务已中断/);assert.equal(ui.requests.filter(r=>r.body).length,0);
+ await ui.poll();await ui.click('library');await ui.click('person',{id:'p1'});assert.doesNotMatch(ui.app.innerHTML,/关闭提示|受控失败|任务已中断/);
+ ui.setState({...initial,job:{...initial.job,id:'run-2',status:'running',phase:'knowledge',message:'新任务检索'}});await ui.poll();
+ assert.match(ui.app.innerHTML,/新任务检索/);await ui.click(close[1],{runId:close[2]});assert.match(ui.app.innerHTML,/新任务检索/);assert.equal(ui.requests.filter(r=>r.body).length,0);
+ ui.setState({...initial,job:{...initial.job,id:'run-2'}});await ui.poll();assert.match(ui.app.innerHTML,/关闭提示/);
 });

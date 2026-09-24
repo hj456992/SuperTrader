@@ -33,3 +33,12 @@
 - 书架与上传成功提示补齐画像用途；策略说明改为目标画像、双方材料、关系目标与启用资料。
 - 删除确认补充相关画像引用失效、需重新生成，保留既有策略删除语义。审阅时后端删除分支尚未加入画像清理，已明确报 TL，A12 须在最终后端上核验。
 - 新增 4 项渲染/实际事件处理测试，先失败后通过；本次全套 Node 43/43、前端构建与差异格式检查通过。没有增加页面或功能。
+
+## 后端 1c345b2 合同审查与终态提示修复
+
+- 审查 HTTP 路由、job、profile：路由仍为 ranch-state/analyze/strategy/cancel，取消接收 runId，job.id/targetId/status/phase/step/maxSteps/message/events 和画像增量字段可由当前前端读取。
+- 在本工作树忽略的 `target/frontend-review/` 中，从 1c345b2 提取 RanchAnalyzer/RanchKnowledge/RanchData/RanchRepository 源码，使用已有依赖以 UTF-8 编译。虚构内存仓库直接调用实际 analyzer.cancel(run-1)：error 与 interrupted 均保持原 job，前端输出与点击前完全相同，复现“关闭提示”无效。该探针没有启动 HTTP/数据库/模型，不替代端到端验收。
+- 修复为单独的本地 dismiss-job 操作，按 runId 隐藏终态提示（旧 job 无 ID 时按完整 job 内容识别）；不发送取消 HTTP，也不修改后端状态。轮询/人物切换后保持隐藏，新 run 仍显示；旧关闭按钮不能隐藏或取消新 run。页面重开仍以服务保存的状态为准。
+- cancelled 文案按 job.targetId 对应的实际 profile 决定是否提及已保存画像。首次生成取消、或只有其他人物有画像时，不再声称已有画像可查看。
+- 3 项新增回归先失败后通过；全套 Node 46/46、前端构建及 diff 检查通过。
+- 另一个已复现并报告 TL 的文案问题：实际 knowledge-delete 将引用该书的当前 profile 置空、对应 analyses 整条删除；原弹窗只说引用失效。按 TL 后续授权，在同一修复提交中明确“引用它的相关当前及历史画像会被移除，需重新生成”，保留攻略移除/其余待更新说明，对应交互回归先红后绿。探针输出再由前端渲染，确认旧书摘和被删画像不再出现。未修改后端或改变删除语义。
