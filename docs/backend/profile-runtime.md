@@ -41,3 +41,11 @@ SessionStore 是内存会话目录，SessionPersistence 在工厂中可选。本
 ProfileRuntimeTest.Harness 使用真实 PluginManager + Agent/Session/Projection/Context/Tools/ModelRegistry/AgentLoop 插件，只替换 ModelRegistry.AdapterCall.stream。其 self/person 两步检索测试已通过；ProfileToolBoundaryTest 实际三步执行书籍检索、冲突上下文检索、再生成改变后的结果，并拒绝跨会话展开。RanchJobTest 覆盖任务身份、进度不增 revision、模型运行中取消不保存、旧 runId 不取消当前任务、重启中断。模型替身包含真实 block-end 完整块协议。所有材料均为测试中虚构文本，没有真实模型调用。
 
 保存前校验为 `RanchData.validateProfile(result, readInput, actualReadKnowledge)`，只承认实际进入初始输入/工具观察的材料；两参兼容入口不允许书籍引用。补查观察明确给出新增白名单。删除书籍会移除引用它的当前及历史画像，禁用则标记过期。
+
+追加预算验证：ProfileBudgetTest 已覆盖无启用书籍、无词项命中、模型连续要求工具时最多调用 6 次、1秒测试时限内模型停滞超时。运行预算耗尽给出明确失败文案，未产生可保存半截结果；生产时限仍为 110 秒。取消测试中底座会记录预期 aborted 异常；测试断言检查零保存，不将日志中存在取消异常视为失败。
+
+超时全量验证曾暴露底座只逐块检测取消的边界：静默模型流可能不发下一块。因此应用在已有 llm/stream 作用域瀑布将 AgentAbortSignal.onAbort 接到 Publisher 取消，确保无块等待也会撤销订阅；没有修改底座或另造循环。
+
+最终后端本地验证：`mvn -o -Dmaven.repo.local=.local/m2 -q package` 退出 0，51 个 Java 测试、0 failures、0 errors。已检查产物 garden-demo.jar 不包含 dev/dsh 或 io/agentscope 类，避免插件类加载器内复制共享合同/SDK。日志中的 SLF4J 未配置 provider 警告和取消用例的预期异常不代表失败。实际 PostgreSQL HTTP smoke、真实模型质量验收及 QA 独立取消竞态门槛由监督任务整合，本提交不冒充已完成这些环境验证。
+
+运维 589728d 只读审查：run.py 的六个新插件及 garden inject 与本文一致，ModelRegistry 的键为 llmRuntime；未装配 SessionPersistence，保留内存会话。agent-loop 没有单独 readiness 服务，当前装配顺序在 garden 前；创建若遇到未注册 factory 会明确失败。未新增底座服务或启动预检 Agent。build.sh 需通过 MAVEN_OPTS 的 maven.repo.local 使用上述一致制品缓存。

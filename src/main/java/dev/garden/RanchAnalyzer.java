@@ -62,7 +62,7 @@ final class RanchAnalyzer implements AutoCloseable {
      else RanchData.history(target,"strategies",result);target.put("updatedAt",RanchData.now());});
     finish(token,"done","本次结果已保存",null);
    }
-  }catch(Exception error){synchronized(this){if(active(token))finish(token,"error","本次任务未完成，请刷新资料后重试。",error instanceof TimeoutException||error instanceof CancellationException?"任务超过时限，未保存结果。":"模型、引用校验或资料版本检查失败，未保存本次结果。");}System.err.println("Ranch analysis failed: "+error.getClass().getSimpleName());}
+  }catch(Exception error){synchronized(this){if(active(token))finish(token,"error","本次任务未完成，请刷新资料后重试。",error instanceof ProfileRuntime.BudgetExceeded?"已达到6步预算，本次结果未保存。":error instanceof TimeoutException||error instanceof CancellationException?"任务超过时限，未保存结果。":"模型、引用校验或资料版本检查失败，未保存本次结果。");}System.err.println("Ranch analysis failed: "+error.getClass().getSimpleName());}
   finally{synchronized(this){agent=null;if(token.equals(job.get("id"))&&"cancelling".equals(job.get("status")))finish(token,"cancelled","任务已停止，本次结果未保存。",null);}}
  }
  private boolean active(String token){return token.equals(job.get("id"))&&"running".equals(job.get("status"));}

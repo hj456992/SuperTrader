@@ -15,6 +15,7 @@ import java.util.function.*;
 
 /** Application-scoped evidence tools around the existing DSH/AgentScope loop. */
 final class ProfileRuntime {
+ static final class BudgetExceeded extends IllegalStateException {BudgetExceeded(){super("画像已达到6步预算，未保存不完整结果");}}
  interface Search { ArrayNode retrieve(String query,int limit)throws Exception; }
  interface Progress { void update(String phase,int step,String message); }
  private final PluginContext context;
@@ -27,7 +28,7 @@ final class ProfileRuntime {
                      Progress progress,Consumer<Agent> onAgent)throws Exception {
   long deadline=System.nanoTime()+timeout.toNanos();
   var read=input.deepCopy();var passages=Store.JSON.createArrayNode();var searched=new AtomicBoolean();
-  var steps=new AtomicInteger();var corpus=corpus(input,state);
+  var budgetExceeded=new AtomicBoolean();var steps=new AtomicInteger();var corpus=corpus(input,state);
   BooleanSupplier stopped=()->cancelled.getAsBoolean()||System.nanoTime()>=deadline;
   var options=new CreateAgentOptions(runId,null,null,null,null,
     new AgentOptions("deepseek",Analyzer.MODEL,"off",6000d),null,(ctx,agent)->{
@@ -68,12 +69,24 @@ final class ProfileRuntime {
      }
     }));
    }
+   // Some providers are silent while waiting on the network. Abort must cancel their subscription,
+   // rather than waiting for another chunk before the base loop notices the signal.
+   ctx.own(ctx.waterfall().on("llm/stream",(payload,next)->next.get().thenApply(stream->{
+    if(!(stream instanceof org.reactivestreams.Publisher<?> publisher))throw new IllegalStateException("模型未返回流");
+    var signal=(AgentAbortSignal)((Map<?,?>)payload).get("signal");
+    reactor.core.publisher.Mono<Void> abort=reactor.core.publisher.Mono.create(sink->{
+     var registration=signal.onAbort(()->sink.error(new CancellationException("画像模型调用已取消")));
+     sink.onDispose(()->registration.dispose());
+     if(signal.aborted())sink.error(new CancellationException("画像模型调用已取消"));
+    });
+    return reactor.core.publisher.Flux.from(publisher).takeUntilOther(abort);
+   }),true));
    // Other installed tools must never become an escape from this read-only task.
    ctx.own(registry.registerGuard(ctx.scopeKey(),call->Set.of("book_search","chat_search","chat_context").contains(String.valueOf(call.get("name")))?null:"本任务仅允许画像只读检索工具"));
    ctx.own(ctx.waterfall().on("agent/pre-step",(payload,next)->{
     check(stopped);
     int step=((Number)((Map<?,?>)payload).get("step")).intValue();
-    if(step>6)throw new IllegalStateException("画像已达到6步预算，未保存不完整结果");
+    if(step>6){budgetExceeded.set(true);throw new BudgetExceeded();}
     steps.set(step);progress.update("reasoning",step,"正在结合已读取依据生成画像");return next.get();
    },true));
    // A model that forgets retrieval gets one in-loop reminder, within the same budget.
@@ -87,10 +100,11 @@ final class ProfileRuntime {
   AgentHandle handle=null;
   try {
    handle=creating.get(Math.max(1,deadline-System.nanoTime()),TimeUnit.NANOSECONDS);
-   var agent=handle.agent();onAgent.accept(agent);check(stopped);
+   var agent=handle.agent();onAgent.accept(agent);if(System.nanoTime()>=deadline)throw new TimeoutException("画像超过时限");check(cancelled);
    agent.followup(UserMessage.create(List.of(Map.of("type","text","text",input.toString())),Map.of("kind","profile")));
    agent.whenIdle().toCompletableFuture().get(Math.max(1,deadline-System.nanoTime()),TimeUnit.NANOSECONDS);
-   check(stopped);progress.update("validating",steps.get(),"正在核对人物与书籍引用");
+   if(budgetExceeded.get())throw new BudgetExceeded();
+   if(System.nanoTime()>=deadline)throw new TimeoutException("画像超过时限");check(cancelled);progress.update("validating",steps.get(),"正在核对人物与书籍引用");
    var result=finalResult(agent);RanchData.validateProfile(result,read,passages);
    result.put("knowledgeStatus",passages.isEmpty()?(hasBooks(state)?"no_match":"empty_library"):"used");
    var used=result.putArray("knowledge");var ids=new HashSet<String>();
