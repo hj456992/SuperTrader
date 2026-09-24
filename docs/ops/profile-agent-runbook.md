@@ -73,6 +73,8 @@ GARDEN_PORT=48749 WECHAT_HISTORY_EMBEDDED=0 python3 run.py
 
 ## 本轮 TL 授权的隔离位置与私有启动
 
+**清理状态：** 本轮验收完成后，TL已授权删除下述唯一临时schema，ops已验证其不存在。以下为历史启动方法；不能在未重新安排隔离位置时直接复用该schema。详见 `profile-real-smoke-report.md` 最终清理记录。
+
 2026-09-24 TL 授权在既有 `postgres` 维护库创建本任务临时 schema。ops 已创建 `ailiao_profile_smoke_0e2d7c0a95d2`，创建时为空；归属 ops/TL 本轮集成验收，未使用任何业务库数据。JDBC 必须严格为：
 
 ```text
