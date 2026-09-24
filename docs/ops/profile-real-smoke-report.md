@@ -62,3 +62,15 @@ probe修正仅允许当前job为running/profile/saving、job.id/targetId对应�
 - 按TL要求保留PID61019和独占schema，48749稳定revision18/job done，供前端浏览器与产品只读验收；没有清理或追加模型调用。
 - 产品对真实本人样本发现“将手动材料录入时间at当作发言日期”的语义问题，TL已交后端核对最小修复。该项未解决，不能把本表的结构链路通过称为全部业务验收通过。
 - 后续针对性复验及最终停进程/准确schema删除均待TL协调；旧版回滚未实际执行，不声称完成。
+
+## 时间语义修复：本人定向复验
+
+服务源 SHA：`d62253a121b0ae90476212b5245a53fa2c873089`；业务 JAR SHA-256：`a9a873e917958fdbc8f482f0c0dba5962ca0458b1960186f741ba459f4438711`，均在启动前核对。上一测试PID61019已按TL要求正常terminate退出143，48749普通bind成功；停机后独占schema的revision18与双方画像均保留。
+
+本版只启动PID66300，宿主10/10 active；仅调用一次 `Probe.profile('self','used')`，没有重跑setup、对方或策略。结果done、step2、4 facets、1书摘，引用及检索后再次模型调用断言通过，正式保存revision18→19。本次探针实际遇到受限saving过渡并继续等待done，最终只保存一次。
+
+额外只读扫描summary、facet text与uncertainties，没有“同一天/同一日/同日/当天”或具体日历日期格式；facet kind分布explicit2、inferred2。词句扫描不代替产品对语义是否谨慎、explicit是否准确的独立审阅，服务暂保留revision19供产品复核。
+
+测量说明：首次额外日期正则直接通过PTY输入中文时出现终端编码干扰，正则报错；此时画像调用及保存已经完成。仅对内存中已有文本用Unicode转义重做扫描，没有重复模型请求或修改生产代码。
+
+当前按TL指令保留PID66300/48749和准确schema，等待产品结论及最终清理指令。未输出模型全文、Cookie或凭据。
