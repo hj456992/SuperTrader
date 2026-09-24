@@ -6,6 +6,8 @@
 
 ## 先看文档
 
+- [画像 Agent 预检、独立 smoke 与回滚](docs/ops/profile-agent-runbook.md)：`python3 run.py --check` 只读检查；不会创建数据库或停止已有实例。
+
 - [架构评审入口](docs/README.md)：使用记录、现有架构、目标设计、修复与迁移方案。
 - [完整图解文字版](docs/architecture-review-20260924/架构评审.md)：12 条体验记录、11 张图、3 张虚构示例截图、10 项修复建议。
 - [离线交互阅读版](docs/architecture-review-20260924/index.html)：下载后用浏览器打开，支持分章阅读和图片放大。GitHub 文件页显示源码，不会直接运行 HTML。
@@ -64,6 +66,7 @@ run.py / build.sh          本地启动与构建
 - `app-boot/target/dsh-java.jar`
 - `plugins/model-registry/target/model-registry.jar`
 - `plugins/model-deepseek/target/model-deepseek.jar`
+- 画像 Agent 还需已有 session、session-projection、agent、context、tools、agent-loop 插件制品，确切装配见[运行手册](docs/ops/profile-agent-runbook.md)。
 - 前端 `frontend/src/bootstrap.js` 与 `frontend/vendor/plugins/dsh-client-modules/` 文件。
 
 还需要与当前构建兼容的 `@deepseek-ai/cordis`（本机使用 4.0.2）及 cosmokit 文件。仅安装 AgentScope SDK 不能替代这些底座合同。
@@ -80,8 +83,9 @@ run.py / build.sh          本地启动与构建
 | `GARDEN_WECHAT_PYTHON` | 微信适配器 Python，默认 `wechat-cli/.venv/bin/python` |
 | `GARDEN_WECHAT_SOURCE` | 本机已授权的微信来源配置路径；配置与密钥不得提交 |
 | `GARDEN_PORT` | 主应用端口，默认 48740 |
+| `JAVA_BIN` | 可选 Java 可执行文件路径；启动预检要求 Java 17 或更新版本 |
 
-脚本仍保留开发机默认路径。换电脑时需设置上述路径，不要直接照搬本机绝对路径。未提供 `GARDEN_DB_URL` 时，启动器会按原本机约定读取底座 `.local/postgres.env`，并检查 Docker 中的独立数据库；新环境建议显式配置三项数据库变量。
+脚本仍保留开发机默认路径。换电脑时需设置上述路径，不要直接照搬本机绝对路径。三项数据库变量均未设置时，启动器按原本机约定在内存读取底座 `.local/postgres.env`，使用已经存在的独立数据库；不再自动创建数据库。新环境建议显式配置三项数据库变量。
 
 ## 构建与运行
 
@@ -101,7 +105,8 @@ npm --prefix web ci --no-audit --no-fund
 mkdir -p web/dist/vendor
 npm --prefix web run build
 
-# 从当前终端继承模型与数据库环境变量
+# 从当前终端继承模型与数据库环境变量；先只读预检
+python3 run.py --check
 python3 run.py
 ```
 
