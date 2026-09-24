@@ -74,8 +74,9 @@ final class RanchLiveSources implements AutoCloseable {
    String name=m.path(platform.equals("feishu")?"sender":"memberName").asText("未知成员");
    String mid=platform.equals("feishu")?(name.equals("发言人未显示")?"unknown":"sender:"+name):m.path("memberId").asText("unknown");
    if(mid.isBlank())mid="unknown";
-   messages.addObject().put("id",id).put("text",text).put("memberId",mid).put("memberName",name)
+   var normalized=messages.addObject().put("id",id).put("text",text).put("memberId",mid).put("memberName",name)
     .put("isMe",platform.equals("wechat")&&m.path("isMe").asBoolean()).put("at",m.path("at").asText(raw.path("capturedAt").asText(Instant.now().toString())));
+   if(RanchData.validMessageTime(m.path("at").asText()))normalized.put("spokenAt",m.path("at").asText());
   }
   return messages;
  }

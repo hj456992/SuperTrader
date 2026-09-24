@@ -59,7 +59,7 @@ final class RanchData {
   var seen=new HashSet<String>();var selected=new ArrayList<JsonNode>();int chars=0;
   for(int i=all.size()-1;i>=0;i--){var m=all.get(i);if(!seen.add(m.path("id").asText()))continue;
    if(selected.size()>=160||chars+m.toString().length()>42000)continue;selected.add(m);chars+=m.toString().length();}
-  Collections.reverse(selected);var materials=out.putArray("materials");selected.forEach(materials::add);
+  Collections.reverse(selected);var materials=out.putArray("materials");selected.forEach(m->materials.add(modelMaterial(m)));
   out.putObject("coverage").put("used",selected.size()).put("total",all.size());return out;
  }
  /** Missing/invalid timestamps sort before dated materials; stable sort preserves ties. */
@@ -67,6 +67,14 @@ final class RanchData {
   try{return Instant.parse(material.path("at").asText());}
   catch(java.time.format.DateTimeParseException ignored){return Instant.MIN;}
  }
+ /** A model may see a confirmed message date, never an ingestion or capture timestamp. */
+ static ObjectNode modelMaterial(JsonNode material){
+  var result=(ObjectNode)material.deepCopy();result.remove("at");
+  if(!validMessageTime(result.path("spokenAt").asText()))result.remove("spokenAt");
+  return result;
+ }
+ static ArrayNode modelMaterials(ArrayNode materials){var result=Store.JSON.createArrayNode();materials.forEach(m->result.add(modelMaterial(m)));return result;}
+ static boolean validMessageTime(String value){try{Instant.parse(value);return true;}catch(java.time.format.DateTimeParseException e){return false;}}
  static Set<String> ownEvidence(ObjectNode input){
   var own=new HashSet<String>();boolean self=input.path("target").asText().equals("self");
   for(var m:input.path("materials"))if(m.path("speaker").asText().equals(self?"me":"them"))own.add(m.path("id").asText());
@@ -76,7 +84,7 @@ final class RanchData {
  /** Physically separates non-target context from citable profile evidence. */
  static ObjectNode profileInput(ObjectNode input){
   var result=input.deepCopy();result.remove(List.of("goal","goalType"));var own=ownEvidence(input);var materials=result.putArray("materials");var context=result.putArray("conversationContext");
-  for(var material:input.path("materials")){if(own.contains(material.path("id").asText()))materials.add(material);else context.add(material);}
+  for(var material:input.path("materials")){if(own.contains(material.path("id").asText()))materials.add(modelMaterial(material));else context.add(modelMaterial(material));}
   var ids=result.putArray("allowedProfileEvidenceIds");own.stream().sorted().forEach(ids::add);return result;
  }
  static Set<String> allEvidence(ObjectNode input){var all=ownEvidence(input);for(var m:input.path("materials"))all.add(m.path("id").asText());return all;}

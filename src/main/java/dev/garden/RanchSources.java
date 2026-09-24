@@ -99,9 +99,11 @@ final class RanchSources {
         var all=new ArrayList<ObjectNode>();var seen=new HashSet<String>();
         for(var segment:log.path("segments"))for(var m:segment.path("messages")) {
             if(!seen.add(m.path("id").asText()))continue;
-            all.add(Store.JSON.createObjectNode().put("id",m.path("id").asText()).put("memberId",m.path("memberId").asText())
+            var normalized=Store.JSON.createObjectNode().put("id",m.path("id").asText()).put("memberId",m.path("memberId").asText())
                 .put("memberName",m.path("author").asText()).put("text",m.path("text").asText())
-                .put("at",m.path("sentAt").asText(m.path("capturedAt").asText())).put("isMe",false).put("order",m.path("createTime").asLong()));
+                .put("at",m.path("sentAt").asText(m.path("capturedAt").asText())).put("isMe",false).put("order",m.path("createTime").asLong());
+            if(RanchData.validMessageTime(m.path("sentAt").asText()))normalized.put("spokenAt",m.path("sentAt").asText());
+            all.add(normalized);
         }
         all.sort(Comparator.comparingLong(m->m.path("order").asLong()));var result=Store.JSON.createArrayNode();all.forEach(result::add);return result;
     }
@@ -117,9 +119,10 @@ final class RanchSources {
             var m=messages.get(i);var key=conversationId+"/"+memberId+"/"+m.path("id").asText();
             var speaker=memberId.equals(m.path("memberId").asText())?"them":m.path("isMe").asBoolean()?"me":"context";
             var text=m.path("text").asText();if(speaker.equals("context"))text=m.path("memberName").asText(m.path("memberId").asText())+"："+text;
-            result.addObject().put("id","M-"+UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8))).put("text",text)
+            var material=result.addObject().put("id","M-"+UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8))).put("text",text)
                 .put("speaker",speaker).put("label",label+(speaker.equals("context")?" · 上下文":" · "+m.path("memberName").asText(memberId)))
                 .put("at",m.path("at").asText()).put("sourceKey",key);
+            if(RanchData.validMessageTime(m.path("spokenAt").asText()))material.put("spokenAt",m.path("spokenAt").asText());
         }
         return result;
     }
