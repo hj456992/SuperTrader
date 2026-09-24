@@ -70,3 +70,12 @@ test('progress retains only the recent phase events and escapes the run attribut
  const html=renderRanch({...state,job:{id:'" autofocus="bad',status:'running',targetId:'p1',events}},{page:'person',selected:'p1',tab:'profile'});
  assert.doesNotMatch(html,/步骤-0<|步骤-3<|不应展示的内部事件|data-run-id="" autofocus=/);assert.match(html,/步骤-4</);assert.match(html,/步骤-11</);assert.match(html,/data-run-id="&quot; autofocus=&quot;bad"/);
 });
+test('library explains that enabled references serve both profiles and strategies',()=>{
+ const html=renderRanch(state,{page:'library'});
+ assert.match(html,/生成画像或攻略时/);
+});
+test('strategy describes target profile and both parties materials without requiring two profiles',()=>{
+ const html=renderRanch(state,{page:'person',selected:'p1',tab:'strategy'});
+ assert.match(html,/结合目标画像、双方材料、关系目标与启用资料/);
+ assert.doesNotMatch(html,/结合双方画像/);
+});

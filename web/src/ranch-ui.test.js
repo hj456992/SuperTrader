@@ -20,7 +20,7 @@ test('a slow mutation cannot own a dialog or page opened after it started',()=>{
 function mounted(t,initial) {
  const listeners={},timers=new Map();let timerId=0,cleanup,current=initial,read,write;
  const app={innerHTML:'',contains:b=>b.inApp===true,addEventListener(){},replaceChildren(){this.innerHTML='';}};
- const modal={open:false,contains:()=>false,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){},close(){this.open=false;}};
+ const modal={open:false,innerHTML:'',showModal(){this.open=true;},contains:form=>form.inModal===true,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(){},close(){this.open=false;}};
  const notice={textContent:'',classList:{add(){},remove(){}}};
  const oldDocument=globalThis.document;
  globalThis.document={activeElement:null,querySelector:s=>({'#app':app,'#modal':modal,'#notice':notice}[s]),addEventListener:(type,fn)=>{listeners[type]=fn;}};
@@ -30,7 +30,7 @@ function mounted(t,initial) {
  const requests=[];
  t.mock.method(globalThis,'fetch',async(url,options)=>{requests.push({url,body:options.body&&JSON.parse(options.body)});return {ok:true,json:async()=>options.body&&write?write(url):url.endsWith('-state')&&read?read():structuredClone(current)};});
  apply({effect:fn=>{cleanup=fn();}});
- return {app,notice,requests,setState:value=>{current=value;},setRead:fn=>{read=fn;},setWrite:fn=>{write=fn;},click:async(action,dataset={})=>{const b={inApp:true,dataset:{action,...dataset}};await listeners.click({target:{closest:()=>b}});},poll:()=>{const entry=[...timers.entries()].find(([,v])=>v.ms===1300||v.ms===5000);assert.ok(entry,'state polling remains scheduled');timers.delete(entry[0]);return entry[1].fn();},pollDelay:()=>[...timers.values()].find(v=>v.ms===1300||v.ms===5000)?.ms};
+ return {app,modal,notice,requests,submit:form=>listeners.submit({target:{closest:()=>form},preventDefault(){}}),setState:value=>{current=value;},setRead:fn=>{read=fn;},setWrite:fn=>{write=fn;},click:async(action,dataset={})=>{const b={inApp:true,dataset:{action,...dataset}};await listeners.click({target:{closest:()=>b}});},poll:()=>{const entry=[...timers.entries()].find(([,v])=>v.ms===1300||v.ms===5000);assert.ok(entry,'state polling remains scheduled');timers.delete(entry[0]);return entry[1].fn();},pollDelay:()=>[...timers.values()].find(v=>v.ms===1300||v.ms===5000)?.ms};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 const runningState={revision:1,people:[{id:'p1',name:'甲',materials:[]}],self:{materials:[]},library:[],job:{id:'run-1',status:'running',targetId:'p1',kind:'profile'}};
@@ -76,4 +76,23 @@ test('reopening reads saved legacy and v1 profiles without starting a new run',a
 });
 test('legacy jobs without run ids keep the existing cancel fallback',async t=>{
  const ui=mounted(t,{...runningState,job:{status:'running'}});await settle();await ui.click('cancel');assert.deepEqual(ui.requests.find(r=>r.url.endsWith('-cancel')).body,{revision:1});
+});
+
+test('knowledge deletion explains profile reference invalidation before removing anything',async t=>{
+ const ui=mounted(t,{...runningState,job:{status:'idle'}});await settle();
+ await ui.click('knowledge-delete',{id:'book-1'});
+ assert.match(ui.modal.innerHTML,/画像.*引用.*失效.*重新生成/);
+ assert.match(ui.modal.innerHTML,/引用它的攻略会一并移除/);
+ assert.equal(ui.requests.filter(r=>r.body).length,0);
+});
+test('successful upload announces availability for profiles and strategies',async t=>{
+ const ui=mounted(t,{...runningState,job:{status:'idle'}});await settle();
+ const oldFormData=globalThis.FormData,oldFileReader=globalThis.FileReader;
+ globalThis.FormData=class {constructor(form){return Object.entries(form.values);}};
+ globalThis.FileReader=class {readAsDataURL(){this.result='data:text/plain;base64,ZmFrZQ==';this.onload();}};
+ t.after(()=>{globalThis.FormData=oldFormData;if(oldFileReader===undefined)delete globalThis.FileReader;else globalThis.FileReader=oldFileReader;});
+ const form={inModal:true,dataset:{form:'knowledge-upload',revision:'1'},values:{file:{size:4,name:'fiction.txt'},title:'虚构方法'}};
+ ui.submit(form);await settle();
+ assert.equal(ui.requests.filter(r=>r.url.endsWith('-knowledge-upload')).length,1);
+ assert.match(ui.notice.textContent,/画像和攻略参考/);
 });

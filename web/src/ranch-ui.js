@@ -108,7 +108,7 @@ function mount(){
  if(action==='link-source'){await sourceDialog();return;}if(action==='upload'){uploadDialog();return;}
  if(action==='delete-person'){confirmDialog('移除这位伙伴？','此人的材料、画像与攻略将一并移除；原有聊天记录保留。','person-delete',target());return;}
  if(action==='material-remove'){confirmDialog('移除这份材料？','依赖这份材料的画像与攻略会失效，需要重新生成。','material-remove',b.dataset.id);return;}
- if(action==='knowledge-delete'){confirmDialog('从书架移除资料？','这份资料及其保留书摘会被移除；引用它的攻略会一并移除，其余攻略标记为待更新。','knowledge-delete',b.dataset.id);return;}
+ if(action==='knowledge-delete'){confirmDialog('从书架移除资料？','这份资料及其保留书摘会被移除；相关画像中的引用将失效，需重新生成。引用它的攻略会一并移除，其余攻略标记为待更新。','knowledge-delete',b.dataset.id);return;}
  if(action==='knowledge-toggle'){const book=data.library.find(v=>v.id===b.dataset.id);await mutate(action,{id:book.id,enabled:!book.enabled},false);return;}
  if(action==='analyze'||action==='strategy'){if(jobActive(data.job))return;await mutate(action,{id:target(),...(action==='strategy'?{situation:drafts.get(target())||''}:{})},false);return;}
  if(action==='cancel'){
@@ -128,7 +128,7 @@ function mount(){
   if(selected.conversation.live===true)body.snapshotId=selected.conversation.snapshotId;
  }
  if(action==='knowledge-upload'){const file=body.file;if(!file?.size){modal.querySelector('.dialog-error').textContent='请选择包含文字的文件。';return;}if(file.size>10*1024*1024){modal.querySelector('.dialog-error').textContent='文件超过 10 MB，请缩小后再上传。';return;}delete body.file;body.filename=file.name;body.title=body.title.trim()||file.name.replace(/\.[^.]+$/,'');busy=true;try{body.dataBase64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(new Error('无法读取该文件'));reader.readAsDataURL(file);});}finally{busy=false;}}
- const oldIds=new Set(data.people.map(p=>p.id));if(await mutate(action,body,true,origin)){if(action==='person-create'){const created=data.people.find(p=>!oldIds.has(p.id));if(created){ui.page='person';ui.selected=created.id;ui.tab='profile';render();}}if(action==='person-delete'){ui.page='ranch';render();}notice(action==='link-source'?'关联完成。重复导入会自动跳过已有材料。':action==='knowledge-upload'?'资料已入架，可以用于攻略参考。':'已保存。');}}
+ const oldIds=new Set(data.people.map(p=>p.id));if(await mutate(action,body,true,origin)){if(action==='person-create'){const created=data.people.find(p=>!oldIds.has(p.id));if(created){ui.page='person';ui.selected=created.id;ui.tab='profile';render();}}if(action==='person-delete'){ui.page='ranch';render();}notice(action==='link-source'?'关联完成。重复导入会自动跳过已有材料。':action==='knowledge-upload'?'资料已入架，可以用于画像和攻略参考。':'已保存。');}}
  modal.addEventListener('cancel',()=>{dialogEpoch++;},{signal:abort.signal});
  document.addEventListener('click',handleClick,{signal:abort.signal});document.addEventListener('submit',e=>{const origin=context();handleSubmit(e).catch(err=>{if(modal.open&&mutationOwnsContext(origin,context()))modal.querySelector('.dialog-error').textContent=err.message;else notice(err.message);});},{signal:abort.signal});
  app.addEventListener('input',e=>{if(e.target.id==='situation')drafts.set(target(),e.target.value);},{signal:abort.signal});
