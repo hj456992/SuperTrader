@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1060" viewBox="0 0 1440 1060" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">07 / 建议架构：保留模块化单体，先让职责和所有权清楚</title><desc id="desc">目标设计，尚未实施｜人物是业务对象；Agent 是任务执行单元。无需为每个人维护一套自主 Agent 记忆。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.279999999999998,805.89,54.83">07 / 建议架构：保留模块化单体，先让职责和所有权清楚</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="50.805,71.38,843.8209999999998,89.60399999999998">目标设计，尚未实施｜人物是业务对象；Agent 是任务执行单元。无需为每个人维护一套自主 Agent 记忆。</text>
+<g data-graph-role="node" data-node-id="ui" data-graph-bounds="48,145,418,300"><rect x="48" y="145" width="370" height="155" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="68" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="68.924,160.872,229.14999999999998,181.24400000000003">Cordis 前端组合</text>
+<text x="68" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.595,195.992,296.531,211.75099999999998">人物 / 材料 / 画像 / 攻略页面</text>
+<text x="68" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.918,222.992,253.402,238.73399999999998">共享查询服务与任务订阅</text>
+<text x="68" y="264" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.595,249.992,270.402,265.80199999999996">作用域负责清理与取消订阅</text>
+</g>
+<g data-graph-role="node" data-node-id="app" data-graph-bounds="538,145,928,300"><rect x="538" y="145" width="390" height="155" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="558" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="558.924,160.85,757.914,181.244">应用服务 · 用例协调</text>
+<text x="558" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.833,195.907,767.151,211.78500000000003">导入 / 更新认识 / 生成建议</text>
+<text x="558" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.816,222.975,791.206,240.36599999999999">冻结 AnalysisSpec 与依赖版本</text>
+<text x="558" y="264" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.595,249.992,760.5550000000001,265.80199999999996">任务受理、提交与业务规则</text>
+</g>
+<g data-graph-role="node" data-node-id="jobs" data-graph-bounds="1048,145,1392,300"><rect x="1048" y="145" width="344" height="155" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="1068" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="1068.77,160.85,1220.988,181.244">任务与结果仓库</text>
+<text x="1068" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.0,196.06,1240.941,213.366">AnalysisRun / Artifact</text>
+<text x="1068" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.595,223.06,1236.589,238.785">人物级版本、任务租约</text>
+<text x="1068" y="264" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1069.224,249.992,1252.96,267.604">PostgreSQL 是提交权威</text>
+</g>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="ui" data-target="app" d="M 418 222.5 L 538 222.5" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="app" data-target="jobs" d="M 928 222.5 L 1048 222.5" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<g data-graph-role="node" data-node-id="fact" data-graph-bounds="48,410,418,600"><rect x="48" y="410" width="370" height="190" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="68" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="68.99,425.894,221.07599999999996,446.332">事实与知识模块</text>
+<text x="68" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.612,460.941,257.176,476.78499999999997">来源消息 / 人物身份关联</text>
+<text x="68" y="502" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.646,488.06,277.03200000000004,503.76800000000003">材料引用 / 明确边界 / 主张</text>
+<text x="68" y="529" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.918,515.043,184.365,530.768">书架片段与索引</text>
+<text x="68" y="556" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.646,541.958,270.827,557.802">确定性规则由领域代码负责</text>
+</g>
+<g data-graph-role="node" data-node-id="ports" data-graph-bounds="538,410,928,600"><rect x="538" y="410" width="390" height="190" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="558" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="559.21,425.85,730.986,446.288">可替换的应用端口</text>
+<text x="558" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.544,461.06,799.604,478.366">SourceConnector / Repository</text>
+<text x="558" y="502" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="559.224,489.624,715.6070000000001,505.60400000000004">KnowledgeRetriever</text>
+<text x="558" y="529" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.0,516.624,691.977,532.366">AnalysisExecutor</text>
+<text x="558" y="556" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.629,541.975,744.371,557.802">接口只放在实际替换边界</text>
+</g>
+<g data-graph-role="node" data-node-id="exec" data-graph-bounds="1048,410,1392,600"><rect x="1048" y="410" width="344" height="190" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="1068" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="1069.1,426.026,1196.9859999999999,446.2">一个执行入口</text>
+<text x="1068" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1069.989,460.941,1277.049,476.81899999999996">当前直接模型适配器（回退）</text>
+<text x="1068" y="502" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.935,488.128,1298.095,505.604">或 DSH AgentRegistry 适配器</text>
+<text x="1068" y="529" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.68,514.992,1254.133,530.819">每个任务只选择其中之一</text>
+</g>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="app" data-target="ports" d="M 733.0 300 L 733.0 410" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="ports" data-target="fact" d="M 538 505 L 418 505" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<path id="e5" data-edge-id="e5" data-graph-role="edge" data-source="ports" data-target="exec" d="M 928 505.0 L 1048 505.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<g data-graph-role="node" data-node-id="ingest" data-graph-bounds="48,710,418,855"><rect x="48" y="710" width="370" height="145" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="68" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="69.1,725.894,243.164,746.288">采集与投影适配器</text>
+<text x="68" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.527,761.009,249.42400000000004,778.604">保留 Logbook / SQLite</text>
+<text x="68" y="802" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.731,787.992,260.967,803.7679999999999">增量游标 → PG 材料投影</text>
+</g>
+<path id="e6" data-edge-id="e6" data-graph-role="edge" data-source="fact" data-target="ingest" d="M 233.0 600 L 233.0 710" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<g data-graph-role="node" data-node-id="dsh" data-graph-bounds="538,710,928,855"><rect x="538" y="710" width="390" height="145" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="558" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="559.584,726.026,695.742,746.2439999999999">DSH 运行能力</text>
+<text x="558" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.595,761.06,785.9870000000001,776.8359999999999">模型 / 工具 / 会话 / 生命周期</text>
+<text x="558" y="802" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.578,787.924,727.3879999999999,803.802">按实际合同装配并验证</text>
+<text x="558" y="829" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.0,815.026,769.905,832.366">AnalysisRun 关联 sessionId</text>
+</g>
+<g data-graph-role="node" data-node-id="as" data-graph-bounds="1048,710,1392,855"><rect x="1048" y="710" width="344" height="145" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="1068" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="1068.0,727.984,1244.242,748.664">AgentScope Java</text>
+<text x="1068" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.765,760.907,1274.0570000000002,778.604">底座已有 ReActAgent 执行</text>
+<text x="1068" y="802" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.901,787.958,1276.998,803.819">结构化输出 / 中间件 / 中断</text>
+<text x="1068" y="829" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.799,814.975,1288.2179999999998,830.802">不接管事实库和最终业务提交</text>
+</g>
+<path id="e7" data-edge-id="e7" data-graph-role="edge" data-source="exec" data-target="dsh" d="M 1220 600 L 1220 655 L 733 655 L 733 710" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<path id="e8" data-edge-id="e8" data-graph-role="edge" data-source="dsh" data-target="as" d="M 928 782.5 L 1048 782.5" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<rect x="48" y="899" width="1344" height="92" rx="10" fill="#f8fafc" data-graph-role="decoration"/>
+<text x="68" y="931" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="69.06,914.68,146.3,933.12">边界规则</text>
+<text x="68" y="961" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="68.714,946.975,940.7119999999998,964.604">应用持有提交权；DSH 记录执行会话；AgentScope 使用任务内工作上下文。三者通过 ID 关联，不争夺同一份事实。</text>
+<text x="48" y="1034" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="48.795,1021.565,698.6999999999999,1035.635">迁移方式：新增端口与适配器、按用例切换；不同时重写前端框架、采集链路、数据库和模型循环。</text>
+</svg>

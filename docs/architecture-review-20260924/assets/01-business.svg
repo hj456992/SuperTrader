@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="970" viewBox="0 0 1440 970" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">01 / 爱聊的业务：从聊天事实到相处建议</title><desc id="desc">现状业务模型｜“会话成员”与“关注的人”不同；材料、认识、行动建议也不是同一类数据。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.31,592.14,53.18">01 / 爱聊的业务：从聊天事实到相处建议</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.765,71.38,719.9759999999999,88.38">现状业务模型｜“会话成员”与“关注的人”不同；材料、认识、行动建议也不是同一类数据。</text>
+<g data-graph-role="node" data-node-id="chat" data-graph-bounds="48,150,324,295"><rect x="48" y="150" width="276" height="145" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="184" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="68.264,165.344,205.76399999999995,186.816">① 会话与成员</text>
+<text x="68" y="215" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.578,200.958,243.032,216.734">微信 / 飞书 / 手工材料</text>
+<text x="68" y="242" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.765,227.941,254.21800000000002,243.81900000000002">成员身份只在来源中成立</text>
+</g>
+<g data-graph-role="node" data-node-id="link" data-graph-bounds="404,150,680,295"><rect x="404" y="150" width="276" height="145" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="424" y="184" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="424.264,165.344,583.588,186.816">② 用户关联人物</text>
+<text x="424" y="215" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="425.462,201.06,575.793,216.785">明确选会话、选成员</text>
+<text x="424" y="242" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="424.85,228.026,593.201,243.78500000000003">一个人可关联多个来源</text>
+</g>
+<g data-graph-role="node" data-node-id="material" data-graph-bounds="760,150,1036,295"><rect x="760" y="150" width="276" height="145" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="780" y="184" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="780.264,165.344,896.534,186.816">③ 人物材料</text>
+<text x="780" y="215" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="782.805,201.06,937.845,216.717">目标本人 / 我 / 背景</text>
+<text x="780" y="242" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="780.527,228.009,898.201,243.73399999999998">保留原话与来源</text>
+</g>
+<g data-graph-role="node" data-node-id="person" data-graph-bounds="1116,150,1392,295"><rect x="1116" y="150" width="276" height="145" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="1136" y="184" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="1136.77,165.828,1221.778,186.222">人物空间</text>
+<text x="1136" y="215" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1136.901,201.026,1254.2350000000001,216.734">关系目标与自述</text>
+<text x="1136" y="242" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1136.697,228.094,1252.6709999999998,243.683">跨会话聚合入口</text>
+</g>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="chat" data-target="link" d="M 324 222.5 L 404 222.5" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="link" data-target="material" d="M 680 222.5 L 760 222.5" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="material" data-target="person" d="M 1036 222.5 L 1116 222.5" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<g data-graph-role="node" data-node-id="profile" data-graph-bounds="48,390,438,568"><rect x="48" y="390" width="390" height="178" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="68" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="68.264,405.344,184.534,426.816">④ 对方画像</text>
+<text x="68" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.037,440.95799999999997,275.23,456.78499999999997">长期认识：直接信息 + 推测</text>
+<text x="68" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.527,467.992,203.38800000000003,483.70000000000005">依据指向人物材料</text>
+<text x="68" y="509" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.765,494.907,271.32,510.768">更新画像会令旧攻略待更新</text>
+</g>
+<g data-graph-role="node" data-node-id="advice" data-graph-bounds="525,390,915,568"><rect x="525" y="390" width="390" height="178" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="545" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="545.264,405.344,705.534,426.816">⑤ 本次相处攻略</text>
+<text x="545" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.714,440.95799999999997,757.517,456.751">对方画像 + 材料 + 我的信息</text>
+<text x="545" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.629,467.941,701.791,483.751">本次情境 + 书架方法</text>
+<text x="545" y="509" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.629,494.907,748.388,510.734">情境不会自动变成人物材料</text>
+</g>
+<g data-graph-role="node" data-node-id="human" data-graph-bounds="1002,390,1392,568"><rect x="1002" y="390" width="390" height="178" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1022" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1022.264,405.344,1182.556,426.816">⑥ 人决定怎么做</text>
+<text x="1022" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1022.714,440.95799999999997,1202.3700000000001,456.78499999999997">读依据 → 复制候选回复</text>
+<text x="1022" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1023.173,467.975,1242.371,483.802">实际发送、相处发生在软件外</text>
+<text x="1022" y="509" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1022.85,494.992,1225.4560000000001,510.73400000000004">未形成自动的外部行动闭环</text>
+</g>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="material" data-target="profile" d="M 898 295 L 898 340 L 243 340 L 243 390" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<path id="e5" data-edge-id="e5" data-graph-role="edge" data-source="profile" data-target="advice" d="M 438 479.0 L 525 479.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<path id="e6" data-edge-id="e6" data-graph-role="edge" data-source="advice" data-target="human" d="M 915 479.0 L 1002 479.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<rect x="48" y="635" width="1344" height="119" rx="10" fill="#f0fdf4" data-graph-role="decoration"/>
+<text x="68" y="667" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="69.0,650.48,346.94,669.1">支撑对象：我的信息与资料书架</text>
+<text x="68" y="697" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="69.972,682.805,721.718,699.737">“我”汇总自己的材料和自述；目前攻略读取原始材料与自述，未直接读取已保存自画像。</text>
+<text x="68" y="724" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="68.918,709.958,771.4599999999999,726.737">书架提供沟通方法，不证明小林有什么想法；现实反馈需要再次补充材料，才能进入后续认识。</text>
+<text x="48" y="944" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="48.465,931.565,854.9249999999998,946.97">依据：E01–E12 界面体验；RanchData / RanchAnalyzer / GardenService。图中的分行是阅读分组，非自动连续流水线。</text>
+</svg>

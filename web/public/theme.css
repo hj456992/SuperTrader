@@ -1,0 +1,28 @@
+/* Neutral colours and control proportions match the installed DeepSeek Harness theme. */
+:root {
+  color-scheme: light;
+  --ui-bg: #fff;
+  --ui-subtle: #f5f6f7;
+  --ui-hover: #ebeef2;
+  --ui-line: #e9ecf2;
+  --ui-ink: #0f1115;
+  --ui-secondary: #61666b;
+  --ui-muted: #81858c;
+  --ui-focus: #4d6bfe;
+  --ui-danger: #b42318;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+}
+button, a, input, textarea, select, summary { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button { transition: background-color .15s ease, color .15s ease; }
+button:focus-visible, a:focus-visible, summary:focus-visible,
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+::selection { background: #e0e7ff; color: var(--ui-ink); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

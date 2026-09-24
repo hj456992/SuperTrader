@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">06 / 现状有三套状态：外观、知识有效性、任务运行</title><desc id="desc">当前状态语义｜“已孵化”只是成功生成过画像的展示状态，不应被理解为当前画像有效或关系已经推进。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.22,747.4200000000001,53.15">06 / 现状有三套状态：外观、知识有效性、任务运行</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="49.989,71.38,820.718,88.737">当前状态语义｜“已孵化”只是成功生成过画像的展示状态，不应被理解为当前画像有效或关系已经推进。</text>
+<text x="48" y="143" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.0,126.64,152.36,145.07999999999998">A. 人物外观</text>
+<g data-graph-role="node" data-node-id="egg" data-graph-bounds="48,180,418,310"><rect x="48" y="180" width="370" height="130" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="214" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="68.704,202.318,104.85,218.66400000000002">egg</text>
+<text x="68" y="245" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.578,230.907,134.65699999999998,246.768">新建人物</text>
+</g>
+<g data-graph-role="node" data-node-id="hatched" data-graph-bounds="538,180,928,310"><rect x="538" y="180" width="390" height="130" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="558" y="214" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="559.364,197.984,638.344,214.308">hatched</text>
+<text x="558" y="245" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.986,230.992,710.116,246.768">画像成功保存后设置</text>
+</g>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="egg" data-target="hatched" d="M 418 245.0 L 538 245.0" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="1048" y="223" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="18" font-weight="400" text-anchor="start" fill="#dc2626" data-graph-role="label" data-graph-bounds="1048.63,208.15,1282.1440000000002,226.816">撤销画像时没有同步退回 egg</text>
+<text x="1048" y="258" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="18" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="1048.666,243.168,1262.722,259.89">外观与知识有效性可能分离</text>
+<text x="48" y="373" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="49.44,356.52,172.60000000000002,375.09999999999997">B. 知识有效性</text>
+<g data-graph-role="node" data-node-id="valid" data-graph-bounds="48,410,418,560"><rect x="48" y="410" width="370" height="150" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="68" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="68.924,425.872,155.054,446.244">有效结果</text>
+<text x="68" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.527,460.941,220.45600000000002,476.768">保存时版本通过校验</text>
+</g>
+<g data-graph-role="node" data-node-id="stale" data-graph-bounds="538,410,928,560"><rect x="538" y="410" width="390" height="150" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="558" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="558.704,425.762,697.3699999999999,446.288">stale / 待更新</text>
+<text x="558" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.578,460.907,778.269,476.768">新增材料等变更后保留旧结果</text>
+</g>
+<g data-graph-role="node" data-node-id="empty" data-graph-bounds="1048,410,1392,560"><rect x="1048" y="410" width="344" height="150" rx="12" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+<text x="1068" y="444" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#dc2626" data-graph-role="decoration" data-graph-bounds="1069.254,425.96,1202.706,446.222">清除 / 无结果</text>
+<text x="1068" y="475" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.595,460.975,1271.269,476.819">撤销类修改会清除关联结果</text>
+</g>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="valid" data-target="stale" d="M 418 485.0 L 538 485.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<text x="1048" y="601" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="1048.912,587.832,1333.104,603.576">清除是另一类动作，非 stale 必然下一步</text>
+<text x="48" y="674" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.84,657.46,438.7400000000001,677.96">C. 任务运行（RanchAnalyzer 的进程内 job）</text>
+<g data-graph-role="node" data-node-id="idle" data-graph-bounds="48,710,418,860"><rect x="48" y="710" width="370" height="150" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="69.496,727.984,103.19999999999999,744.308">idle</text>
+<text x="68" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.765,760.958,219.844,776.802">没有持久化任务记录</text>
+</g>
+<g data-graph-role="node" data-node-id="running" data-graph-bounds="538,710,928,860"><rect x="538" y="710" width="390" height="150" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="558" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="559.364,728.336,632.514,748.664">running</text>
+<text x="558" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.952,760.992,789.149,776.751">单个 Future 执行当前牧场任务</text>
+</g>
+<g data-graph-role="node" data-node-id="end" data-graph-bounds="1048,710,1392,860"><rect x="1048" y="710" width="344" height="150" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1068" y="744" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1068.924,725.96,1313.74,746.2">done / error / cancelled</text>
+<text x="1068" y="775" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1069.037,760.958,1152.2350000000001,776.7339999999999">进程内终态</text>
+<text x="1068" y="802" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.782,788.06,1288.388,803.7679999999999">取消的端到端行为本次未验收</text>
+</g>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="idle" data-target="running" d="M 418 785.0 L 538 785.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="running" data-target="end" d="M 928 785.0 L 1048 785.0" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<text x="48" y="974" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="48.87,961.61,912.4650000000003,976.97">建议：外观、结果状态、任务状态分别建模；任务持久化与迟到提交屏障见图 09。依据：RanchData.invalidate / RanchAnalyzer。</text>
+</svg>

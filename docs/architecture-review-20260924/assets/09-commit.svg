@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1170" viewBox="0 0 1440 1170" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">09 / 目标提交协议：任务可重试，过期结果不能覆盖新事实</title><desc id="desc">目标设计｜以数据库中的任务状态、租约代次和依赖版本作为提交屏障；不是依赖 UI 按钮或线程中断。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.13,837.0600000000001,54.83">09 / 目标提交协议：任务可重试，过期结果不能覆盖新事实</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="50.805,71.38,812.9489999999998,88.38">目标设计｜以数据库中的任务状态、租约代次和依赖版本作为提交屏障；不是依赖 UI 按钮或线程中断。</text>
+<g data-graph-role="node" data-node-id="p0" data-graph-bounds="48,140,272,240"><rect x="48" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="69.584,155.96,157.672,176.376">UI / 命令</text>
+<text x="68" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.85,190.992,152.337,206.73399999999998">携带幂等键</text>
+</g>
+<path d="M 160 258 L 160 975" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p1" data-graph-bounds="328,140,552,240"><rect x="328" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="348" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="348.924,155.85,435.09799999999996,176.244">应用服务</text>
+<text x="348" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="348.816,191.043,449.21799999999996,206.734">冻结业务输入</text>
+</g>
+<path d="M 440 258 L 440 975" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p2" data-graph-bounds="608,140,832,240"><rect x="608" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="628" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="629.584,155.96,709.0039999999999,176.244">PG 事务</text>
+<text x="628" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="628.595,191.009,746.337,206.802">任务与事实权威</text>
+</g>
+<path d="M 720 258 L 720 975" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p3" data-graph-bounds="888,140,1112,240"><rect x="888" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="908" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="908.77,156.07,1017.164,176.266">执行适配器</text>
+<text x="908" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="909.224,191.009,1031.709,206.76799999999997">DSH 或直接调用</text>
+</g>
+<path d="M 1000 258 L 1000 975" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p4" data-graph-bounds="1168,140,1392,240"><rect x="1168" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1188" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1189.166,155.96,1275.098,176.178">结果处理</text>
+<text x="1188" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1188.612,190.941,1306.15,206.836">校验与依赖核对</text>
+</g>
+<path d="M 1280 258 L 1280 975" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<text x="172" y="296" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="172.204,281.584,483.049,298.176">① 请求分析；声明目标、类型与本次情境</text>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="p0" data-target="p1" d="M 160 310 L 440 310" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="452" y="374" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="452.204,359.584,838.019,377.366">② 原子写入 AnalysisRun + 输入依赖 + 待调度记录</text>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="p1" data-target="p2" d="M 440 388 L 720 388" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="732" y="452" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#9333ea" data-graph-role="label" data-graph-bounds="732.204,437.584,1186.92,455.366">③ worker 领取租约 / epoch；按人物串行、跨人物限额并发</text>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="p2" data-target="p3" d="M 720 466 L 1000 466" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<text x="1012" y="530" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#9333ea" data-graph-role="label" data-graph-bounds="1012.204,515.584,1373.5729999999999,532.1759999999999">④ 返回候选结果与运行事件；不直接写人物事实</text>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="p3" data-target="p4" d="M 1000 544 L 1280 544" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<text x="732" y="608" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="732.204,593.584,1187.8719999999998,611.366">⑤ 校验通过后提交：run 仍可提交 + epoch 匹配 + 依赖未变</text>
+<path id="e5" data-edge-id="e5" data-graph-role="edge" data-source="p4" data-target="p2" d="M 1280 622 L 720 622" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="452" y="686" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="452.204,671.584,839.6339999999999,688.1759999999999">⑥ 原子保存结果和 outbox；由应用派发已提交事件</text>
+<path id="e6" data-edge-id="e6" data-graph-role="edge" data-source="p2" data-target="p1" d="M 720 700 L 440 700" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="172" y="764" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="172.204,749.584,498.19599999999997,766.1759999999999">⑦ 通知 UI；断线后仍可按任务 ID 重新读取</text>
+<path id="e7" data-edge-id="e7" data-graph-role="edge" data-source="p1" data-target="p0" d="M 440 778 L 160 778" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="452" y="842" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#dc2626" data-graph-role="label" data-graph-bounds="452.867,827.941,825.1669999999999,843.836">旁路：取消命令先落库；迟到结果提交必须被拒绝</text>
+<path id="e8" data-edge-id="e8" data-graph-role="edge" data-source="p1" data-target="p2" d="M 440 856 L 720 856" fill="none" stroke="#dc2626" stroke-width="2.4" marker-end="url(#arr-red)"/>
+<rect x="48" y="1008" width="1344" height="92" rx="10" fill="#f8fafc" data-graph-role="decoration"/>
+<text x="68" y="1040" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="69.12,1023.56,226.39999999999998,1042.08">故障语义必须明确</text>
+<text x="68" y="1070" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="68.612,1055.907,855.5419999999997,1073.366">来源更新与结果提交的版本比较在同一事务 / CAS 中完成；进程崩溃标记 interrupted，按有效快照重试。</text>
+<text x="48" y="1144" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="49.23,1131.625,518.6999999999999,1146.415">时序按调用先后阅读；灰色虚线仅为生命线，不表示后台自动持续同步。</text>
+</svg>

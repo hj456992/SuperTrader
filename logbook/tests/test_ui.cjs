@@ -1,0 +1,30 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+test('read-only viewer refreshes structured messages without losing filter or interpreting markup',async()=>{
+  const elements=new Map();
+  const el=id=>{if(!elements.has(id))elements.set(id,{id,dataset:{},value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,scrollTop:0,scrollHeight:500,clientHeight:200,addEventListener(type,fn){this[type]=fn;},classList:{add(){},remove(){}}});return elements.get(id);};
+  const document={body:{dataset:{mode:'viewer'}},getElementById:el};
+  el('member-filter').value='all';
+  let poll,n=0;const calls=[];
+  const msg=i=>({id:i,memberId:'a',author:'甲',text:i===1?'<img src=x onerror=bad()>':'第二条',sentAtLabel:'2026年9月23日 02:00',attachments:[]});
+  const fetch=async(url,options)=>{calls.push([url,options]);return{ok:true,json:async()=>({group:{messageCount:++n,memberCount:1},source:{status:'connected'},stats:{observations:1,duplicates:0},coverage:{description:'原生导出'},members:[{id:'a',name:'甲'}],segments:[{id:'batch',filename:'source.zip',messages:Array.from({length:n},(_,i)=>msg(i+1))}]})};};
+  const window={setTimeout(fn){poll=fn;return 1;},clearTimeout(){},addEventListener(){}};
+  const code=fs.readFileSync(path.join(__dirname,'../../web/public/logview.js'),'utf8');
+  vm.runInNewContext(code,{document,window,fetch,AbortController,console,URL,encodeURIComponent});
+  await new Promise(r=>setImmediate(r));
+  assert.match(el('messages').innerHTML,/&lt;img/);assert.doesNotMatch(el('messages').innerHTML,/<img src=x/);
+  const filter=el('member-filter');filter.value='a';filter.change();await poll();
+  assert.equal(filter.value,'a');assert.equal(el('count-messages').textContent,'2');assert.match(el('messages').innerHTML,/第二条/);
+  assert.ok(calls.every(([url,opts])=>url==='/api/wechat/state'&&(!opts.method||opts.method==='GET')));
+  assert.equal(el('import-panel').hidden,true);
+});
+test('automatic source awaiting keys is visible and never shown as connected',async()=>{
+  const elements=new Map();const el=id=>{if(!elements.has(id))elements.set(id,{dataset:{},value:'',textContent:'',innerHTML:'',addEventListener(){}});return elements.get(id);};
+  const document={body:{dataset:{mode:'viewer'}},getElementById:el};
+  const window={setTimeout(){return 1;},clearTimeout(){},addEventListener(){}};
+  const state={group:{messageCount:0,memberCount:0},source:{type:'wechat_database',status:'setup_required',detail:'首次初始化尚未完成'},stats:{observations:0,duplicates:0},coverage:{description:'本机已同步内容'},members:[],segments:[]};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../web/public/logview.js'),'utf8'),{document,window,fetch:async()=>({ok:true,json:async()=>state}),AbortController,console,URL,encodeURIComponent});
+  await new Promise(r=>setImmediate(r));
+  assert.equal(el('connection').textContent,'自动采集 · 待首次连接');assert.equal(el('connection').dataset.status,'offline');
+  assert.match(el('messages').innerHTML,/等待首次连接/);assert.doesNotMatch(el('messages').innerHTML,/拖到左侧/);
+  assert.equal(el('import-panel').hidden,true);
+});

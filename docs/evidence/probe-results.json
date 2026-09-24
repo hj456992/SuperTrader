@@ -1,0 +1,6 @@
+{
+  "same_source_id_correction_replaces_old_text" : false,
+  "same_source_id_correction_marks_profile_stale" : false,
+  "one_original_self_message_counted_after_two_member_links" : 2,
+  "contradictory_claim_with_existing_evidence_id_passes_structural_validator" : true
+}

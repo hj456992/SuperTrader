@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-24",
+  "artifact_scope": "architecture assessment; no product implementation",
+  "diagrams": 11,
+  "screenshots": 3,
+  "experience_records": 12,
+  "repair_proposals": 10,
+  "svg_full_validation": "11/11 passed (XML, markers, collisions, semantic geometry, showcase composition, render)",
+  "visual_review": "passed",
+  "browser_review": {
+    "chapter_navigation": "passed",
+    "zoom_open_close": "passed",
+    "gallery": "11 diagrams verified",
+    "continuous_reading": "9 visible chapters verified",
+    "external_image_requests": 0,
+    "horizontal_page_overflow": false,
+    "console_errors_or_warnings": 0
+  },
+  "local_links": "all targets exist",
+  "html_sha256": "d54be4fd2d75100353f0bca50a760134e217320a0804625e87e94815529fd11c",
+  "publication_note": "Repository copy: local source links adapted for GitHub; source snapshot has evolved since assessment."
+}

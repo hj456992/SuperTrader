@@ -1,0 +1,194 @@
+{
+  "upstream": "https://github.com/huohuoer/wechat-cli",
+  "version": "0.2.4",
+  "source_snapshot": "work/logbook-research/huohuoer-wechat-cli",
+  "treehash_algorithm": "SHA256(sorted(relative_path + NUL + file_sha256 + LF)); excludes __pycache__ and *.pyc",
+  "tree_sha256": "323b096cf688191b78dc8fbc20deca0287d0c113b1a14a95510345b718f01fee",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "README.md",
+      "sha256": "7a48872c0ce5e7ca2fb401fc6ac38f17ab4e1fe1fdfc3cf6cb41fcf7a4fc20ae"
+    },
+    {
+      "path": "README_CN.md",
+      "sha256": "b1f4c5469b2321cb16ba06a44cb50d16ad2c3aa3a13a74392f8627c67e094ff7"
+    },
+    {
+      "path": "entry.py",
+      "sha256": "36e2dcb87748b3b264bbfffd262ed821b32513af10c97da937bc717e67184894"
+    },
+    {
+      "path": "npm/platforms/darwin-arm64/package.json",
+      "sha256": "822833bcd37103f66457e7b4aa3210b87fb561dd80498e9ce96e5d653a2b3587"
+    },
+    {
+      "path": "npm/platforms/darwin-x64/package.json",
+      "sha256": "10290e71018af40e5c1db753f3891bea6c8ccdfacc461902cac698d04654155c"
+    },
+    {
+      "path": "npm/platforms/linux-arm64/package.json",
+      "sha256": "cb3711260dacb47758773b9a4c8be85ddc6a8f84b0e804972b1d12fb43e707e5"
+    },
+    {
+      "path": "npm/platforms/linux-x64/package.json",
+      "sha256": "2daa5bccc91a49047f250bf81adfd2d00258ed4ade205388b8f0f45eb936da55"
+    },
+    {
+      "path": "npm/platforms/win32-x64/package.json",
+      "sha256": "d665910839620ab513a9588be652b98072f85475718e8a48ff8f63294300fa6d"
+    },
+    {
+      "path": "npm/scripts/build.py",
+      "sha256": "fd88fedc06260ac93e7555f22cbda3998ba3f3681f130b20d63003efe0a6f4a9"
+    },
+    {
+      "path": "npm/wechat-cli/bin/wechat-cli.js",
+      "sha256": "f001afc7968f34c9e4f61147423915857379da39ae567e1f4c345d74707645de"
+    },
+    {
+      "path": "npm/wechat-cli/install.js",
+      "sha256": "0b6ac85f784d3c267ded167cdc75bbb855d86ee4495a03787ff6f8ef54aa9931"
+    },
+    {
+      "path": "npm/wechat-cli/package.json",
+      "sha256": "94e59136311f1657bf519fb2209a1259a08904b3eeaaa1fb3f155625b0a8ff17"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "3eb0b08e1d988f53e63e57078f28421462739655fea936bc0f4489dd33b80464"
+    },
+    {
+      "path": "wechat_cli/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "wechat_cli/bin/find_all_keys_macos.c",
+      "sha256": "d20516e81c86103122e7930f3fe788e85bf71c7891ecb1e0ceca9f3a0ecc00a1"
+    },
+    {
+      "path": "wechat_cli/commands/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "wechat_cli/commands/contacts.py",
+      "sha256": "2c0357d871b55b6c472d72d2f609937593004da77dcd32a8355daf2ac5b15210"
+    },
+    {
+      "path": "wechat_cli/commands/export.py",
+      "sha256": "6b8448f08ba808cd0c5064b9c1cc36155b86d78eb4d9f52cb14d2470537c665d"
+    },
+    {
+      "path": "wechat_cli/commands/favorites.py",
+      "sha256": "51bbd30abc5bfbbadd0bc10480a4a0200efc920ddc908e98cf4d063513a6bdbf"
+    },
+    {
+      "path": "wechat_cli/commands/history.py",
+      "sha256": "c19adcbf443cd798a4b430e9bc0dcbd3c447880133a422baee3e02e6d2c5a2e0"
+    },
+    {
+      "path": "wechat_cli/commands/init.py",
+      "sha256": "e5806646fc08e585f2ba30100b68d3e5c7260d7d890d8f742b0b8a0517b34d5e"
+    },
+    {
+      "path": "wechat_cli/commands/members.py",
+      "sha256": "ea9ea6b95e80361848f99fb657cde3d4fc7d76f2dacfa9705ad21d1ef17456f6"
+    },
+    {
+      "path": "wechat_cli/commands/new_messages.py",
+      "sha256": "1df2236356baca67e32b59cc0202b51672af45a4d990ee600354f7b31556e622"
+    },
+    {
+      "path": "wechat_cli/commands/search.py",
+      "sha256": "6322f58488b4fba4c23bf760d5f662745851a9b75fd96baf5f73c8f11a8857a0"
+    },
+    {
+      "path": "wechat_cli/commands/sessions.py",
+      "sha256": "3c58a5f44c89312c83d220ee9f00a1a3a8065173a8630ae25975bbc09e0c3048"
+    },
+    {
+      "path": "wechat_cli/commands/stats.py",
+      "sha256": "239fade3cbf0b5ba3cdc9a2d0da7a5d67081d8f4dd25a1870d8e60bcb5d0c35c"
+    },
+    {
+      "path": "wechat_cli/commands/unread.py",
+      "sha256": "93a1064d4c6e982c2d0a20f77ad5f2e947c85b96171a13151c953b07e81c9691"
+    },
+    {
+      "path": "wechat_cli/core/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "wechat_cli/core/config.py",
+      "sha256": "bbbdbc3c8200977ff4fbd8484b89d87e0a11ddec8d09a8d2118470ad13d8bc12"
+    },
+    {
+      "path": "wechat_cli/core/contacts.py",
+      "sha256": "1c4ca0be8d61ee286e002df22604962f045f87e96928a1f5d9fec1ba576f57ff"
+    },
+    {
+      "path": "wechat_cli/core/context.py",
+      "sha256": "ee6baa899f81fdb2e7173c63ff4a7f4c25012cc76167241251bccdc4784ff5e3"
+    },
+    {
+      "path": "wechat_cli/core/crypto.py",
+      "sha256": "2807410c638478da0dddb4b6618a0f78ee6828aa6c4e5bafd56ae48bb7202a64"
+    },
+    {
+      "path": "wechat_cli/core/db_cache.py",
+      "sha256": "35ab9140a3ed876500a405f6004deb8eb85beb316dc9f37efd9c49cf5f7396b4"
+    },
+    {
+      "path": "wechat_cli/core/key_utils.py",
+      "sha256": "a4bfbf479b6cc45793de34b10cf7a3e444e1941cc6e619c1e10f3e61f244e8ef"
+    },
+    {
+      "path": "wechat_cli/core/messages.py",
+      "sha256": "2287e3f3e8ded5738cec8d67873d67c5c1ac0a08ec6b75276f2bfb05f50a9807"
+    },
+    {
+      "path": "wechat_cli/keys/__init__.py",
+      "sha256": "e371122980d0d155f5f020fa74005d720662a52feeec8d109000e2d6780adf31"
+    },
+    {
+      "path": "wechat_cli/keys/common.py",
+      "sha256": "0879483e67c2715c05465bebd8030f4b703525eb6961b52d26722247ea2a37c9"
+    },
+    {
+      "path": "wechat_cli/keys/scanner_linux.py",
+      "sha256": "3727d7665d905c1e4a5769fa4e73b3e09806d67e9adb1e5977c61333474ec68c"
+    },
+    {
+      "path": "wechat_cli/keys/scanner_macos.py",
+      "sha256": "d5669b7358bf9d4aa7139f4e1b1977f222e824341342bace9253583ae11c815a"
+    },
+    {
+      "path": "wechat_cli/keys/scanner_windows.py",
+      "sha256": "e245155be1a46fc909bf0706c9cf9277cad238a146acad7ec05a7d1d8d10c142"
+    },
+    {
+      "path": "wechat_cli/main.py",
+      "sha256": "6b7a1fcc65e256e7f458ca1e59cfe4da513718d201cd3cf15f266f4ef9b13dfb"
+    },
+    {
+      "path": "wechat_cli/output/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "wechat_cli/output/formatter.py",
+      "sha256": "66922bf69ade0e76344a7aa0fb2a0a2bf67b323f58609d48267f93f60cc7e8ab"
+    }
+  ],
+  "modified_upstream_files": [
+    "wechat_cli/main.py",
+    "wechat_cli/commands/history.py",
+    "wechat_cli/core/messages.py"
+  ],
+  "added_modules": [
+    "wechat_cli/core/structured_history.py",
+    "wechat_cli/core/readonly_cipher.py"
+  ]
+}

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1160" viewBox="0 0 1440 1160" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">04 / 当前关联聊天：把一个成员的相关消息复制进人物材料</title><desc id="desc">源码时序 + E08 重复导入实测｜普通重复导入有效；来源内容更正尚未进入这条更新协议。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.22,837.9000000000001,53.15">04 / 当前关联聊天：把一个成员的相关消息复制进人物材料</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.816,71.38,724.957,88.38">源码时序 + E08 重复导入实测｜普通重复导入有效；来源内容更正尚未进入这条更新协议。</text>
+<g data-graph-role="node" data-node-id="p0" data-graph-bounds="48,140,272,240"><rect x="48" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="68.77,156.004,154.79,176.266">人物页面</text>
+<text x="68" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.901,191.06,188.615,206.768">选来源 / 选成员</text>
+</g>
+<path d="M 160 258 L 160 965" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p1" data-graph-bounds="328,140,552,240"><rect x="328" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="348" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="349.584,157.984,485.654,174.308">RanchService</text>
+<text x="348" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="349.326,191.077,477.098,206.836">link-source 命令</text>
+</g>
+<path d="M 440 258 L 440 965" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p2" data-graph-bounds="608,140,832,240"><rect x="608" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="628" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="629.584,157.984,773.53,174.308">RanchSources</text>
+<text x="628" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="628.816,190.992,746.354,206.768">角色映射与截取</text>
+</g>
+<path d="M 720 258 L 720 965" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p3" data-graph-bounds="888,140,1112,240"><rect x="888" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="908" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="908.792,155.96,995.0980000000001,176.244">来源服务</text>
+<text x="908" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="908.544,191.128,1047.587,208.60399999999998">Store 或 Logbook</text>
+</g>
+<path d="M 1000 258 L 1000 965" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<g data-graph-role="node" data-node-id="p4" data-graph-bounds="1168,140,1392,240"><rect x="1168" y="140" width="224" height="100" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1188" y="174" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1189.584,157.984,1305.876,174.308">RanchStore</text>
+<text x="1188" y="205" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1188.918,191.026,1289.031,206.70000000000002">共享 state 行</text>
+</g>
+<path d="M 1280 258 L 1280 965" stroke="#cbd5e1" stroke-dasharray="5 7" data-graph-role="decoration"/>
+<text x="172" y="296" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="172.204,281.584,518.6979999999999,299.366">① 目标人物、来源、成员、expectedRevision</text>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="p0" data-target="p1" d="M 160 310 L 440 310" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="452" y="374" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="452.204,359.584,576.049,376.176">② 请求成员材料</text>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="p1" data-target="p2" d="M 440 388 L 720 388" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="732" y="452" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="732.204,437.584,967.382,454.176">③ 读取旧会话或日志 /v1/state</text>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="p2" data-target="p3" d="M 720 466 L 1000 466" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="732" y="530" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="732.204,515.584,1065.5739999999998,532.737">④ 日志查询窗口：最近 2,000 条数据库消息</text>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="p3" data-target="p2" d="M 1000 544 L 720 544" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="452" y="608" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="452.204,593.584,851.8399999999999,611.366">⑤ 在该窗口内取成员发言及上下文；生成 sourceKey</text>
+<path id="e5" data-edge-id="e5" data-graph-role="edge" data-source="p2" data-target="p1" d="M 720 622 L 440 622" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="452" y="686" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="452.204,671.584,896.924,689.366">⑥ CAS 更新：已有 sourceKey 跳过；新增材料才触发失效</text>
+<path id="e6" data-edge-id="e6" data-graph-role="edge" data-source="p1" data-target="p4" d="M 440 700 L 1280 700" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<text x="452" y="764" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#16a34a" data-graph-role="label" data-graph-bounds="452.204,749.584,660.9639999999999,766.737">⑦ 更新完成，返回应用服务</text>
+<path id="e7" data-edge-id="e7" data-graph-role="edge" data-source="p4" data-target="p1" d="M 1280 778 L 440 778" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="172" y="842" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#2563eb" data-graph-role="label" data-graph-bounds="172.204,827.584,487.72400000000005,844.1759999999999">⑧ 命令返回；UI 再请求刷新全量牧场状态</text>
+<path id="e8" data-edge-id="e8" data-graph-role="edge" data-source="p1" data-target="p0" d="M 440 856 L 160 856" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<rect x="48" y="998" width="1344" height="92" rx="10" fill="#f8fafc" data-graph-role="decoration"/>
+<text x="68" y="1030" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="69.22,1013.3,618.5600000000001,1033.22">这条链路当前是“按键复制”，尚不是“可订阅的来源版本投影”。</text>
+<text x="68" y="1060" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="69.683,1045.805,840.599,1063.366">同 sourceKey 更正会被跳过；sourceKey 含所选成员 ID，会让同一句“我的发言”在跨人物汇总时重复。</text>
+<text x="48" y="1134" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="49.23,1121.625,518.6999999999999,1136.415">时序按调用先后阅读；灰色虚线仅为生命线，不表示后台自动持续同步。</text>
+</svg>

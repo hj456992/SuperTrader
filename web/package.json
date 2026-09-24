@@ -1,0 +1,1 @@
+{"name":"garden-demo-ui","private":true,"type":"module","scripts":{"build":"node build.mjs"},"devDependencies":{"esbuild":"0.25.5"}}

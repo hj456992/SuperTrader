@@ -1,25 +1,50 @@
-# Runtime data
-.run/
+# Local credentials and private runtime data (all components)
+.runtime/
+.local/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.token
+*credentials*.json
+*secrets*.json
+database-source.json
+all_keys.json
+keys.json
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
 *.log
 *.pid
 *.tmp
+/work/
+/backups/
+/exports/
 
-# Build output
-backend/target/
-frontend/dist/
-frontend/node_modules/
-e2e/node_modules/
-e2e/test-results/
+# Generated dependencies and builds
+target/
+node_modules/
+web/dist/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+feishu/bin/
+wechat/bin/
+logbook/build/
+*.app/
 
-# IDE
+# Old local-only screenshots / execution records
+/*.jpg
+/验收结果.json
+
+# Editor and OS
+.DS_Store
 .idea/
 .vscode/
-*.iml
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment (never commit keys)
-.env
-.env.*

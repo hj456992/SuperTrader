@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1040" viewBox="0 0 1440 1040" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">02 / 当前部署：三个本地入口、两个 Java 宿主、两类数据库</title><desc id="desc">源码确认的默认启动方式｜48740 是 JDK HttpServer；Spring Boot 以 non-web 模式启动插件宿主。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.22,861.09,53.21">02 / 当前部署：三个本地入口、两个 Java 宿主、两类数据库</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.816,71.38,811.9629999999997,89.60399999999998">源码确认的默认启动方式｜48740 是 JDK HttpServer；Spring Boot 以 non-web 模式启动插件宿主。</text>
+<g data-graph-role="node" data-node-id="ui" data-graph-bounds="48,145,418,290"><rect x="48" y="145" width="370" height="145" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="68" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="69.034,160.85,226.53200000000004,181.35399999999998">浏览器：爱聊 UI</text>
+<text x="68" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.408,196.043,306.884,211.70000000000002">48740 / 与 conversations.html</text>
+<text x="68" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.224,223.009,326.85900000000004,238.75099999999998">ModuleLoader + Cordis 页面插件</text>
+</g>
+<g data-graph-role="node" data-node-id="main" data-graph-bounds="538,145,928,290"><rect x="538" y="145" width="390" height="145" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="558" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="559.254,160.828,800.1320000000001,183.356">主 Java 宿主 · dsh-java</text>
+<text x="558" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.714,197.624,805.826,213.60399999999998">garden-demo + model-registry</text>
+<text x="558" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="559.054,224.624,823.931,240.36599999999999">model-deepseek + feishu-history</text>
+</g>
+<g data-graph-role="node" data-node-id="deepseek" data-graph-bounds="1048,145,1392,290"><rect x="1048" y="145" width="344" height="145" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="1068" y="179" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="1069.584,162.984,1210.208,183.356">DeepSeek API</text>
+<text x="1068" y="210" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.986,195.992,1238.884,211.73399999999998">画像 / 攻略点击后调用</text>
+<text x="1068" y="237" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1069.989,222.992,1295.154,240.36599999999999">当前 RanchAnalyzer 直接调用</text>
+</g>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="ui" data-target="main" d="M 418 217.5 L 538 217.5" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="main" data-target="deepseek" d="M 928 217.5 L 1048 217.5" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<g data-graph-role="node" data-node-id="pg" data-graph-bounds="538,390,928,535"><rect x="538" y="390" width="390" height="145" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="558" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="559.584,407.984,767.0659999999999,428.664">PostgreSQL · 15440</text>
+<text x="558" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="560.227,441.111,741.7529999999999,458.604">旧会话：garden_person</text>
+<text x="558" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.731,468.128,810.909,485.604">牧场：garden_ranch_documents</text>
+</g>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="main" data-target="pg" d="M 733.0 290 L 733.0 390" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<g data-graph-role="node" data-node-id="feishu" data-graph-bounds="48,390,418,535"><rect x="48" y="390" width="370" height="145" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="68.814,405.894,221.164,426.288">飞书读取适配器</text>
+<text x="68" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.969,440.95799999999997,291.48199999999997,458.366">主宿主插件 → Python 子进程</text>
+<text x="68" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.578,467.975,273.887,483.819">按用户操作浏览 / 抓取界面</text>
+</g>
+<g data-graph-role="node" data-node-id="sourcecall" data-graph-bounds="1048,390,1392,535"><rect x="1048" y="390" width="344" height="145" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1068" y="424" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1068.77,405.98199999999997,1198.988,426.26599999999996">人物导入日志</text>
+<text x="1068" y="455" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1069.224,440.941,1309.366,456.768">RanchSources 直接访问 48742</text>
+<text x="1068" y="482" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.799,467.975,1261.341,483.75100000000003">不绕行 48741 的页面代理</text>
+</g>
+<g data-graph-role="node" data-node-id="reader" data-graph-bounds="48,645,418,790"><rect x="48" y="645" width="370" height="145" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="68" y="679" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="68.528,660.872,283.094,681.288">48741 · 日志阅读入口</text>
+<text x="68" y="710" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.224,695.992,248.846,713.366">Python 阅读代理 / 页面</text>
+<text x="68" y="737" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.836,723.009,254.16699999999997,738.785">向独立日志服务读取数据</text>
+</g>
+<g data-graph-role="node" data-node-id="log" data-graph-bounds="538,645,928,790"><rect x="538" y="645" width="390" height="145" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="558" y="679" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="558.528,662.984,815.2239999999999,683.664">48742 · Python Logbook</text>
+<text x="558" y="710" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.731,696.009,744.184,711.785">查询、批次接收、检查点</text>
+<text x="558" y="737" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="558.544,722.958,803.497,738.751">SQLite 保存原始日志与采集状态</text>
+</g>
+<g data-graph-role="node" data-node-id="history" data-graph-bounds="1048,645,1392,790"><rect x="1048" y="645" width="344" height="145" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="1068" y="679" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="1069.144,660.828,1259.994,681.31">独立 Java 采集宿主</text>
+<text x="1068" y="710" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.085,697.624,1299.54,713.366">wechat-history → wechat-cli</text>
+<text x="1068" y="737" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1068.748,722.992,1237.184,738.7339999999999">提交批次后推进检查点</text>
+</g>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="main" data-target="feishu" d="M 538 255 L 478 255 L 478 462.5 L 418 462.5" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e5" data-edge-id="e5" data-graph-role="edge" data-source="main" data-target="sourcecall" d="M 928 255 L 980 255 L 980 462.5 L 1048 462.5" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e6" data-edge-id="e6" data-graph-role="edge" data-source="sourcecall" data-target="log" d="M 1220 535 L 1220 590 L 733 590 L 733 645" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<path id="e7" data-edge-id="e7" data-graph-role="edge" data-source="reader" data-target="log" d="M 418 717.5 L 538 717.5" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<path id="e8" data-edge-id="e8" data-graph-role="edge" data-source="history" data-target="log" d="M 1048 717.5 L 928 717.5" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<rect x="48" y="846" width="1344" height="119" rx="10" fill="#f8fafc" data-graph-role="decoration"/>
+<text x="68" y="878" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="69.02,861.54,207.09999999999997,880.14">部署边界的含义</text>
+<text x="68" y="908" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="68.969,893.958,818.0059999999999,911.6039999999999">主业务、日志采集与模型分析生命周期不同；SQLite → PostgreSQL 的人物材料是跨进程复制边界。</text>
+<text x="68" y="935" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="label" data-graph-bounds="68.884,920.992,621.2309999999999,938.366">独立采集无需模型；run.py 支持可选嵌入模式，图中画的是默认分离模式。</text>
+<text x="48" y="1014" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="48.465,1001.61,940.5,1017.1800000000001">依据：run.py / GardenPlugin / HttpApi / history_runtime.py / HistoryWorker / RanchSources。省略普通页面跳转与宿主内部连线。</text>
+</svg>

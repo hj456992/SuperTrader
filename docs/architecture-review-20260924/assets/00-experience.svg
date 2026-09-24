@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1090" viewBox="0 0 1440 1090" data-generator="fireworks-tech-graph" data-quality-profile="showcase" role="img" aria-labelledby="title desc">
+<title id="title">00 / 实际使用记录：我沿着哪些业务路径走过系统</title><desc id="desc">E 编号可在正文逐条核对｜按业务路径整理；截图为虚构小林示例；没有发送聊天消息。</desc>
+<defs>
+<marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+<marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/></marker>
+<marker id="arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9333ea"/></marker>
+<marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/></marker>
+<marker id="arr-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker>
+</defs><rect width="1440" height="100%" fill="white" data-graph-role="decoration"/>
+<text x="48" y="50" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" text-anchor="start" fill="#0f172a" data-graph-role="label" data-graph-bounds="49.5,25.069999999999997,717.72,53.18">00 / 实际使用记录：我沿着哪些业务路径走过系统</text>
+<text x="48" y="86" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="49.224000000000004,71.38,699.9499999999999,88.38">E 编号可在正文逐条核对｜按业务路径整理；截图为虚构小林示例；没有发送聊天消息。</text>
+<text x="48" y="133" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="48.86,116.52,187.01999999999998,135.01999999999998">查看人物与依据</text>
+<g data-graph-role="node" data-node-id="open" data-graph-bounds="48,165,438,325"><rect x="48" y="165" width="390" height="160" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="68" y="199" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="69.584,180.96,282.01599999999996,201.244">E01 / E06 · 进入人物</text>
+<text x="68" y="230" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.615,215.992,270.97999999999996,231.904">已孵化人物与空蛋分别查看</text>
+<text x="68" y="257" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="69.258,242.992,237.38799999999998,258.904">空蛋攻略需要先有画像</text>
+</g>
+<g data-graph-role="node" data-node-id="evidence" data-graph-bounds="525,165,915,325"><rect x="525" y="165" width="390" height="160" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="545" y="199" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#2563eb" data-graph-role="decoration" data-graph-bounds="546.584,180.872,742.2959999999999,201.24400000000003">E02 · 查看画像原话</text>
+<text x="545" y="230" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.595,215.958,747.062,231.785">展开直接信息与推测的引用</text>
+<text x="545" y="257" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="547.006,242.992,731.439,258.819">区分认识、原文和未知项</text>
+</g>
+<g data-graph-role="node" data-node-id="roles" data-graph-bounds="1002,165,1392,325"><rect x="1002" y="165" width="390" height="160" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="1022" y="199" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="1023.584,180.982,1218.262,201.2">E03 · 核对材料归属</text>
+<text x="1022" y="230" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1022.867,216.077,1251.415,231.734">9 份 = 本人 4 + 我 2 + 背景 3</text>
+<text x="1022" y="257" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1023.683,242.924,1225.133,258.785">同一空间并非只有本人发言</text>
+</g>
+<path id="e1" data-edge-id="e1" data-graph-role="edge" data-source="open" data-target="evidence" d="M 438 245.0 L 525 245.0" fill="none" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arr-blue)"/>
+<path id="e2" data-edge-id="e2" data-graph-role="edge" data-source="evidence" data-target="roles" d="M 915 245.0 L 1002 245.0" fill="none" stroke="#16a34a" stroke-width="2.4" marker-end="url(#arr-green)"/>
+<text x="48" y="403" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="49.38,386.54,227.26,405.12">实际导入与模型生成</text>
+<g data-graph-role="node" data-node-id="import" data-graph-bounds="48,435,438,620"><rect x="48" y="435" width="390" height="185" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="68" y="469" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="69.584,450.894,329.404,471.332">E07 / E08 · 关联虚构成员</text>
+<text x="68" y="500" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.969,485.95799999999997,254.048,502.73699999999997">首次来源失败，重试恢复</text>
+<text x="68" y="527" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.986,512.958,258.791,528.785">重复关联小林后仍为 9 份</text>
+<text x="68" y="554" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.646,539.992,305.048,556.737">确认普通去重，不推断更正同步</text>
+</g>
+<g data-graph-role="node" data-node-id="test" data-graph-bounds="525,435,915,620"><rect x="525" y="435" width="390" height="185" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="545" y="469" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="546.584,450.96,786.2739999999999,471.24399999999997">E09 · 生成拒绝场景攻略</text>
+<text x="545" y="500" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.986,485.924,765.269,501.80199999999996">真实调用模型并保存测试结果</text>
+<text x="545" y="527" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="545.833,512.958,663.371,528.7679999999999">短回复尊重边界</text>
+<text x="545" y="554" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="546.037,539.975,782.2520000000001,555.785">长分析仍有动机推断与联系安排</text>
+</g>
+<g data-graph-role="node" data-node-id="update" data-graph-bounds="1002,435,1392,620"><rect x="1002" y="435" width="390" height="185" rx="12" fill="#faf5ff" stroke="#9333ea" stroke-width="1.5"/>
+<text x="1022" y="469" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#9333ea" data-graph-role="decoration" data-graph-bounds="1023.584,450.762,1258.896,471.288">E10 · 更新画像再看攻略</text>
+<text x="1022" y="500" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1022.986,485.907,1208.201,501.80199999999996">真实更新画像并保留历史</text>
+<text x="1022" y="527" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1024.227,512.805,1174.2690000000002,528.7679999999999">旧攻略出现“待更新”</text>
+<text x="1022" y="554" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1022.782,540.06,1225.388,555.7679999999999">取消时已结束：取消未验收</text>
+</g>
+<path id="e3" data-edge-id="e3" data-graph-role="edge" data-source="import" data-target="test" d="M 438 527.5 L 525 527.5" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<path id="e4" data-edge-id="e4" data-graph-role="edge" data-source="test" data-target="update" d="M 915 527.5 L 1002 527.5" fill="none" stroke="#9333ea" stroke-width="2.4" marker-end="url(#arr-purple)"/>
+<text x="48" y="705" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="20" font-weight="650" text-anchor="start" fill="#475569" data-graph-role="label" data-graph-bounds="49.04,688.52,207.18,707.06">交叉检查支撑业务</text>
+<g data-graph-role="node" data-node-id="self" data-graph-bounds="48,740,324,900"><rect x="48" y="740" width="276" height="160" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="68" y="774" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="69.584,755.872,221.274,776.2439999999999">E04 · 我的画像</text>
+<text x="68" y="805" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="70.788,791.009,151.011,806.683">自有材料 0</text>
+<text x="68" y="832" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="68.867,817.924,169.507,833.717">汇总覆盖 2/2</text>
+</g>
+<g data-graph-role="node" data-node-id="book" data-graph-bounds="404,740,680,900"><rect x="404" y="740" width="276" height="160" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+<text x="424" y="774" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#16a34a" data-graph-role="decoration" data-graph-bounds="425.584,755.938,576.9,776.31">E05 · 资料书架</text>
+<text x="424" y="805" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="424.765,790.975,599.61,806.768">演示书 334 字 / 1 片段</text>
+<text x="424" y="832" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="425.105,818.043,542.0310000000001,833.785">方法引用可展开</text>
+</g>
+<g data-graph-role="node" data-node-id="old" data-graph-bounds="760,740,1036,900"><rect x="760" y="740" width="276" height="160" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="780" y="774" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="781.584,756.026,924.188,776.288">E11 · 会话助手</text>
+<text x="780" y="805" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="780.714,790.958,934.8700000000001,806.802">话题 / 需不需要回复</text>
+<text x="780" y="832" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="780.561,817.992,898.388,833.751">会话内成员画像</text>
+</g>
+<g data-graph-role="node" data-node-id="log" data-graph-bounds="1116,740,1392,900"><rect x="1116" y="740" width="276" height="160" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+<text x="1136" y="774" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="start" fill="#64748b" data-graph-role="decoration" data-graph-bounds="1137.584,755.982,1284.6760000000002,776.266">E12 · 聊天日志</text>
+<text x="1136" y="805" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1136.68,790.924,1299.778,807.737">观察时留存 13,257 条</text>
+<text x="1136" y="832" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#334155" data-graph-role="decoration" data-graph-bounds="1137.989,817.924,1276.862,834.737">当前展示 2,000 条</text>
+</g>
+<text x="48" y="1064" font-family="PingFang SC,Helvetica Neue,Arial,sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#64748b" data-graph-role="label" data-graph-bounds="49.425,1051.58,807.6899999999999,1065.635">已真实生成 2 次；未验证上传全格式、持续同步、身份合并、重启恢复和并发负载。页面统计不是采集完整性证明。</text>
+</svg>
