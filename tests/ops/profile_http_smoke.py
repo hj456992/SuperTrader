@@ -86,7 +86,16 @@ class Probe:
             self.require(job['id'] == run_id, 'same-run')
             if job['status'] not in ('running', 'cancelling'):
                 return state
-            self.require(state['revision'] == revision, 'progress-does-not-change-revision')
+            if state['revision'] == revision:
+                self.require(True, 'progress-does-not-change-revision')
+            else:
+                target = (state.get('self', {}) if job.get('targetId') == 'self' else
+                          next((p for p in state.get('people', []) if p.get('id') == job.get('targetId')), {}))
+                saved = target.get('profile') or {}
+                self.require(job['status'] == 'running' and job.get('phase') == 'saving'
+                             and job.get('kind') == 'profile' and state['revision'] == revision + 1
+                             and saved.get('runId') == run_id and saved.get('basedOnRevision') == revision,
+                             'saving-transition-must-belong-to-this-run')
             time.sleep(0.6)
         raise SmokeFailure('job-timeout')
 

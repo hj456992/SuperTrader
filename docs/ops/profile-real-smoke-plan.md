@@ -62,3 +62,5 @@ python3 tests/ops/profile_http_smoke.py --expected-sha "$SMOKE_SHA" --confirm-is
 不要并发执行这些阶段；每一阶段只输出检查名、状态及数量，不输出 Cookie、凭据、模型正文。重启中断检查与进程/schema清理由 ops 控制本任务 Popen 对象另行执行，不能由 HTTP 探针猜测或杀进程。此脚本目前仅通过语法/帮助入口验证，尚未对真实服务执行。
 
 TL 评审修订：白名单在自述/报告非空时允许 self-description/person-notes（本 fixture 当前为空，不额外造报告）。删书探针分别输出 currentRevocation/historyRevocation=covered 或 not_covered；只有删除前两个位置都真实存在匹配书籍引用，才记录整体撤回覆盖。未覆盖保持未覆盖，不构造模型引用来使测试通过。
+
+真实验收后的probe边界修订：进度本身不增revision，但保存提交先于done发布，合法的本run画像已保存且phase=saving、revision恰+1窗口可继续等待done；不立即判成功，仍核对正式终态与单次保存。其他目标/任务保存、其他阶段或多次revision变化继续失败。详见真实执行记录，不能把此修正泛化为容忍任意并发修改。

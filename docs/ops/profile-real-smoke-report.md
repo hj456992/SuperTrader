@@ -22,3 +22,43 @@ setup通过：导入纯虚构本人、人物和6条材料，revision=8。self-em
 按TL指令，对本任务亲自创建并持有的PID55880调用terminate；进程退出143，随后重新绑定48749成功，证明端口释放。schema保留，停止后从该schema只读核对存储revision=8。下一版须新固定SHA与build完成通知，只重新执行self-empty一次，setup不重复。
 
 真实凭据和Cookie仅内存，日志仅由内存管道读取；未写盘模型密钥、完整模型内容或进程环境。未访问原48740，未读取真实聊天或操作现有业务表。
+
+## 整数请求修复版：结构链路通过，服务保留验收
+
+服务冻结 SHA：`5bfd8990244d6281e16b2d2c1bf0e6868fe71b3c`。TL完成构建后运维续验，未重复setup，启动前确认原revision=8。
+
+- 新业务 JAR SHA-256：`d112fdf5ef59ce250014b5c929c8dd5fc35cfe0f1b5ea1335610b6291c627208`。
+- 飞书 JAR 与 ranch-ui.js SHA-256 与首次记录一致。
+- 启动PID60227，宿主configured=10/active=10，独立48749首页ready。
+
+| 阶段 | 实际结果 |
+|---|---|
+| self-empty一次 | done，step2，5 facets，empty_library，0书摘，明确uncertainties；知识检索之后再次reasoning |
+| upload一次 | 虚构TXT成功，书架1份 |
+| person有书一次 | done，step3，5 facets，1书摘 |
+| self有书一次 | done，step2，4 facets，1书摘 |
+| strategy一次 | done，步骤/目标引用存在；仅改goal前后profile完全相同 |
+| cancel一次 | 错误runId未取消；正确runId与重复取消收尾cancelled；profile/revision未迟到改变 |
+| reopen | 新内存Cookie会话仍可读取原已存本人/人物画像 |
+| 异常中断与重启 | 新任务确认running后仅kill本任务PID60227，退出-9；重启PID61019后同runId=interrupted、两份旧画像完全相同、revision仍14 |
+| delete-book一次 | 删除前current共2条、history共2条匹配书籍引用；删除后均无可用旧引用。current/history撤回均实际覆盖 |
+| 恢复upload | 重新上传同一虚构书籍，revision16 |
+| 恢复person一次 | 实际done，step2，4 facets，1书摘，basedOnRevision16、保存revision17；见下方探针误判说明 |
+| 恢复self一次 | done，step2，5 facets，1书摘，最终revision18；没有重复person请求 |
+
+每次画像检查了人物evidenceIds/counterEvidenceIds归属、knowledgeIds只引用返回书摘、书摘内容确实出自虚构书籍、runId与basedOnRevision、有限step/event、检索后更晚的reasoning、正式保存只增长一次revision。报告不输出模型全文或凭据。这些结构与来源断言不能证明所有生成句子的语义完全正确。
+
+### 两个探针/运行边界的如实记录
+
+1. 异常kill后第一次重启预检暂时不可bind48749。只读lsof未发现listener，随后普通bind自然成功；与TIME_WAIT等待相符。向TL报告并获得继续确认后，以原SHA/JAR实际重启一次，未改预检或停止其他进程，未新增画像请求。
+2. 恢复person的原probe在运行中观察revision16→17时报 `progress-does-not-change-revision`。之后只读确认该任务done、当前profile.runId匹配、basedOnRevision16、revision17。失败瞬间phase没有保留，不能宣称直接观测到那个phase；TL和后端核对源码确认存在合法saving窗口：业务保存先提交，独立job随后发布done。原probe把这个窗口也当进度写入，是过严断言。
+
+probe修正仅允许当前job为running/profile/saving、job.id/targetId对应本目标、已存profile.runId为本run、basedOnRevision为起始版本、revision恰+1时继续有界等done；其他变化仍失败。回归先复现合法窗口被误拒，修后通过，并确认其他run的保存不能通过。未修改服务生产代码或冻结HEAD。
+
+恢复person未重跑：对现存结果只读核对完整引用、阶段、版本、历史、书摘后判通过；仅补原计划尚未请求的self一次。服务版本与probe修正版本分开记录。
+
+### 当前交接与未完成项
+
+- 按TL要求保留PID61019和独占schema，48749稳定revision18/job done，供前端浏览器与产品只读验收；没有清理或追加模型调用。
+- 产品对真实本人样本发现“将手动材料录入时间at当作发言日期”的语义问题，TL已交后端核对最小修复。该项未解决，不能把本表的结构链路通过称为全部业务验收通过。
+- 后续针对性复验及最终停进程/准确schema删除均待TL协调；旧版回滚未实际执行，不声称完成。
