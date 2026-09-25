@@ -41,10 +41,13 @@ function renderJob(data,ui) {
  const active=jobActive(job),cancelling=job.status==='cancelling';
  const targetProfile=job.targetId==='self'?data.self:data.people.find(p=>p.id===job.targetId);
  const target=job.targetId==='self'?'我的画像':targetProfile?.name;
- const label=cancelling?'正在停止任务，请等待确认':job.status==='interrupted'?'任务已中断。未完成的结果不会作为新画像保存，可重新生成。':job.status==='cancelled'?`任务已停止，本次结果未保存。${targetProfile?.profile?'已保存的画像仍可查看。':''}`:job.status==='error'?job.error||'生成失败，请稍后重试':phaseLabels[job.phase]||`正在${job.kind==='strategy'?'整理相处攻略':'从材料中生成画像'}`;
+ const strategy=job.kind==='strategy';
+ const phaseLabel=phase=>strategy&&phase==='reasoning'?'整理相处攻略':phaseLabels[phase];
+ const savedResult=strategy?targetProfile?.strategies?.at(-1):targetProfile?.profile;
+ const label=cancelling?'正在停止任务，请等待确认':job.status==='interrupted'?'任务已中断，请核对当前结果后再决定是否重新生成。':job.status==='cancelled'?`任务已停止。${savedResult?`已保存的${strategy?'相处攻略':'画像'}仍可查看。`:''}`:job.status==='error'?job.error||'生成失败，请稍后重试':phaseLabel(job.phase)||`正在${strategy?'整理相处攻略':'从材料中生成画像'}`;
  const step=Number.isInteger(job.step)&&Number.isInteger(job.maxSteps)&&job.maxSteps>0?` · 模型步骤 ${e(job.step)} / ${e(job.maxSteps)}`:'';
  const events=(job.events||[]).filter(v=>v.type==='phase').slice(-8);
- return `<div class="${job.status==='error'?'error-banner':'job-banner'}" role="${job.status==='error'?'alert':'status'}">${active?'<span class="spinner"></span>':''}<div class="job-copy">${target?`<small>${e(target)} · ${job.kind==='strategy'?'相处攻略':'画像任务'}</small>`:''}<p>${e(label)}${active?step:''}</p>${active&&job.message?`<p>${e(job.message)}</p>`:''}${active&&events.length?`<details class="job-events"><summary>已收到的执行进度</summary>${events.map(v=>`<p>${e(v.message||phaseLabels[v.phase]||'执行中')}</p>`).join('')}</details>`:''}</div>${cancelling||job.status==='cancelled'?'':button(active?'cancel':'dismiss-job',active?'停止任务':'关闭提示',`class="text-button" ${ui.stopping?'disabled':''} ${job.status==='error'?'aria-label="关闭错误提示"':''} ${job.id?`data-run-id="${e(job.id)}"`:''}`)}</div>`;
+ return `<div class="${job.status==='error'?'error-banner':'job-banner'}" role="${job.status==='error'?'alert':'status'}">${active?'<span class="spinner"></span>':''}<div class="job-copy">${target?`<small>${e(target)} · ${job.kind==='strategy'?'相处攻略':'画像任务'}</small>`:''}<p>${e(label)}${active?step:''}</p>${active&&job.message?`<p>${e(job.message)}</p>`:''}${active&&events.length?`<details class="job-events"><summary>已收到的执行进度</summary>${events.map(v=>`<p>${e(v.message||phaseLabel(v.phase)||'执行中')}</p>`).join('')}</details>`:''}</div>${cancelling||job.status==='cancelled'?'':button(active?'cancel':'dismiss-job',active?'停止任务':'关闭提示',`class="text-button" ${ui.stopping?'disabled':''} ${job.status==='error'?'aria-label="关闭错误提示"':''} ${job.id?`data-run-id="${e(job.id)}"`:''}`)}</div>`;
 }
 export function renderStrategy(s,p,self={}) {
  if(!s)return '<div class="blank"><span class="blank-symbol">↗</span><h3>把了解，变成自然的下一步</h3><p>画像准备好后，结合你的目标与当下情境，<br>生成有依据、尊重彼此边界的相处建议。</p></div>';

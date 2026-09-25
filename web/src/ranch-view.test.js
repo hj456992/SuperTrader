@@ -88,3 +88,44 @@ test('cancelled banner only promises a saved profile when its own target has one
  const selfMissing=renderRanch({...state,job:{...job,targetId:'self'},people:[{...person,profile:{summary:'他人已有画像'}}]},{page:'self',tab:'profile'});
  assert.doesNotMatch(selfMissing,/已保存的画像仍可查看/);
 });
+test('strategy reasoning and phase event fallbacks describe strategies at the reported model step',()=>{
+ for(const step of [1,2]){
+  const job={id:'strategy-run',status:'running',targetId:'p1',kind:'strategy',phase:'reasoning',step,maxSteps:2,events:[{type:'phase',phase:'reasoning'}]};
+  const html=renderRanch({...state,job},{page:'person',selected:'p1',tab:'strategy'});
+  assert.match(html,new RegExp(`整理相处攻略 · 模型步骤 ${step} / 2`));
+  assert.match(html,/<details class="job-events">[\s\S]*<p>整理相处攻略<\/p>/);
+  assert.doesNotMatch(html,/整理画像与推断/);
+ }
+ const html=renderRanch({...state,job:{status:'running',targetId:'p1',kind:'profile',phase:'reasoning'}},{page:'person',selected:'p1',tab:'profile'});
+ assert.match(html,/整理画像与推断/);
+});
+test('strategy validation and saving retain real phases steps and escaped server messages',()=>{
+ for(const [phase,label] of [['validating','核对结构与引用'],['saving','保存结果']]){
+  const job={id:'strategy-run',status:'running',targetId:'p1',kind:'strategy',phase,step:2,maxSteps:2,message:'<服务端进度>',events:[{type:'phase',phase:'reasoning',message:'<实际推断进度>'},{type:'phase',phase}]};
+  const html=renderRanch({...state,job},{page:'person',selected:'p1',tab:'strategy'});
+  assert.match(html,new RegExp(`${label} · 模型步骤 2 / 2`));
+  assert.match(html,new RegExp(`<p>${label}</p>`));
+  assert.match(html,/&lt;服务端进度&gt;/);assert.match(html,/&lt;实际推断进度&gt;/);
+  assert.doesNotMatch(html,/<服务端进度>|<实际推断进度>/);
+ }
+});
+test('cancelled strategy only promises a saved strategy belonging to its target',()=>{
+ const job={id:'strategy-run',status:'cancelled',targetId:'p1',kind:'strategy'};
+ for(const strategies of [[],[{overview:'已有攻略'}]]){
+  const html=renderRanch({...state,job,people:[{...person,profile:{summary:'已有画像'},strategies}]},{page:'person',selected:'p1',tab:'strategy'});
+  assert.match(html,/任务已停止/);assert.doesNotMatch(html,/已保存的画像仍可查看/);
+  if(strategies.length)assert.match(html,/已保存的相处攻略仍可查看/);
+  else assert.doesNotMatch(html,/已保存的相处攻略仍可查看/);
+ }
+ const html=renderRanch({...state,job,people:[person,{...person,id:'p2',strategies:[{overview:'他人攻略'}]}]},{page:'person',selected:'p1',tab:'strategy'});
+ assert.doesNotMatch(html,/已保存的相处攻略仍可查看/);
+ const profileJob=renderRanch({...state,job:{...job,kind:'profile'},people:[{...person,strategies:[{overview:'已有攻略'}]}]},{page:'person',selected:'p1',tab:'profile'});
+ assert.doesNotMatch(profileJob,/已保存的画像仍可查看|已保存的相处攻略仍可查看/);
+});
+test('interrupted and cancelled tasks do not assert that persistence definitely failed',()=>{
+ for(const kind of ['profile','strategy'])for(const status of ['interrupted','cancelled']){
+  const html=renderRanch({...state,job:{id:'ended-run',status,targetId:'p1',kind}},{page:'person',selected:'p1',tab:kind==='strategy'?'strategy':'profile'});
+  assert.match(html,status==='interrupted'?/任务已中断/:/任务已停止/);
+  assert.doesNotMatch(html,/本次结果未保存|不会作为新画像保存|已保存的/);
+ }
+});
