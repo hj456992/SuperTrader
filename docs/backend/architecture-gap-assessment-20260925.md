@@ -150,3 +150,15 @@
 - `src/test/java/dev/garden/RanchJobTest.java`、`RanchAnalyzerTest.java`、`ProfileAgentAcceptanceTimeTest.java`：已有任务、准入和时间兼容边界。
 - `web/src/ranch-view.js`、`ranch-ui.js`：可选字段展示及任务轮询。
 - `docs/qa/tl-integration-verification.md`、`docs/ops/profile-agent-runbook.md`：既有验收记录及发布／回滚约束。
+
+## G01 实施记录（2026-09-25，独立于已发布的 4754cb1）
+
+TL 明确批准后，在现有后端树实现 StrategyRuntime 与 RanchAnalyzer 接线。取消信号从任务接纳起存在，worker 设置单个110秒deadline；直接模型仍最多首次+一次结构／引用修复，每次整数6000。异步prepare等待可被本地取消，迟到准备结果零订阅；静默源使用完成信号撤销订阅。源释放先于持久cancelled，阶段包含实际reasoning/validating；新攻略附runId/basedOnRevision，旧历史不回填。
+
+流期间最多50000个Java字符及20000个事件；超限、超时、传输或非stop终态不进入结构修复。取消／时限检查贯穿检索和保存前，保留原revision与监视器屏障。默认Runtime允许构造时models为null，兼容纯恢复测试，生成时才校验装配。未修改ProfileRuntime、RanchData、RanchStore、公共底座、依赖或检索。
+
+三个原红门槛已提升为普通StrategyExecutionTest，另加准备未完成就结束本地任务及源取消先于终态断言。StrategyRuntimeTest验证两次共享短预算、连续chunk不续期、源取消、精确上限、终态协议及有限修复；RanchJobTest新增旧历史身份、完整响应后取消、保存先赢、revision冲突、mutation前deadline及检索耗尽／取消零prepare。定向三类共24项通过。一次保存边界用例最初通过Repository回调重入publish，造成与真实JDBC不同的内存状态覆盖；已改用真实监视器与原始流竞争，未为该测试假象修改生产发布逻辑。
+
+同步JDBC回收、PreparedCall无dispose、供应商是否停止计算、state/job两次写入恢复等既有边界保持。未package、部署、推送或调用真实模型／数据库；QA独立矩阵和TL最终审核另行记录，不能将本地测试视为已发布。
+
+实现候选完整后端验证：`/Users/hou/.local/apache-maven-3.9.16/bin/mvn -o -Dmaven.repo.local=.local/m2 -q test` 退出0，16 suites／76 tests，0 failures/errors/skips；StrategyExecutionTest和StrategyRuntimeTest均由普通套件自动执行。按本次报告mtime统计，未混入先前显式红测XML。日志为忽略目录 `.local/g01-full.log`；未执行package。QA独立结果仍待交接。

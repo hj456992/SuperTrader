@@ -14,22 +14,24 @@ import reactor.core.publisher.FluxSink;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Explicit opt-in red gates for G01, not a normal Surefire *Test class.
- * Run with -Dtest=StrategyExecutionReproduction. No model network or database.
+ * G01 execution gates promoted from the explicit red reproduction.
+ * Run with -Dtest=StrategyExecutionTest. No model network or database.
  * The real registry resolves calls; only the external adapter and repository are synthetic.
  */
 @Timeout(value=10, threadMode=Timeout.ThreadMode.SEPARATE_THREAD)
-class StrategyExecutionReproduction {
+class StrategyExecutionTest {
     @Test void silentCancelMustReleaseOriginalProviderAndAllowAnotherTask() throws Exception {
         var entered=new CountDownLatch(1);
         var released=new CountDownLatch(1);
         var source=new AtomicReference<FluxSink<Map<String,Object>>>();
         var calls=new AtomicInteger();
         var repo=new StrategyRepository();
+        var trace=new CopyOnWriteArrayList<String>();
+        repo.onStatus=status->{if(status.equals("cancelled"))trace.add("persisted-cancelled");};
         var models=registry((provider,model,signal)->CompletableFuture.completedFuture(adapter(request->{
             if(calls.incrementAndGet()>1)return answer("P1");
             return Flux.create(sink->{
-                sink.onCancel(released::countDown);
+                sink.onCancel(()->{trace.add("provider-cancel");released.countDown();});
                 source.set(sink);
                 entered.countDown();
             });
@@ -45,6 +47,7 @@ class StrategyExecutionReproduction {
                 // All release/terminal/restart gates run before emergency source completion.
                 awaitStopped(analyzer);
                 assertEquals("cancelled",analyzer.status().get("status"));
+                assertTrue(trace.indexOf("provider-cancel")<trace.indexOf("persisted-cancelled"),trace.toString());
                 assertTrue(repo.read().path("people").get(0).path("strategies").isEmpty());
                 assertEquals(0,repo.read().path("revision").asInt());
                 analyzer.start(repo.read(),"person-1","strategy","询问是否想散步");
@@ -82,6 +85,26 @@ class StrategyExecutionReproduction {
                 analyzer.cancel();
                 prepared.complete(adapter(request->Flux.empty()));
                 awaitStopped(analyzer);
+            }
+        }
+    }
+
+    @Test void cancelMustEndLocalPreparationBeforeItsFutureCompletes() throws Exception {
+        var preparing=new CountDownLatch(1);
+        var prepared=new CompletableFuture<ModelRegistry.AdapterCall>();
+        var subscriptions=new AtomicInteger();var repo=new StrategyRepository();
+        var models=registry((provider,model,signal)->{preparing.countDown();return prepared;});
+        try(var analyzer=new RanchAnalyzer(models,repo,new RanchKnowledge(repo))) {
+            try {
+                analyzer.start(repo.read(),"person-1","strategy","询问是否想散步");
+                assertTrue(preparing.await(2,TimeUnit.SECONDS));analyzer.cancel();
+                awaitStopped(analyzer);
+                assertFalse(prepared.isDone(),"Test must not release preparation to obtain the terminal state");
+                assertEquals("cancelled",analyzer.status().get("status"));assertEquals(0,repo.saves);
+                prepared.complete(adapter(request->Flux.defer(()->{subscriptions.incrementAndGet();return answer("P1");})));
+                assertEquals(0,subscriptions.get());
+            } finally {
+                analyzer.cancel();prepared.complete(adapter(request->Flux.empty()));awaitStopped(analyzer);
             }
         }
     }
@@ -133,8 +156,9 @@ class StrategyExecutionReproduction {
         while(Set.of("running","cancelling").contains(analyzer.status().get("status"))&&System.nanoTime()<deadline)Thread.sleep(5);
         assertFalse(Set.of("running","cancelling").contains(analyzer.status().get("status")),"synthetic source cleanup failed: "+analyzer.status());
     }
-    static final class StrategyRepository extends RanchJobTest.MemoryRepository {
+    static class StrategyRepository extends RanchJobTest.MemoryRepository {
         private final List<String> recorded=new ArrayList<>();
+        java.util.function.Consumer<String> onStatus=status->{};
         StrategyRepository() {
             state.putArray("library");
             var person=state.withArray("people").addObject().put("id","person-1").put("name","虚构甲")
@@ -144,7 +168,7 @@ class StrategyExecutionReproduction {
             person.putObject("profile").put("summary","这次表达了散步意愿").put("stale",false);
         }
         @Override public synchronized void writeJob(ObjectNode job) {
-            super.writeJob(job);recorded.add(job.path("phase").asText()+":"+job.path("step").asInt());
+            super.writeJob(job);onStatus.accept(job.path("status").asText());recorded.add(job.path("phase").asText()+":"+job.path("step").asInt());
         }
         synchronized List<String> phases(){return List.copyOf(recorded);}
     }
