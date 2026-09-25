@@ -97,7 +97,8 @@ class ProfileAgentAcceptanceStrategyTest {
             assertEquals(RanchData.target(before,TARGET).path("profile"),person.path("profile"));
             assertEquals(RanchData.target(before,TARGET).path("strategies").get(0),strategies.get(0));
             assertEquals(2,strategies.size());assertEquals(run,strategies.get(1).path("runId").asText());
-            assertEquals(before.path("revision"),strategies.get(1).path("basedOnRevision"));
+            assertTrue(strategies.get(1).path("basedOnRevision").isIntegralNumber());
+            assertEquals(before.path("revision").asLong(),strategies.get(1).path("basedOnRevision").asLong());
         }
     }
 
