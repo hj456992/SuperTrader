@@ -1,0 +1,13 @@
+.local/
+target/
+__pycache__/
+*.log
+
+# Private OCR results, book text, screenshots and local execution records
+/evidence/*
+!/evidence/演示资料-职场沟通方法.pdf
+.env
+.env.*
+*.token
+*.key
+.DS_Store
