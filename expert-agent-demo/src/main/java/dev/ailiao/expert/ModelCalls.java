@@ -56,7 +56,7 @@ final class ModelCalls {
         }).then().block(job.remaining(180));
         job.check();
         if (!finished[0]) { if(production)throw new ProductionModelException("MODEL_STREAM_INCOMPLETE","none",effectiveTokens,maxCharacters);throw new IllegalStateException("模型输出中断"); }
-        try{return Json.parse(text.toString());}catch(Exception invalid){if(production)throw new ProductionModelException("MODEL_JSON_INVALID","stop",effectiveTokens,maxCharacters);throw invalid;}
+        try{return Json.parse(text.toString());}catch(Exception invalid){if(production)throw ProductionModelException.invalidJson(invalid,effectiveTokens,maxCharacters);throw invalid;}
     }
     /** 构造底座标准消息。@param role 角色 @param text 内容 */
     private static Map<String, Object> message(String role, String text) { return Map.of("role", role, "content", List.of(Map.of("type", "text", "text", text))); }

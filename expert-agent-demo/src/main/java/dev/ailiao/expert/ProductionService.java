@@ -163,9 +163,9 @@ final class ProductionService implements AutoCloseable {
     private void workLoop(){String owner=Json.id();while(!closed&&!Thread.currentThread().isInterrupted()){
         try{var claim=queue.claim(owner,Duration.ofSeconds(30));if(claim==null){Thread.sleep(150);continue;}AtomicBoolean lost=new AtomicBoolean();ScheduledFuture<?> renewal=renewals.scheduleAtFixedRate(()->{try{if(!queue.renew(claim,Duration.ofSeconds(30)))lost.set(true);}catch(Exception e){lost.set(true);}},5,5,TimeUnit.SECONDS);
             try{String kind=s(claim.job(),"kind");if(kind.equals("prelearn"))prelearn(claim,lost);else if(kind.equals("interpret_message"))interpret(claim,lost);else generate(claim,lost);}
-            catch(Exception e){try{if(!closed)failJob(claim,e);}catch(Exception ignored){System.err.println("Production worker could not persist failure: "+ignored.getClass().getSimpleName());}}
+            catch(Exception e){try{if(!closed)failJob(claim,e);}catch(Exception ignored){ProductionDiagnostics.log("worker failure persistence",ignored);}}
             finally{renewal.cancel(false);}
-        }catch(InterruptedException e){Thread.currentThread().interrupt();break;}catch(Exception e){if(!closed){System.err.println("Production worker: "+e.getClass().getSimpleName());try{Thread.sleep(500);}catch(InterruptedException stop){Thread.currentThread().interrupt();break;}}}
+        }catch(InterruptedException e){Thread.currentThread().interrupt();break;}catch(Exception e){if(!closed){ProductionDiagnostics.log("worker",e);try{Thread.sleep(500);}catch(InterruptedException stop){Thread.currentThread().interrupt();break;}}}
     }}
     private ObjectNode call(String purpose,ObjectNode input,ProductionJobQueue.Claim claim,AtomicBoolean lost)throws Exception{
         java.util.function.BooleanSupplier cancelled=()->{if(closed||lost.get()||Thread.currentThread().isInterrupted())return true;try{return !queue.live(claim);}catch(Exception e){return true;}};
@@ -222,8 +222,11 @@ final class ProductionService implements AutoCloseable {
             execute(c,"UPDATE ep_artifact_revision SET generation_status='running',updated_at=now() WHERE id=? AND sealed_at IS NULL",r);return in;});
         ObjectNode window=ProductionContext.generation(input);
         ObjectNode rawOutput=call("generate",window,claim,lost);final ObjectNode output;
-        try{output=ProductionRules.normalizeSources(rawOutput,(ArrayNode)window.path("sources"));ProductionRules.validateGenerated(s(input,"kind"),output,(ArrayNode)window.path("sources"),(ArrayNode)input.path("specialists"));}
-        catch(IllegalArgumentException invalid){System.err.println("Production generation source shapes: "+ProductionRules.sourceShape(rawOutput,(ArrayNode)window.path("sources")));throw invalid;}
+        final ObjectNode normalizedSources;
+        try{normalizedSources=ProductionRules.normalizeSources(rawOutput,(ArrayNode)window.path("sources"));}
+        catch(IllegalArgumentException invalid){ObjectNode detail=Json.object().put("field","sources").put("type",rawOutput.path("sources").getNodeType().name());detail.set("items",ProductionRules.sourceShape(rawOutput,(ArrayNode)window.path("sources")));System.err.println("Production generation validation: "+detail);throw invalid;}
+        try{output=ProductionRules.normalizeChapters(s(input,"kind"),normalizedSources,(ArrayNode)window.path("sources"));ProductionRules.validateGenerated(s(input,"kind"),output,(ArrayNode)window.path("sources"),(ArrayNode)input.path("specialists"));}
+        catch(IllegalArgumentException invalid){System.err.println("Production generation validation: "+(invalid instanceof ProductionRules.ValidationFailure failure?failure.details():Json.object().put("stage","artifact_constraints").put("errorType",invalid.getClass().getSimpleName())));throw invalid;}
         queue.withLease(claim,c->{ObjectNode a=artifact(c,aId);if(!r.equals(s(a,"current_revision_id")))throw new CancellationException("目标已更新");List<String> deps=dependencies(c,b,a);if(!Json.MAPPER.valueToTree(deps).equals(input.path("dependencyIds")))throw new CancellationException("上游版本已变化");
             if("team_manifest".equals(s(a,"kind"))){assertFinalReady(c,b,aId);((ObjectNode)output.path("body")).set("members",manifestMembers(c,b,aId));}
             seal(c,b,r,s(a,"kind"),output,deps);execute(c,"UPDATE ep_artifact SET dependency_state='current',updated_at=now() WHERE id=?",aId);execute(c,"UPDATE ep_build SET current_artifact_id=?,focus_revision_id=? WHERE id=?",aId,r,b);
@@ -281,7 +284,7 @@ final class ProductionService implements AutoCloseable {
                     execute(c,"UPDATE ep_job SET status='cancelled',cancel_requested=true,phase='cancelled',lease_epoch=lease_epoch+1,lease_owner=NULL,lease_until=NULL,updated_at=now() WHERE build_id=? AND kind='interpret_message' AND status IN ('queued','running') AND input->>'messageId'<>?",b,message);
                 }
             }
-            else{execute(c,"UPDATE ep_build SET status='active' WHERE id=?",b);if(s(state,"phase").equals("prelearning"))queue.enqueue(c,b,"prelearn",null,Json.object(),"prelearn:"+b+":"+Json.id());else{ObjectNode a=current(c,b);if(a!=null&&!"succeeded".equals(s(a,"generation_status"))){execute(c,"UPDATE ep_artifact_revision SET generation_status='queued' WHERE id=?",s(a,"current_revision_id"));enqueueGeneration(c,b,a,s(a,"change_reason").length()>0);}else if(a!=null)present(c,b,a,"已恢复当前审阅位置，请继续审核。");}}
+            else return resumeOrRetry(c,b,state,message,type);
             bump(c,b);addMessage(c,b,"assistant",null,type.equals("pause")?"已暂停生成，可继续提问或恢复。":type.equals("cancel")?"构建已取消，迟到生成结果不会写入。":"已恢复当前任务。",Json.object(),"succeeded",message);return result;
         }
         if(type.equals("ask")||type.equals("read_source")||type.equals("focus")){
@@ -329,6 +332,30 @@ final class ProductionService implements AutoCloseable {
             }
         }else throw error(422,"UNKNOWN_INTENT","无法安全执行此意图，请明确对象和范围");
         if(!s(intent,"reply").isBlank())addMessage(c,b,"assistant",null,s(intent,"reply"),Json.object(),"succeeded",message);return result;
+    }
+    /** 构建锁内复用已有工作；新的clientId也不能为同一目标重复付费生成。 */
+    private ObjectNode resumeOrRetry(Connection c,String b,ObjectNode state,String message,String type)throws Exception{
+        boolean prelearning="prelearning".equals(s(state,"phase")),paused="paused".equals(s(state,"status"));
+        ObjectNode artifact=prelearning?null:current(c,b);String revision=artifact==null?null:s(artifact,"current_revision_id");
+        ObjectNode pending=prelearning?one(c,"SELECT id FROM ep_job WHERE build_id=? AND kind='prelearn' AND status IN ('queued','running') AND NOT cancel_requested LIMIT 1",b):
+            one(c,"SELECT id FROM ep_job WHERE build_id=? AND target_revision_id=? AND kind<>'interpret_message' AND status IN ('queued','running') AND NOT cancel_requested LIMIT 1",b,revision);
+        if(pending!=null){addMessage(c,b,"assistant",null,"当前任务仍在处理中，请等待完成，无需重复恢复或重试。",Json.object(),"succeeded",message);return Json.object().put("httpStatus",200).put("type","processing").put("jobId",s(pending,"id"));}
+        if(artifact!=null&&"succeeded".equals(s(artifact,"generation_status"))){
+            if(paused&&type.equals("resume")){execute(c,"UPDATE ep_build SET status='active' WHERE id=?",b);bump(c,b);}
+            present(c,b,artifact,paused&&!type.equals("resume")?"当前已有可审稿，构建仍暂停；可明确恢复后继续审核。":"当前已有可审稿，请继续审核，无需重复生成。");
+            return Json.object().put("httpStatus",200).put("type","review_ready");
+        }
+        if(type.equals("resume")&&!paused)throw error(409,"BUILD_NOT_PAUSED","当前构建未暂停；失败任务请明确重试。");
+        if(type.equals("retry")){
+            ObjectNode last=prelearning?one(c,"SELECT status FROM ep_job WHERE build_id=? AND kind='prelearn' ORDER BY created_at DESC,id DESC LIMIT 1",b):
+                one(c,"SELECT status FROM ep_job WHERE build_id=? AND target_revision_id=? AND kind<>'interpret_message' ORDER BY created_at DESC,id DESC LIMIT 1",b,revision);
+            if(last==null||!Set.of("failed","cancelled").contains(s(last,"status"))||(!prelearning&&(artifact==null||!Set.of("failed","cancelled").contains(s(artifact,"generation_status")))))throw error(409,"NOTHING_TO_RETRY","当前没有失败或已停止的生成工作可重试。");
+        }
+        if(!prelearning&&artifact==null)throw error(409,"NOTHING_TO_RESUME","当前没有可恢复的生成目标。");
+        execute(c,"UPDATE ep_build SET status='active' WHERE id=?",b);
+        if(prelearning)queue.enqueue(c,b,"prelearn",null,Json.object(),"prelearn:"+b+":"+Json.id());
+        else{execute(c,"UPDATE ep_artifact_revision SET generation_status='queued' WHERE id=? AND sealed_at IS NULL",revision);enqueueGeneration(c,b,artifact,!s(artifact,"change_reason").isBlank());}
+        bump(c,b);addMessage(c,b,"assistant",null,"已恢复当前任务。",Json.object(),"succeeded",message);return Json.object().put("httpStatus",200).put("type",type);
     }
     private void resolveClarifications(Connection c,String b,String message,ObjectNode request,ObjectNode intent,boolean revising)throws Exception{
         for(JsonNode id:intent.path("resolveClarificationIds")){ObjectNode q=one(c,"SELECT * FROM ep_clarification WHERE build_id=? AND id=? AND status='open'",b,id.asText());if(q==null)throw error(409,"STALE_CLARIFICATION","待答问题已变化");if("rejection_reason".equals(s(q,"kind"))&&!revising)throw error(409,"REVISION_REQUIRED","否决原因必须进入修订流程");execute(c,"UPDATE ep_clarification SET status='resolved',answer=?,resolved_message_id=?,updated_at=now() WHERE id=?",s(request,"content"),message,id.asText());}

@@ -31,4 +31,20 @@ class ProductionPrelearnTest {
         bad.put("steps","合法步骤");bad.set("sourceIds",Json.array().add("foreign"));
         failure=assertThrows(java.lang.reflect.InvocationTargetException.class,()->normalize(draft(bad),Json.array().add(Json.object().put("id","s1"))));assertInstanceOf(IllegalArgumentException.class,failure.getCause());
     }
+    private ObjectNode noMethods(){ObjectNode out=Json.object().put("summary","本批仅包含书末参考资料与致谢，没有可提取的方法。");out.set("methods",Json.array());out.set("sourceIds",Json.array().add("s1"));ObjectNode coverage=Json.object().put("noMethodReason","书末参考资料与致谢，没有方法步骤。");coverage.set("processedSourceIds",Json.array().add("s1"));coverage.set("limitations",Json.array());out.set("coverage",coverage);return out;}
+    @Test void emptyMethodsWithExplicitReasonAndFullCoverageArePreserved()throws Exception{
+        ObjectNode raw=noMethods();ObjectNode result=normalize(raw,Json.array().add(Json.object().put("id","s1")));assertEquals(raw,result);assertTrue(result.path("methods").isEmpty());
+    }
+    @Test void emptyMethodsCannotOmitReasonOrCoverageOrInventEvidence()throws Exception{
+        for(int shape=0;shape<6;shape++){
+            ObjectNode raw=noMethods();ObjectNode coverage=(ObjectNode)raw.path("coverage");
+            switch(shape){case 0->coverage.remove("noMethodReason");case 1->coverage.put("noMethodReason"," ");case 2->coverage.put("noMethodReason",7);case 3->coverage.set("processedSourceIds",Json.array());case 4->coverage.set("processedSourceIds",Json.array().add("foreign"));case 5->raw.set("sourceIds",Json.array().add("foreign"));}
+            var error=assertThrows(java.lang.reflect.InvocationTargetException.class,()->normalize(raw,Json.array().add(Json.object().put("id","s1"))));assertInstanceOf(IllegalArgumentException.class,error.getCause());
+        }
+    }
+    @Test void summaryContextKeepsNoMethodBatchCoverageAndReason()throws Exception{
+        ObjectNode input=Json.object();input.set("learningUnits",Json.array().add(noMethods()));input.set("sources",Json.array().add(Json.object().put("id","s1").put("text","参考书目与致谢")));input.set("approvedArtifacts",Json.array());
+        ObjectNode context=ProductionContext.generation(input);assertEquals(1,context.path("learningUnits").size());assertEquals(0,context.path("learningUnits").get(0).path("methodCount").asInt(-1));assertEquals("书末参考资料与致谢，没有方法步骤。",context.path("learningUnits").get(0).path("noMethodReason").asText());assertEquals(1,context.path("learningUnits").get(0).path("processedSourceCount").asInt());assertTrue(context.path("relevantMethods").isEmpty());assertEquals(1,context.path("contextCoverage").path("totalLearningUnits").asInt());assertEquals(0,context.path("contextCoverage").path("totalMethods").asInt(-1));
+    }
+
 }

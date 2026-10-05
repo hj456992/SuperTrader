@@ -13,6 +13,7 @@ def main():
     ap.add_argument('--document-title',default='原创演示资料：职场沟通方法')
     ap.add_argument('--output',required=True)
     ap.add_argument('--hold-after-summary',action='store_true')
+    ap.add_argument('--natural-approvals',action='store_true',help='Route every test approval through the real intent model instead of explicit UI action')
     ap.add_argument('--resume-build',help='Resume only the build recorded in this private output directory')
     args=ap.parse_args()
     output=Path(args.output).resolve();output.mkdir(parents=True,exist_ok=True);output.chmod(0o700)
@@ -39,14 +40,14 @@ def main():
         file=output/name;file.write_text(json.dumps(value,ensure_ascii=False,indent=2));file.chmod(0o600)
     save('identity.json',identity)
     if not args.resume_build:call('PUT',base,{'teamId':str(uuid.uuid4()),'teamName':'独立真实模型流程验收（测试）','name':'职场沟通验收团队（测试）','responsibility':'协助内部职场沟通，组织有依据的汇报、澄清需求和反馈。限于所选资料的方法；事实由提问者提供，信息不足先追问，不执行外部发送或公开发布。这是独立测试团队。','documents':[{'documentId':doc['id'],'documentVersionId':version['id']}]})
-    print(json.dumps({'created':build,'url':args.base+'/#production/'+build}),flush=True)
+    print(json.dumps({'resumed' if args.resume_build else 'created':build,'url':args.base+'/#production/'+build}),flush=True)
     def snapshot():return call('GET',base+'/snapshot')
     def wait(predicate,label):
         deadline=time.monotonic()+600;last=0
         while time.monotonic()<deadline:
             s=snapshot();save('latest.json',s)
             jobs=s.get('jobs',[])
-            failed=[j for index,j in enumerate(jobs) if j['status']=='failed' and not any(n['kind']==j['kind'] and n.get('targetRevisionId')==j.get('targetRevisionId') for n in jobs[index+1:])]
+            failed=[j for index,j in enumerate(jobs) if j['status']=='failed' and j['kind']!='interpret_message' and not any(n['kind']==j['kind'] and n.get('targetRevisionId')==j.get('targetRevisionId') for n in jobs[index+1:])]
             if failed:raise RuntimeError('Task failed: '+json.dumps(failed,ensure_ascii=False))
             if predicate(s):return s
             if time.monotonic()-last>25:
@@ -80,12 +81,22 @@ def main():
         for source in r.get('sources',[]):
             source_text=call('GET',base+'/sources/'+source['chunkId']+'?startOffset='+str(source['startOffset'])+'&endOffset='+str(source['endOffset']))
             if not source_text.get('text'):raise RuntimeError('Original passage empty')
-        if step==0:
+        if step==0 and a['kind']=='book_summary':
             post(s,'请解释这份概要的适用范围，不要推进审核。')
             s=snapshot()
             if s['currentArtifact']['currentRevision']['reviewStatus']!='pending':raise RuntimeError('Discussion incorrectly approved summary')
         # Approval is confined to the newly created test build; it is automated test input.
-        post(s,'自动化验收输入：确认当前展示的完整内容和提示词，通过本测试版本。','approve')
+        if args.natural_approvals:
+            approval={
+                'book_summary':'当前整书概要完整准确，我确认通过这个版本。',
+                'agent':'当前这位专家的完整描述、职责、资料依据、模型、工具、能力、边界和完整系统提示词，我已完整审阅，确认通过当前版本。',
+                'keyword_rule':'当前完整的关键词规则，我确认通过这个版本。',
+                'qa_example':'当前完整的问答知识库和路由配置，我确认通过这个版本。',
+                'team_manifest':'当前专家团队的完整流程和全部成员清单，我已核对，确认整体通过当前版本，完成团队生产。'
+            }[a['kind']]
+            post(s,approval)
+        else:
+            post(s,'自动化验收输入：确认当前展示的完整内容和提示词，通过本测试版本。','approve')
         reviewed.append({'kind':a['kind'],'role':a['agentRole'],'revision':r['id']})
         wait(lambda x:x['status']=='completed' or (x.get('currentArtifact') or {}).get('currentRevision',{}).get('id')!=r['id'],'next stage')
     raise RuntimeError('Too many stages')

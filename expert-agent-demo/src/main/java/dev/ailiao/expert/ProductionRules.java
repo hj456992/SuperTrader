@@ -29,6 +29,34 @@ final class ProductionRules {
         }
         out.set("sources",normalized);return out;
     }
+    /** 章节缺省时仅依据本轮已验证引用的真实文档位置补齐，不改变引用。 */
+    static ObjectNode normalizeChapters(String kind,ObjectNode raw,ArrayNode chunks){
+        ObjectNode out=raw.deepCopy();if(!"agent".equals(kind)||!(out.path("body") instanceof ObjectNode body))return out;
+        JsonNode chapters=body.path("chapters");
+        if(!(chapters.isMissingNode()||chapters.isNull()||(chapters.isArray()&&chapters.isEmpty())))return out;
+        ObjectNode verified=normalizeSources(out,chunks);Map<String,JsonNode> byId=new HashMap<>();chunks.forEach(c->byId.put(c.path("id").asText(),c));
+        Set<String> labels=new LinkedHashSet<>();
+        for(JsonNode source:verified.path("sources")){
+            JsonNode chunk=byId.get(source.path("chunkId").asText());JsonNode version=chunk.path("documentVersionId"),page=chunk.path("pageNo");
+            if(!version.isTextual()||version.asText().isBlank())throw new ValidationFailure("sources.documentVersionId",version,"已验证来源缺少文档版本，不能生成章节定位");
+            if(!page.isIntegralNumber()||!page.canConvertToInt()||page.asInt()<1)throw new ValidationFailure("sources.pageNo",page,"已验证来源缺少有效页码，不能生成章节定位");
+            JsonNode path=chunk.path("chapterPath");String chapter=path.isTextual()&&!path.asText().isBlank()?path.asText():"未识别章节";
+            labels.add("文档版本 "+version.asText()+"："+chapter+"，第"+page.asInt()+"页");
+        }
+        ArrayNode locations=Json.array();labels.forEach(locations::add);body.set("chapters",locations);return out;
+    }
+    /** 只携带失败字段的类型/长度，不带模型值或资料正文。 */
+    static final class ValidationFailure extends IllegalArgumentException {
+        private final ObjectNode shape;
+        ValidationFailure(String field,JsonNode value,String message){
+            super(message);shape=Json.object().put("field",field).put("type",value.getNodeType().name()).put("length",value.isTextual()?value.asText().length():value.size());
+            if(value.isArray()){Set<String> types=new TreeSet<>();value.forEach(v->types.add(v.getNodeType().name()));shape.set("elementTypes",Json.MAPPER.valueToTree(types));}
+        }
+        ObjectNode details(){return shape.deepCopy();}
+    }
+    private static String requiredField(JsonNode node,String key,int max){
+        try{return Json.required(node,key,max);}catch(IllegalArgumentException invalid){throw new ValidationFailure(key,node.path(key),invalid.getMessage());}
+    }
     private static int offset(JsonNode source,String key){JsonNode value=source.path(key);if(!value.isIntegralNumber()||!value.canConvertToInt())throw new IllegalArgumentException("来源偏移必须是整数码点位置");return value.intValue();}
     private static boolean codePointBoundary(String value,int offset){return offset==0||offset==value.length()||!(Character.isHighSurrogate(value.charAt(offset-1))&&Character.isLowSurrogate(value.charAt(offset)));}
     /** 诊断绝不包含chunk id、引文或原文，只含类型、长度和边界数字。 */
@@ -41,8 +69,14 @@ final class ProductionRules {
     }
     /** 生产方法校验不继承旧Demo的2400字/12来源限制；总输出预算由ModelCalls控制。 */
     static ObjectNode normalizePrelearn(ObjectNode raw,ArrayNode passages){
-        ObjectNode out=raw.deepCopy();text(out,"summary");Set<String> allowed=Knowledge.ids(passages);
-        for(JsonNode value:array(out,"methods",true)){
+        ObjectNode out=raw.deepCopy();text(out,"summary");Set<String> allowed=Knowledge.ids(passages);ArrayNode methods=array(out,"methods",false);
+        if(methods.isEmpty()){
+            JsonNode coverage=out.path("coverage");text(coverage,"noMethodReason");Set<String> processed=new HashSet<>();
+            for(JsonNode ref:array(coverage,"processedSourceIds",true)){if(!ref.isTextual()||!allowed.contains(ref.asText()))throw new IllegalArgumentException("无方法批次覆盖来源无效");processed.add(ref.asText());}
+            if(!processed.equals(allowed))throw new IllegalArgumentException("无方法批次仍须覆盖全部来源");
+            for(JsonNode ref:array(out,"sourceIds",true))if(!ref.isTextual()||!allowed.contains(ref.asText()))throw new IllegalArgumentException("无方法批次引用本批以外的来源");
+        }
+        for(JsonNode value:methods){
             if(!(value instanceof ObjectNode method))throw new IllegalArgumentException("预学习方法必须为对象");
             for(String field:List.of("title","when","limits"))text(method,field);
             JsonNode steps=method.path("steps");
@@ -82,27 +116,27 @@ final class ProductionRules {
         return true;
     }
     static boolean unconditionalApproval(JsonNode n){return "approve".equals(n.path("intent").asText())&&unambiguousIntent(n);}
-    static ArrayNode array(JsonNode n,String key,boolean nonempty){if(!(n.path(key) instanceof ArrayNode a)||nonempty&&a.isEmpty())throw new IllegalArgumentException("模型缺少有效 "+key);return a;}
+    static ArrayNode array(JsonNode n,String key,boolean nonempty){if(!(n.path(key) instanceof ArrayNode a)||nonempty&&a.isEmpty())throw new ValidationFailure(key,n.path(key),"模型缺少有效 "+key);return a;}
     static void validateGenerated(String kind,ObjectNode out,ArrayNode chunks,ArrayNode specialists){
-        if(!(out.path("body") instanceof ObjectNode body))throw new IllegalArgumentException("模型缺少完整body");
+        if(!(out.path("body") instanceof ObjectNode body))throw new ValidationFailure("body",out.path("body"),"模型缺少完整body");
         Map<String,JsonNode> sources=new HashMap<>();chunks.forEach(c->sources.put(c.path("id").asText(),c));
         Set<String> spans=new HashSet<>();
         for(JsonNode source:array(out,"sources",true)){
             JsonNode chunk=sources.get(source.path("chunkId").asText());int start=source.path("startOffset").asInt(-1),end=source.path("endOffset").asInt(-1);
-            if(chunk==null||start<0||end<=start||end>chunk.path("text").asText().codePointCount(0,chunk.path("text").asText().length()))throw new IllegalArgumentException("模型来源越界");
-            Json.required(source,"purpose",1000);if(!spans.add(source.path("chunkId").asText()+":"+start+":"+end))throw new IllegalArgumentException("重复来源范围");
+            if(chunk==null||start<0||end<=start||end>chunk.path("text").asText().codePointCount(0,chunk.path("text").asText().length()))throw new ValidationFailure("sources",out.path("sources"),"模型来源越界");
+            requiredField(source,"purpose",1000);if(!spans.add(source.path("chunkId").asText()+":"+start+":"+end))throw new ValidationFailure("sources",out.path("sources"),"重复来源范围");
         }
         array(out,"clarifications",false);
         switch(kind){
             case "book_summary"->{
-                Json.required(body,"title",500);Json.required(body,"summary",16000);array(body,"outline",true);array(body,"limitations",false);
+                requiredField(body,"title",500);requiredField(body,"summary",16000);array(body,"outline",true);array(body,"limitations",false);
                 var plans=array(body,"specialists",true);if(plans.size()>6)throw new IllegalArgumentException("专业分工不得超过6位");Set<String> keys=new HashSet<>();
-                for(JsonNode p:plans){String key=Json.required(p,"key",100);if(!keys.add(key))throw new IllegalArgumentException("重复专业分工");Json.required(p,"name",200);Json.required(p,"responsibility",3000);array(p,"methodTitles",true);}
+                for(JsonNode p:plans){String key=requiredField(p,"key",100);if(!keys.add(key))throw new IllegalArgumentException("重复专业分工");requiredField(p,"name",200);requiredField(p,"responsibility",3000);array(p,"methodTitles",true);}
             }
-            case "agent"->{for(String field:List.of("name","description","summary","responsibility","model","overlapAnalysis"))Json.required(body,field,12000);for(String field:List.of("tools","capabilities","boundaries","chapters"))array(body,field,!field.equals("tools"));Json.required(out,"systemPrompt",30000);}
-            case "keyword_rule"->{Set<String> expected=new HashSet<>();specialists.forEach(p->expected.add(p.path("key").asText()));Set<String> seen=new HashSet<>();for(JsonNode rule:array(body,"rules",true)){String key=Json.required(rule,"specialistKey",100);if(!expected.contains(key))throw new IllegalArgumentException("关键词指向未知专家");seen.add(key);array(rule,"keywords",true);}if(!seen.equals(expected))throw new IllegalArgumentException("关键词未覆盖全部专业专家");if(!"L3".equals(body.path("multiMatch").asText())||!"L2".equals(body.path("noMatch").asText()))throw new IllegalArgumentException("关键词路由约束错误");}
-            case "qa_example"->{Set<String> expected=new HashSet<>();specialists.forEach(p->expected.add(p.path("key").asText()));Set<String> seen=new HashSet<>();for(JsonNode q:array(body,"examples",true)){String key=Json.required(q,"specialistKey",100);if(!expected.contains(key))throw new IllegalArgumentException("问答指向未知专家");seen.add(key);Json.required(q,"question",5000);Json.required(q,"answer",10000);for(JsonNode id:array(q,"sourceIds",true))if(!sources.containsKey(id.asText()))throw new IllegalArgumentException("问答来源越界");}if(!seen.equals(expected))throw new IllegalArgumentException("问答未覆盖全部专业专家");if(!"cosine".equals(body.path("metric").asText())||body.path("threshold").asDouble()!=0.90||!">".equals(body.path("comparison").asText())||!"L3".equals(body.path("multiMatch").asText())||!"L3".equals(body.path("noMatch").asText())||!"aliyun-bailian".equals(body.path("embeddingProvider").asText()))throw new IllegalArgumentException("语义路由约束错误");}
-            case "team_manifest"->{Json.required(body,"summary",16000);array(body,"flow",true);array(body,"limitations",false);}
+            case "agent"->{for(String field:List.of("name","description","summary","responsibility","model","overlapAnalysis"))requiredField(body,field,12000);for(String field:List.of("tools","capabilities","boundaries","chapters"))array(body,field,!field.equals("tools"));for(JsonNode chapter:body.path("chapters"))if(!chapter.isTextual()||chapter.asText().isBlank())throw new ValidationFailure("chapters",body.path("chapters"),"chapters必须为非空字符串列表");requiredField(out,"systemPrompt",30000);}
+            case "keyword_rule"->{Set<String> expected=new HashSet<>();specialists.forEach(p->expected.add(p.path("key").asText()));Set<String> seen=new HashSet<>();for(JsonNode rule:array(body,"rules",true)){String key=requiredField(rule,"specialistKey",100);if(!expected.contains(key))throw new IllegalArgumentException("关键词指向未知专家");seen.add(key);array(rule,"keywords",true);}if(!seen.equals(expected))throw new IllegalArgumentException("关键词未覆盖全部专业专家");if(!"L3".equals(body.path("multiMatch").asText())||!"L2".equals(body.path("noMatch").asText()))throw new IllegalArgumentException("关键词路由约束错误");}
+            case "qa_example"->{Set<String> expected=new HashSet<>();specialists.forEach(p->expected.add(p.path("key").asText()));Set<String> seen=new HashSet<>();for(JsonNode q:array(body,"examples",true)){String key=requiredField(q,"specialistKey",100);if(!expected.contains(key))throw new IllegalArgumentException("问答指向未知专家");seen.add(key);requiredField(q,"question",5000);requiredField(q,"answer",10000);for(JsonNode id:array(q,"sourceIds",true))if(!sources.containsKey(id.asText()))throw new IllegalArgumentException("问答来源越界");}if(!seen.equals(expected))throw new IllegalArgumentException("问答未覆盖全部专业专家");if(!"cosine".equals(body.path("metric").asText())||body.path("threshold").asDouble()!=0.90||!">".equals(body.path("comparison").asText())||!"L3".equals(body.path("multiMatch").asText())||!"L3".equals(body.path("noMatch").asText())||!"aliyun-bailian".equals(body.path("embeddingProvider").asText()))throw new IllegalArgumentException("语义路由约束错误");}
+            case "team_manifest"->{requiredField(body,"summary",16000);array(body,"flow",true);array(body,"limitations",false);}
             default->throw new IllegalArgumentException("未知成果类型");
         }
     }

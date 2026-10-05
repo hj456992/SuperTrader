@@ -1,6 +1,6 @@
 # 独立生产验收执行记录
 
-日期：2026-10-05。工作区：`work/expert-production`。最新未过滤全量测试：**82项全部通过，零失败／错误／跳过**，包含旧48项及生产新增34项。此结果对应后文固定编译类；后续真实模型引文修复需要另行回归。真实模型、宿主装配和浏览器验收由统筹另记；一次历史快照500仍保留为未定位问题。
+日期：2026-10-05。工作区：`work/expert-production`。最近一次未过滤全量为 **105 项 Java 全部通过，零失败／错误／跳过**，前端另有 18 项通过；后续诊断增量的同组 **6 项在原配置与本地配置对照中各通过一次**，不可把重叠用例累加为新的全量计数。各轮受测文件、时间、范围及编译类哈希见下文。真实模型与宿主结果见[集成记录](integration-results.md)，真实浏览器仍未完成。本轮新诊断已将一次 worker `08001` 定位为 SSL 协商读取超时；底层原因与历史快照 500 仍未确认，不把测试通过记为根治。
 
 ## 环境与边界
 
@@ -128,3 +128,77 @@ python3 .local/with-env.py env \
 - `ProductionHttp.java`：`8a7d18e9771cd1f20e9195000b70c1309c7a74f090558b4b42ffdbe1a97d10ec`
 
 暂存完整新增文件后的格式检查发现 `ProductionService.java` 一处行尾空格，提交前已删除；逐词字节比较一致，无语句或行号变化，未因此重复运行整套测试。上列该文件哈希为去除空格后的提交内容。
+
+## 9b1aacf 后冻结增量的独立复验（13:12:18，尚未提交）
+
+统筹另行要求复验已冻结的章节定位、无方法尾批、重复恢复／重试控制、JSON 和 worker 安全诊断，以及真实流程脚本的恢复／自然语言审批选项。本轮未修改生产实现、未调用供应商、未控制浏览器，不提交或上传；等待统筹完成真实书籍与文档收尾。
+
+在独立数据库环境再次执行未过滤的 `mvn test`（未 package/clean），2026-10-05 13:12:18 +08:00 退出 0，总耗时 **4 分 27 秒**。日志 `/tmp/expert-production-post-9b1aac-tests.log`，Surefire XML 独立核对为 **105 项、0 失败、0 错误、0 跳过**。前端真实模块／协议 fixture 测试另跑 **18 项通过、0 失败、0 跳过**，三份入口 JS 和流程脚本 Python 语法检查通过，已有差异及新增文本的格式检查通过。
+
+相对已上传的 91 项，增加 14 项：
+
+| 新增或增强测试 | 本轮通过数 | 相对上一轮新增 |
+| --- | ---: | ---: |
+| ProductionChapterTest | 4 | 4 |
+| ProductionChapterIntegrationTest | 1 | 1 |
+| ProductionControlRetryTest | 3 | 3 |
+| ProductionEmptyPrelearnIntegrationTest | 1 | 1 |
+| ProductionPrelearnTest | 6 | 3 |
+| ProductionDiagnosticsTest | 1 | 1 |
+| ProductionModelFailureTest | 4 | 1 |
+
+其余原有 48 项与既有生产用例一并复跑。章节集成使用真实 PG 的缺少章节资料，只从已验证文档版本／页码补标签，来源偏移和用途保持。无方法尾批必须给出原因并覆盖本批全部来源；重试保留已封存前批及其哈希和原文引用，空批原因仍进入概要输入。新 clientRequestId 的重复 resume/retry 在 queued、running 和已可审状态不新增付费模型调用，失败／暂停后的合法恢复另行验证。
+
+流程脚本在本轮只进行源码核对与语法检查；`post` 仍核对本次消息失败状态，不能因为忽略历史 interpret_message 失败记录而把当前操作算成功。`--natural-approvals` 的真实供应商和完整团队执行由统筹另行记录，不能从本次确定性测试推定。
+
+**本轮仍有 5 条 worker PSQLException。** 新安全诊断均为 `SQLState=08001 vendorCode=0`，堆栈定位 `ProductionDatabase.connect:26 → run → transaction → ProductionJobQueue.claim:23 → ProductionService.workLoop:164`。因此本次可定位为驱动建连阶段异常，领取循环捕获后继续；未获取更深原因，不能断言网络、连接数或超时根因，也不能将此前没有 SQLState 的 HTTP snapshot 500 或旧 worker 日志认定为同一问题。JUnit 状态断言全部通过，不等于后台异常不存在或已修复。
+
+66 份源码、测试、运行配置和真实流程脚本在执行前后 SHA-256 完全一致，无候选漂移。冻结清单规范 JSON 的 SHA-256 为 `232822fe108e153dab242bc06d7dc618e428f9eb8465f2b65c7d494c24269fa4`。关键源码与本次受测编译类：
+
+| 文件 | 源码 SHA-256 | 编译类 SHA-256 |
+| --- | --- | --- |
+| `ProductionService` | `015c080ce426d2e2d6f7cf4e20ccfe62b099e8f56d432b1903ccc127856a9806` | `ed58a594d9d874936c51ca40bf3bf97bc3e2496d0e50de2d2cb85c723ea39482` |
+| `ProductionRules` | `21dedf652482b4b1e69e725c358bfa284e182bd854400667fb8b19ce1518133c` | `ada0db46b31a8277db942fcfec556595cc9c81bbe29bc150474fc0fd69408be4` |
+| `ProductionContext` | `8987118de6dd1f2c519519af928659f15a208bab120fa8a030106ada006fcf84` | `ff7ed46709c59018b6227b366b4513b4b8a10a62e1d0ddb5d6c495a78b17c3b1` |
+| `ProductionModelException` | `74daf5f694be114486f9481ae8635b86991e2332dfaa84fbca87c2c361262d71` | `951c387fff24adb4be6986e06202f0c98c135e949357c9128043fb4ae52b9b36` |
+| `ProductionDiagnostics` | `3c08cfb164c18d58901d190fb3c73b7d22140a580f42a40655bf9c42ae435e5d` | `b38bfd114bdbbe7b8dc3620b605e140bf505055d270b6fe48bba6d16c1feac22` |
+| `ModelCalls` | `171593f0c11df799e0e41705b6dd4775d2499d2d94fbb54947da70ac4129e7fa` | `68a9acff5e3b62d5c65a77cd52f4775998ced3948ed58d9dcf66c3c2f64cd3d5` |
+
+本轮结果只覆盖上述冻结增量；后续代码修改必须取得相应新证据。构建目录已交还统筹。GitHub 已上传版本仍为 `9b1aacf`，本轮没有更新远端。
+
+## 安全异常链诊断增量定向复验（13:23:18，原连接配置）
+
+仅在上次 105 项基础上补充了 ProductionDiagnostics 的时间戳、安全 cause 链与长度限制，未重复运行全量。按统筹指定，执行 `ProductionDiagnosticsTest` 全部 3 项、`ProductionInterpretationTest#unsafeIntentCannotMutateControlReviewFocusOrClarifications`，以及 `ProductionAcceptanceTest` 的 `summaryRevisionWithSameSpecialistKeyUpdatesTheNextExpertPlan` 和 `completeTwelveStepsRequireEveryDisplayedArtifactAndFinalManifestApproval`。
+
+2026-10-05 13:23:18 +08:00 退出 0，耗时 **1 分 37 秒，6 项通过、0 失败／错误／跳过**。日志 `/tmp/expert-production-cause-recheck.log`。只核对上述三份当次 Surefire XML 和其中实际方法名，没有把残留的其他测试 XML 计入本次。63 份源码／测试在执行前后哈希一致，没有调整业务断言或配置以隐藏这次失败日志。
+
+此次复现 1 条 worker 异常，安全证据：
+
+```text
+time=2026-10-05T05:22:19.971242Z
+PSQLException SQLState=08001 vendorCode=0
+ProductionDatabase.connect:26 → ProductionJobQueue.claim:23 → ProductionService.workLoop:164
+cause[1]=java.net.SocketTimeoutException
+PGStream.receiveChar:477 → ConnectionFactoryImpl.enableSSL:627 → tryConnect:207
+```
+
+可据此定位 **PostgreSQL 建连期间，SSL 协商响应读取超时**，不是已执行业务 SQL 时的冲突证据。仍没有足够证据确定为何响应超时，也不能把没有异常链的旧 worker 日志或历史 HTTP 500 认定为同根因。日志不含异常 message、SQL、参数、URL、凭据或资料正文，保留完整安全栈供统筹排查。
+
+统筹随后只读确认该本地 loopback 验收库 `SHOW ssl=off`，计划仅调整私密测试 URL 后进行同组对照；这不改变源码默认或远端／集群 TLS 策略。对照结果另记，不能提前写为故障已修复。
+
+本次 `ProductionDiagnostics` 源码 SHA-256：`f6c3f41fdfb9436d0b73953b0801607b913a6eae59b339fe93d1bd75199dcb2e`；受测类 SHA-256：`f54ae5e5a70c6cc801d2927b6aba8b1ecc9bac5e907c7117b14e0c4335b70362`。
+
+## 本地非 SSL 验收库连接配置对照（13:26:24）
+
+统筹只读确认该 loopback PostgreSQL 实例未启用 SSL，随后仅在忽略的私密 `integration-env.json` 中为本地专用验收库 URL 显式指定 `sslmode=disable`，保留权限 600。监督角色启动前在内存断言目标为既定 loopback 端口及该参数，不输出 URL 或凭据。**没有修改源码连接默认、远端或集群 TLS 策略，也没有新增基础设施。**
+
+相同 6 项定向用例再次执行，2026-10-05 13:26:24 +08:00 退出 0，耗时 **1 分 26 秒**；指定三份当次 Surefire XML 确认为 **6 通过、0 失败／错误／跳过**。日志 `/tmp/expert-production-local-ssl-recheck.log`，未出现 worker、HTTP 或 SQLState 异常记录。两轮使用相同 63 份源码／测试哈希，不放宽断言，不跳过场景。此前全量 105 项的报告不因本次定向覆盖而改称全量 107 或 111 项通过。
+
+| 对照 | 用例结果 | 日志观察 |
+| --- | --- | --- |
+| 原连接配置 | 6/6 通过，1分37秒 | 1条08001，cause为SocketTimeoutException，位于enableSSL响应读取 |
+| 仅本地非SSL库显式配置 | 6/6 通过，1分26秒 | 本次未记录worker/HTTP/SQLState异常 |
+
+本次证明该本地配置下指定路径通过且没有复现异常。它符合避免对不支持 SSL 的本地服务进行探测的预期，但一次对照不能证明原响应超时的底层原因，也不能证明历史 snapshot 500 或所有旧 worker 异常已根治。其余环境须按各自 TLS 配置运行，不照搬本地验收参数。
+
+构建目录已交还统筹；本角色未重启服务。统筹随后记录最新包重启后的两队 completed/各9审核，以及真实整书概要 pending/零批准/同修订/11批保持，详见[真实集成记录](integration-results.md)。README与重点复核已按上述证据更新，浏览器验收仍未通过；代码交付不能表述为全界面或生产部署验收完成。

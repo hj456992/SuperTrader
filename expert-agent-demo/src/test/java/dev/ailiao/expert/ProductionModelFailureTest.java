@@ -37,4 +37,18 @@ class ProductionModelFailureTest {
         assertEquals("MODEL_TRANSPORT_FAILED",details(network).path("code").asText());assertFalse(network.getMessage().contains("private-network-details"));
         ObjectNode result=calls(Flux.just(Map.of("type","text-delta","text","{\"ok\":true}"),Map.of("type","finish","reason",Map.of("kind","stop")))).production("generate",Json.object(),()->false);assertTrue(result.path("ok").asBoolean());
     }
+    @Test void invalidJsonReportsOnlySafeCategoryAndParserPosition()throws Exception{
+        var cases=List.of(
+            Map.entry("{\n\"private-key\": @}","SYNTAX"),
+            Map.entry("{\"private-key\":", "UNEXPECTED_EOF"),
+            Map.entry("[\"private-value\"]", "OBJECT_REQUIRED"),
+            Map.entry("{} {}", "MAPPING"));
+        for(var example:cases){
+            Exception error=assertThrows(Exception.class,()->calls(Flux.just(Map.of("type","text-delta","text",example.getKey()),Map.of("type","finish","reason",Map.of("kind","stop")))).production("generate",Json.object(),()->false));
+            ObjectNode info=details(error);assertEquals("MODEL_JSON_INVALID",info.path("code").asText());assertEquals(example.getValue(),info.path("jsonError").path("category").asText());
+            assertFalse(info.toString().contains("private-key"));assertFalse(info.toString().contains("private-value"));assertNull(error.getCause());
+            if(example.getValue().equals("SYNTAX")){assertEquals(2,info.path("jsonError").path("line").asInt());assertTrue(info.path("jsonError").path("column").asInt()>0);assertTrue(info.path("jsonError").path("charOffset").asLong()>0);}
+        }
+    }
+
 }

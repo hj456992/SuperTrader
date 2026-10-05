@@ -32,7 +32,7 @@ final class ProductionHttp {
             send(exchange,result.path("httpStatus").asInt(200),result);
         }catch(ProductionException e){send(exchange,e.httpStatus,Json.object().set("error",Json.object().put("code",e.code).put("message",e.getMessage())));}
         catch(IllegalArgumentException e){send(exchange,400,Json.object().set("error",Json.object().put("code","INVALID_REQUEST").put("message",e.getMessage()==null?"请求无效":e.getMessage())));}
-        catch(Exception e){String diagnostic="Production HTTP: "+e.getClass().getSimpleName();if(e instanceof java.sql.SQLException sql)diagnostic+=" SQLState="+sql.getSQLState()+" vendorCode="+sql.getErrorCode();if(e instanceof org.postgresql.util.PSQLException pg&&pg.getServerErrorMessage()!=null)diagnostic+=" routine="+pg.getServerErrorMessage().getRoutine()+" constraint="+pg.getServerErrorMessage().getConstraint();System.err.println(diagnostic);for(StackTraceElement frame:e.getStackTrace())if(frame.getClassName().startsWith("dev.ailiao.expert."))System.err.println("  at "+frame);send(exchange,500,Json.object().set("error",Json.object().put("code","INTERNAL_ERROR").put("message","操作未完成，请检查服务状态或稍后重试")));}
+        catch(Exception e){ProductionDiagnostics.log("HTTP",e);send(exchange,500,Json.object().set("error",Json.object().put("code","INTERNAL_ERROR").put("message","操作未完成，请检查服务状态或稍后重试")));}
         return true;
     }
     private static ObjectNode body(HttpExchange e)throws Exception{byte[] data=e.getRequestBody().readNBytes(60001);if(data.length>60000)throw new ProductionException(413,"TOO_LARGE","请求内容过长");return Json.parse(new String(data,StandardCharsets.UTF_8));}

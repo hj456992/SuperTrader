@@ -1,8 +1,10 @@
-# 专家生产的集群存储设计草案（2026-09-28，未实现）
+# 专家生产的集群存储（设计来源2026-09-28，实现验收进行中）
 
-2026-10-05：用户授权把既有方案细化为[SQL草案](schema.sql)、[概要审核接口合同](api-contract.md)和[状态流转](summary-review-state.md)。这些是本节的配套设计文件，不表示已经建表、连接 Redis 或迁移业务数据；实际检查范围见[验收记录](verification.md)。逻辑表仍为15张，先实现的业务范围仍以概要审核闭环为限。
+2026-10-05实施更新：用户随后明确要求统筹确保完整流程通过。当前真实Java服务已按下述15张表在独立开发数据库落地，SQL资源与[仓库配套SQL](schema.sql)同步；审核、来源、短事务和任务接管已有真实PG测试。业务使用Redis共享调用额度及PG事件补读；缓存/通知辅助类尚未接入业务。共享文件目录由`EXPERT_SHARED_DIR`配置，不额外部署对象存储。旧Demo资料在创建生产构建时按所选不可变版本导入PG，原有state与专家审批不迁移覆盖。后续段落保留原设计背景，具体已实现/未实现以[实施计划](implementation-plan.md)及[独立验收](acceptance-results.md)为准；两支原创样本已分别通过显式动作与纯自然语言确认的真实模型/HTTP完整流程，各9次批准；整书11批、313片段预学习及概要生成已完成，概要零批准、待管理员审核。105项Java与18项前端通过；浏览器明确拒绝访问、偶发数据库建连异常仍保留待查，不能宣称全部验收完成。
 
-本节响应管理员侧专家生产的集群要求。用户已明确允许在必要位置引入 Redis；下面的职责划分和表结构是供审阅的方案，未建表、未部署 Redis、未迁移 state.json，也未实施最终用户的 L1/L2/L3 执行。
+本轮实施前先交付[SQL](schema.sql)、[概要审核接口合同](api-contract.md)和[状态流转](summary-review-state.md)。[原型验收记录](verification.md)仅描述当时的设计检查；当前真实十二步实现与检查见上方实施更新。逻辑表仍为15张。
+
+本节响应管理员侧专家生产的集群要求。用户已明确允许在必要位置引入 Redis；下面解释职责划分和表结构；核心DDL已在隔离开发库执行，复用已有Redis。未覆盖迁移旧state.json，也未实施最终用户的L1/L2/L3执行。
 
 #### 先按数据用途选择存储
 
@@ -20,7 +22,7 @@
 
 一份资料有多个固定版本，每个版本有多个原文片段。一支团队有多个构建版本；每次构建绑定明确的资料版本，并保存多个学习/审阅成果。每个成果有多个内容修订；消息、审核、澄清和依赖关系指向具体修订。集群任务也绑定它处理的目标修订。
 
-下面是逻辑表结构草案，非可直接执行的迁移 SQL。实体主键默认 uuid；时间为 timestamptz；编号、计数、并发版本为 bigint/int；状态及标识为 text 并配 CHECK/枚举约束；可变结构正文用 jsonb。实体表包含 created_at、created_by，允许更新的表另有 updated_at；管理员身份关联项目统一身份体系，不另造一套账户系统。外键按构建/团队范围校验，不允许跨团队引用；具体复合外键与迁移顺序在实现设计中落实。
+下面是逻辑表结构说明，可执行SQL单独保存在配套资源。实体主键默认 uuid；时间为 timestamptz；编号、计数、并发版本为 bigint/int；状态及标识为 text 并配 CHECK/枚举约束；可变结构正文用 jsonb。实体表包含 created_at、created_by，允许更新的表另有 updated_at；管理员身份关联项目统一身份体系，不另造一套账户系统。外键按构建/团队范围校验，不允许跨团队引用；具体复合外键与迁移顺序在实现设计中落实。
 
 | 表 | 关键字段 | 关系/约束与设计原因 |
 | --- | --- | --- |
@@ -40,7 +42,7 @@
 | ep_job | id, build_id:uuid?, document_version_id:uuid?, kind:text, target_revision_id:uuid?, expected_current_revision_id:uuid?, dedup_key:text, status:text, phase:text, input:jsonb, checkpoint:jsonb, external_refs:jsonb, lease_owner:text, lease_until:timestamptz, lease_epoch:bigint, attempt:int, next_run_at:timestamptz, cancel_requested:boolean, error:jsonb | UNIQUE(dedup_key)；OCR可只有资料目标，构建任务绑定build和目标；约束至少一个有效目标。保存MinerU分卷任务编号、输入版本和可恢复步骤；lease_epoch阻止旧工作者提交 |
 | ep_event | id:uuid, build_id:uuid, seq:bigint, type:text, payload:jsonb, published_at:timestamptz?, publish_attempts:int, next_publish_at:timestamptz | UNIQUE(build_id,seq)；业务事件与状态同事务保存，同时作为待通知记录；发布失败重试，页面按构建内序号补读。seq在构建行锁内分配，避免全局序列先分配后提交导致漏读 |
 
-共15张逻辑表，不要求15个独立服务。名称/空值/状态枚举仍为设计草案，不宣称已通过迁移或性能测试。
+共15张逻辑表，不要求15个独立服务。首次建表、关键外键及事务回滚已有真实PG测试；容量、吞吐和生产高可用未进行验收。
 
 #### 专家、概要、方法、关键词和问答放哪里
 

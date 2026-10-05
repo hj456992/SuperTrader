@@ -29,7 +29,9 @@ final class ProductionContext {
             ObjectNode index=Json.object().put("batchNo",unitNo++).put("summary",preview(unit.path("summary").asText(),1200)).put("summaryIsPreview",unit.path("summary").asText().length()>1200).put("methodCount",unit.path("methods").size());
             ArrayNode titles=Json.array();int indexChars=0;
             for(JsonNode method:unit.path("methods")){methodCount++;String title=method.path("title").asText();if(indexChars<1800){titles.add(preview(title,120));indexChars+=Math.min(120,title.length());}candidates.add(method);}
-            index.set("methodTitles",titles);index.put("methodIndexIsPartial",titles.size()<unit.path("methods").size());units.add(index);
+            index.set("methodTitles",titles);index.put("methodIndexIsPartial",titles.size()<unit.path("methods").size());
+            if(unit.path("methods").isEmpty()){String reason=unit.path("coverage").path("noMethodReason").asText();index.put("noMethodReason",preview(reason,1200)).put("noMethodReasonIsPreview",reason.length()>1200).put("processedSourceCount",unit.path("coverage").path("processedSourceIds").size());}
+            units.add(index);
         }
         candidates.sort(Comparator.comparingInt(m->desired.contains(m.path("title").asText())?0:1));int methodChars=0;
         for(JsonNode method:candidates){int size=method.toString().length();if(methodChars+size<=18000){methods.add(method);methodChars+=size;method.path("sourceIds").forEach(n->preferredSources.add(n.asText()));}}

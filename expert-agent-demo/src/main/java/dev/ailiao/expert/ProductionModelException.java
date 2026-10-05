@@ -7,11 +7,22 @@ import java.util.Set;
 final class ProductionModelException extends IllegalArgumentException {
     private final String code,finishKind;
     private final int tokens,characters;
+    private final ObjectNode jsonError=Json.object();
     ProductionModelException(String code,String finishKind,int tokens,int characters){
         super(description(code)+"（"+code+", finish="+safeFinish(finishKind)+"）");
         this.code=code;this.finishKind=safeFinish(finishKind);this.tokens=tokens;this.characters=characters;
     }
-    ObjectNode details(){return Json.object().put("code",code).put("finishKind",finishKind).put("maxOutputTokens",tokens).put("maxOutputCharacters",characters).put("message",getMessage());}
+    ObjectNode details(){ObjectNode result=Json.object().put("code",code).put("finishKind",finishKind).put("maxOutputTokens",tokens).put("maxOutputCharacters",characters).put("message",getMessage());if(!jsonError.isEmpty())result.set("jsonError",jsonError.deepCopy());return result;}
+    static ProductionModelException invalidJson(Exception error,int tokens,int characters){
+        ProductionModelException safe=new ProductionModelException("MODEL_JSON_INVALID","stop",tokens,characters);
+        String category=error instanceof com.fasterxml.jackson.core.io.JsonEOFException?"UNEXPECTED_EOF":error instanceof com.fasterxml.jackson.core.JsonParseException?"SYNTAX":error instanceof com.fasterxml.jackson.databind.JsonMappingException?"MAPPING":error instanceof com.fasterxml.jackson.core.JsonProcessingException?"PROCESSING":error instanceof IllegalArgumentException?"OBJECT_REQUIRED":"UNKNOWN";
+        safe.jsonError.put("category",category).put("coordinateSpace","trimmed_json_without_markdown_fence");
+        if(error instanceof com.fasterxml.jackson.core.JsonProcessingException processing){
+            com.fasterxml.jackson.core.JsonLocation location=processing.getLocation();
+            if(location!=null){if(location.getLineNr()>0)safe.jsonError.put("line",location.getLineNr());if(location.getColumnNr()>0)safe.jsonError.put("column",location.getColumnNr());if(location.getCharOffset()>=0)safe.jsonError.put("charOffset",location.getCharOffset());}
+        }
+        return safe;
+    }
     private static String safeFinish(String kind){return kind!=null&&Set.of("stop","max-tokens","length","error","tool-calls","content-filter","content_filter","cancelled","none").contains(kind)?kind:"unknown";}
     private static String description(String code){return switch(code){
         case "MODEL_OUTPUT_LIMIT"->"模型输出达到预算，未保存不完整结果";
