@@ -79,3 +79,7 @@ python3 run.py
 验证入口：`zsh build.sh`（包含新增云协议、页码、长文及恢复测试，数量以当次报告为准），`tests/pdf-boundaries.py`（旧文字提取与拒绝路径），`tests/ui-regression.mjs`（版本切换、断线恢复）、`tests/ui-mineru-regression.mjs`（恢复导入、保留专家、原件链接）、`tests/ui-mineru-split.mjs`（显式拆分）。`MINERU_REAL_CONFIRM=1 node tests/mineru-live.mjs` 是真实整书云上传，会提交新任务并可能消耗额度，不应反复执行来掩盖失败。旧 `tests/e2e.mjs` 的同步上传假设不再适用于当前云上传入口。结果与截图在 `evidence/`；测试桩不代表云 OCR 成功。技术文档仍维护在相邻 `ailiao-comparison-20260926` 原文档中。
 
 分卷真实验收：`tests/mineru-split-live.mjs`；首次执行会消耗云额度，仅在已获批准时运行。最终48项Java测试通过。真实ZIP解析与3,952个物理文本/公式/表格跨度校验、6页渲染对照见 `evidence/mineru-split/`。解析完成只证明数据链路和页码保留，不代表专业能力或逐字OCR准确性。
+
+## 管理员生产审核设计
+
+新增[概要审核设计与原型](../docs/expert-production/README.md)，供审阅生产聊天流程。原型独立运行，不修改上述现有插件接口或真实运行数据；PostgreSQL/Redis及真实模型处理仍待实现。

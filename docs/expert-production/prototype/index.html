@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>爱聊 · 专家生产概要审阅</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="core.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="index.html"><span class="brand-mark">爱</span><span>爱聊 <small>ai chat</small></span></a>
+  <div class="workspace">管理员工作台 <span>交互原型</span></div>
+  <nav aria-label="专家生产流程"><p class="eyebrow">专家生产流程</p><ol>
+    <li class="done"><span class="step">✓</span><div>上传资料<small>已有入口 · 本页不上传</small></div></li>
+    <li class="done"><span class="step">✓</span><div>预学习<small>已载入演示草稿</small></div></li>
+    <li id="summary-step" class="active"><span class="step">03</span><div>概要审阅<small id="step-caption">当前阶段 · 等待管理员</small></div></li>
+    <li id="specialist-step"><span class="step">04</span><div>子专家审阅<small>未实现</small></div></li>
+    <li><span class="step">05</span><div>兜底专家<small>未实现</small></div></li>
+    <li><span class="step">06</span><div>主专家<small>未实现</small></div></li>
+    <li><span class="step">07</span><div>生产配置<small>未实现</small></div></li>
+    <li><span class="step">08</span><div>整体确认<small>未实现</small></div></li>
+  </ol></nav>
+  <div class="sidebar-foot"><span class="dot"></span> 仅保存此浏览器的演示记录<p>未连接模型、真实资料或生产数据库。</p></div>
+</aside>
+<main>
+  <header class="page-head"><div><p class="eyebrow">专家团队 / 构建演示 01</p><h1>先把理解对齐，再继续下一步。</h1><p>审阅概要、提出疑问或说明修改意见；每次确认都对应你看到的具体版本。</p></div><button class="quiet" id="reset">重置演示</button></header>
+  <div class="demo-banner"><strong>演示模式</strong><span>《金字塔原理》为概括性演示素材，未读取原书。聊天采用有限规则与固定回复，<b>不是真实模型</b>。</span></div>
+  <div class="save-row"><span id="save-status" role="status"></span><span>构建进度：<b id="build-position">概要审阅</b> · 聊天焦点：<b id="focus-position">概要 v1</b></span></div>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+  <div class="review-grid">
+    <section class="card summary-card" aria-labelledby="summary-title">
+      <header class="card-head"><div><p class="eyebrow">成果 · 整本书概要</p><h2 id="summary-title">《金字塔原理》</h2></div><span id="review-badge" class="badge">待确认</span></header>
+      <div class="version-row"><label for="version">查看版本</label><select id="version"></select><button id="current" class="text-button">回到当前稿</button></div>
+      <div id="revision-meta" class="micro"></div>
+      <div id="history-warning" class="inline-warning" hidden>正在查看历史稿。聊天焦点已切换，生产进度没有改变；历史确认不能批准当前新稿。</div>
+      <article id="summary-body" class="summary-body"></article>
+      <section class="sources"><h3>来源与覆盖</h3><div class="source-row"><span class="source-icon">文</span><div><strong>来源待关联 · 演示占位</strong><p>资料版本、章节、页码与片段 ID 均未接入。无真实引文，也未验证全书覆盖。</p></div></div><p class="micro">概要中的补充文字与管理员意见单独标注，不能据此改写原书内容。</p></section>
+      <details id="diff-panel"><summary>本版变化与完整历史 <span id="history-count"></span></summary><div id="diff"></div><div id="history"></div></details>
+      <div class="summary-actions"><button id="reject" class="secondary">否决并说明原因</button><button id="approve" class="primary">确认概要 v1</button></div><p class="micro scope-note">确认范围：当前展示的完整概要 · 不包含专家职责、提示词或团队整体确认。</p>
+    </section>
+    <section class="card chat-card" aria-labelledby="chat-title">
+      <header class="card-head"><div class="chat-heading"><span class="avatar">M</span><div><h2 id="chat-title">与构建 Master 审阅</h2><p>固定演示回复 · 程序校验审核状态</p></div></div><span class="live-dot"></span></header>
+      <div id="pending" class="pending" hidden></div>
+      <div id="messages" class="messages" role="log" aria-label="管理员审阅聊天记录"></div>
+      <div class="examples"><p>试一试 <span>点击填入，再发送</span></p><div class="chips"><button data-example="为什么需要按逻辑分组？">提问不推进</button><button data-example="不通过：需要说明适用边界">有原因改稿</button><button data-example="不通过">无原因否决</button><button data-example="补充原因：需要说明适用边界">补充原因</button><button data-example="修改后就可以">条件不是确认</button><button data-example="可以">解释后的“可以”</button></div></div>
+      <form id="chat-form"><label class="sr-only" for="input">给构建 Master 的审阅意见</label><textarea id="input" rows="3" placeholder="可以自由提问。明确确认请写：确认概要 v1"></textarea><div class="composer-foot"><span>原话保留 · Enter 换行</span><button id="send" type="submit" class="primary">发送意见 <span aria-hidden="true">↑</span></button></div></form>
+    </section>
+  </div>
+  <section id="next-stage" class="next-stage" hidden><span class="next-icon">✓</span><div><h2>概要已确认，停在待审子专家入口</h2><p>下一阶段将审阅子专家的描述、职责、模型、工具、特色能力、完整提示词和边界。此处尚未实现，没有生成专家或完成团队。</p></div><button disabled>子专家审阅 · 未实现</button></section>
+  <details class="debug"><summary>演示检查与边界</summary><p>先用“有原因改稿”生成 v2，再点击“提交旧版确认”观察冲突。重试上一请求不会重复改稿或确认。刷新页面可恢复聊天、版本与未决问题。</p><div class="debug-actions"><button id="old-confirm" class="secondary">提交旧版确认</button><button id="retry" class="secondary">重试上一请求</button><button id="refresh" class="secondary">刷新验证恢复</button></div><p>localStorage 仅模拟同一浏览器的保存；多标签页会检测已知更新，但不具备数据库事务、集群租约或原子并发保证。本页没有异步模型结果，不代表已验证迟到结果处理。</p><p id="result-code" class="micro"></p></details>
+  <footer>爱聊 · 专家生产详细设计配套原型 <span>2026.10 / 仅概要审核</span></footer>
+</main>
+<dialog id="reset-dialog"><h2>清空这份演示记录？</h2><p>仅删除本原型的聊天、修订和审核记录，回到概要 v1。</p><div class="dialog-actions"><button id="cancel-reset" class="secondary">保留记录</button><button id="confirm-reset" class="primary">重置演示</button></div></dialog>
+</body></html>

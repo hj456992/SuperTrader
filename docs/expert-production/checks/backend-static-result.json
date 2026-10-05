@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "tables": 15,
+  "foreignKeysChecked": 35,
+  "cyclePointerAlters": 6,
+  "jsonExamplesParsed": 7,
+  "checks": [
+    "15 expected tables",
+    "FK source columns and referenced unique keys",
+    "balanced table fragments",
+    "cycle migration order",
+    "partial role uniqueness",
+    "no UUID extension/default function",
+    "state vocabulary",
+    "JSON examples"
+  ],
+  "limitations": [
+    "No PostgreSQL parser available",
+    "DDL not executed",
+    "No database connection",
+    "No runtime concurrency or constraint negative tests"
+  ]
+}

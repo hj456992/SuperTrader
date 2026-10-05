@@ -197,3 +197,7 @@ run.py / build.sh          本地启动与构建
 ## 许可与第三方来源
 
 见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)、[微信 CLI 上游信息](wechat-cli/UPSTREAM_SOURCE.json)、[上游 LICENSE](wechat-cli/LICENSE)及[适配代码许可](wechat-cli/ADAPTER_LICENSES.md)。外部 dsh-java 和 DSH 包不作为本次源码上传的一部分；不能将某个第三方组件的许可推断为整个仓库的许可。
+
+## 专家生产概要审核：设计与交互原型
+
+[交付入口](docs/expert-production/README.md)包含管理员概要审核原型、状态流转、15表SQL草案、接口合同及验收记录。支持演示否决追问、修订、版本确认和刷新恢复；尚未接入真实模型或生产数据库，不代表专家团队生产流程已实现。
