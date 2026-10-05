@@ -15,3 +15,5 @@
 [存储职责与15表设计理由](storage-design.md)摘录自既有架构第13篇。本目录是可随仓库阅读的交付快照；完整架构源文档继续在原文档目录维护。
 
 从仓库根目录运行 `python3 -m http.server 48761 --bind 127.0.0.1 --directory docs/expert-production`，再打开 `http://127.0.0.1:48761/prototype/index.html` 即可体验。GitHub 文件页只显示HTML源码。
+
+最新完整流程检查：[实测报告](flow-test-report.md)。结论为未通过：生产审核接口缺失，原型在子专家入口停止；35项原型检查不等于端到端通过。

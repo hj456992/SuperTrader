@@ -1,0 +1,18 @@
+{
+  "scope": "read_only_route_probe",
+  "status": "blocked",
+  "checks": [
+    {
+      "path": "/api/health",
+      "httpStatus": 200,
+      "result": "legacy_service_ready"
+    },
+    {
+      "path": "/api/expert-production/v1/builds/00000000-0000-4000-8000-000000000001/snapshot",
+      "httpStatus": 404,
+      "result": "route_not_implemented"
+    }
+  ],
+  "fullWorkflowPassed": false,
+  "limitation": "A nonexistent build probes the missing-route response only. Other responses require a real isolated build and full workflow tests; they do not count as a pass."
+}
