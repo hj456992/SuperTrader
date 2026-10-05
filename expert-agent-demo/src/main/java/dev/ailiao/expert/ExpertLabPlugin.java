@@ -24,7 +24,16 @@ public final class ExpertLabPlugin implements Plugin {
                 ExpertBuilder builder = new ExpertBuilder(models, store);
                 ExpertRuntime runtime = new ExpertRuntime(context, store);
                 int port = Integer.parseInt(value(config, "port", "48760"));
-                LabHttp http = new LabHttp(port, store, imports, builder, runtime, jobs);
+                ProductionDatabase database=ProductionDatabase.fromEnvironment();
+                ProductionService production=null;
+                if(database!=null){
+                    database.migrate();
+                    production=new ProductionService(database,models::production,store,ProductionRedis.fromEnvironment(),Path.of(System.getenv().getOrDefault("EXPERT_SHARED_DIR",root.resolve("shared").toString())));
+                    ProductionService owned=production;
+                    context.own(()->{owned.close();return CompletableFuture.completedFuture(null);});
+                    production.start();
+                }
+                LabHttp http = new LabHttp(port, store, imports, builder, runtime, jobs,production);
                 context.own(() -> { http.close(); return CompletableFuture.completedFuture(null); });
                 http.start(); System.out.println("Expert Lab plugin ready: http://127.0.0.1:" + port + "/");
             } catch (Exception error) { throw new IllegalStateException("专家实验室插件无法启动，请检查依赖、目录和端口", error); }

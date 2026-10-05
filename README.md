@@ -1,203 +1,122 @@
 # 爱聊 · 关系牧场
 
-一个以人物为中心的本地交流辅助应用：整理双方聊天材料，生成带原文依据的本人／对象画像，再结合当前情境、相处目标和书籍方法，提供可编辑的相处建议。最终如何回复和行动，由用户决定。
+爱聊是一个以人物为中心的本地交流辅助应用：从聊天上下文和历史材料中理解对方的特点与诉求，结合双方画像、当前情境和书籍方法，给出候选回复与行动建议。用户核对依据、编辑回复，并决定如何行动。
 
-此仓库当前内容已由 SuperTrader 替换为爱聊；原项目仍保留在 Git 提交历史中。**当前源码是本地开发版本，依赖另行准备的 dsh-java 底座与 macOS 环境，不是克隆后即可独立启动的发行包。**
+**这是开发中的源码仓库。** 运行依赖另行准备的 dsh-java 底座、模型凭据和数据库，部分聊天来源读取功能依赖 macOS。仓库名仍为 `SuperTrader`，当前内容为爱聊，原项目保留在 Git 历史中。
 
-独立的[专家实验室](expert-agent-demo/README.md)已归档在 `expert-agent-demo/`：包含 MinerU 云解析、资料版本、专家团队生成及试聊源码，尚未集成到本页所述主应用。真实书籍、OCR 结果、密钥及运行数据不随源码提交；最新提示词优化仍是未应用的草稿。
+[主应用启动](#运行主应用) · [专家实验室](expert-agent-demo/README.md) · [管理员生产流程](docs/expert-production/README.md) · [文档索引](docs/README.md)
 
-## 交付状态 · 2026-09-25
+## 当前版本 · 2026-10-05
 
-| 范围 | 实现与验证 | 发布／后续状态 |
-|---|---|---|
-| 本人／对象画像 Agent 升级 | 已实现；确定性及隔离真实模型验证完成 | 已随 `4754cb1` 发布，当前版本保留 |
-| 本地切换与数据保护 | 已验证：成套制品、10 插件、业务数据摘要保持一致、11 项静态资源请求通过 | 已发布；保留私有备份和旧制品，未使用真实聊天作测试夹具 |
-| 攻略取消、总时限与实际阶段（G01） | 已实现；最终候选 Java 124、Node 65 项通过，隔离真实模型复验完成 | `a51f047` 受测制品已部署到原本地 48740 入口；称谓问题 Q01 仍按 P2 跟踪 |
-| 检索评测、来源更正、依赖与恢复 | 已完成差距拆解，功能改造待实施 | 分批选择，不并入 G01 |
-| 全面攻略 Agent 化、token 流式、推荐问题、跨任务记忆 | 未实现相应扩展 | 待用户决定，不默认增加 |
+项目包含两个独立入口：
 
-[最新集成验收](docs/qa/tl-g01-integration-verification.md) · [本地发布记录](docs/ops/local-release-g01-execution-20260925.md) · [独立发布审核](docs/qa/local-release-review-20260925.md) · [后续差距与批次](docs/product/architecture-gap-backlog-20260925.md)
+| 入口 | 解决什么问题 | 当前状态 |
+| --- | --- | --- |
+| 爱聊主应用，默认 `48740` | 整理人物材料、生成本人／对象画像、提供交流建议 | 已有本地交付；画像 Agent 和攻略执行保障的验证见下方历史报告 |
+| 专家实验室，默认 `48760` | PDF 云解析、资料版本管理，以及管理员逐步审阅专家团队 | 本次新增真实数据库审核流程；仍在完成真实模型与浏览器验收，尚未集成主应用 |
 
-本次发布后的检查仅核对静态资源与业务元数据，不等于重新完成动态页面及真实模型验收；动态能力沿用此前隔离环境的验收记录。重开入口前请先保留页面中未提交的输入，发布不会替用户刷新现有页面。源码上传、功能验收与本地运行版本分别记录。
+本次源码更新将专家生产从概要原型推进到实际 HTTP、PostgreSQL、模型与页面接线：保存草稿和来源、逐项审核完整提示词、记录否决与澄清、处理修订和任务恢复，最后确认团队清单。**生成成功不等于管理员批准；自动化测试通过不等于整体验收完成。** 最新证据和剩余问题以[生产验收报告](docs/expert-production/acceptance-results.md)为准。
 
-## 本次更新：画像 Agent 与书籍检索
+最终用户侧的 L1/L2/L3 路由执行、向量索引及主应用接入仍未实现；当前只生成和审核相应配置。源码上传也不会替换已有本地运行实例。
 
-本人和对象画像现已接入 **DSH / AgentScope 的真实工具循环**：模型可按需检索聊天、展开上下文和查阅书籍，再根据实际读到的材料形成画像。书籍检索复用现有词项匹配，没有新增向量数据库或独立检索服务。
+## 主应用怎样使用
 
-| 能力 | 当前行为 |
-|---|---|
-| 依据可查 | 区分本人、对象和背景材料；聊天作为事实依据，书籍作为方法参考；引用仅接受本次实际读到的材料 |
-| 结论有边界 | 展示直接信息、推测、置信理由、反向证据和待了解事项；相处目标不进入画像输入 |
-| 材料不足可见 | 无书或检索无命中时明确标记限制；不补造书籍引用 |
-| 进度与取消 | 轮询显示实际执行阶段；按任务取消，迟到结果不能覆盖已保存画像 |
-| 保存与恢复 | 画像及任务状态持久化；重启后未完成任务标记为中断，不自动续跑模型 |
-| 时间来源明确 | 录入／采集时间不当作发言日期；仅向模型提供来源确证的发言时间，无法确认时保持未知 |
+1. **选择一个人**：填写称呼、相处目标与补充说明。
+2. **整理聊天材料**：粘贴原文，或选择已配置的微信／飞书会话，区分对方、本人和背景；跨会话身份由用户确认。
+3. **理解双方**：生成对象／本人画像，查看直接信息、推测、原文依据、反向证据和待了解事项。
+4. **获得建议**：输入当前情境，结合人物画像、双方材料和书籍方法生成候选回复与行动步骤。
+5. **核对并行动**：自行编辑、复制和发送。复制与生成都不代表已发送，应用不会自动替用户发送聊天消息。
 
-每次画像任务最多调用模型 6 步，总时限约 110 秒，单次输出预算为 6,000 tokens。页面展示阶段进度，不是逐字流式输出。删除书籍会移除依赖它的当前及历史画像与留存书摘。
+资料书架支持 TXT、Markdown、可选中文字的 PDF、DOCX、EPUB。画像通过 DSH / AgentScope 工具循环按需检索聊天和书籍；聊天作为事实依据，书籍作为方法参考。材料不足时展示限制，引用存在仍需人工核对其含义。
 
-[完整验收报告](docs/qa/tl-integration-verification.md) · [启动与预检手册](docs/ops/profile-agent-runbook.md) · [画像实现说明](docs/backend/profile-runtime.md)
+主应用画像任务最多 6 个模型步骤，总时限约 110 秒；攻略最多首次调用加一次结构／引用修复，共享约 110 秒时限。页面显示实际阶段，支持取消并阻止迟到结果覆盖当前任务；不是逐字流式输出。详细边界见[画像实现](docs/backend/profile-runtime.md)及[攻略验收](docs/qa/tl-g01-integration-verification.md)。
 
-## 攻略执行保障
+## 专家团队怎样生产
 
-攻略仍结合当前情境、相处目标、对象画像、双方材料与书籍，直接调用模型。新增按任务取消和约 110 秒共享应用时限，首次调用加至多一次结构／引用修复，共最多两次；取消后的迟到结果不能覆盖当前任务。页面显示检索、模型步骤、校验和保存的实际阶段。
+在独立[专家实验室](expert-agent-demo/README.md)上传 PDF、完成 MinerU 解析并选择资料版本，再填写团队名称与职责。管理员依次审阅：
 
-输出在接收过程中设有字符与事件上限；超时、取消、传输失败或输出超限不会触发结构修复。新结果记录任务 ID 与所依据的数据版本，旧记录保持兼容。业务结果与任务终态仍分开保存，尚未实现原子恢复或自动续跑。详见[攻略验收与限制](docs/qa/tl-g01-integration-verification.md)。
+**资料预学习 → 整书概要 → 专业专家 → 兜底专家 → 路由主专家 → 关键词 → 示例问答 → 完整团队清单。**
 
-## 使用流程
+草稿从构建创建起入库，专业分工按内容生成 1–6 位。每位专家展示职责、模型、工具、特色能力、边界、来源与完整业务提示词；确认绑定实际展示的具体版本。否决缺少原因时先追问，修改后产生新稿，受影响的确认需要重新审核。
 
-1. **关注一个人**：创建人物，填写称呼、相处目标和补充说明。
-2. **整理材料**：粘贴原文，或选择微信／飞书会话中的成员；区分对方、我的发言和背景。跨会话身份由用户确认。
-3. **形成认识**：生成对象画像，查看直接信息、推测、原文依据、书籍参考和待了解事项。
-4. **理解自己**：维护自述、表达习惯和边界，汇总明确属于自己的材料，生成本人画像。
-5. **获得建议**：输入当前情境，结合目标人物画像、双方原始材料与书架方法生成候选回复及步骤。
-6. **由人决定行动**：复制与生成都不代表发送；本应用不会自动替用户发送聊天消息。
+PostgreSQL 保存构建、版本、审核、消息、任务与事件；数据库租约和代次校验支持任务接管。Redis 当前接入共享调用额度控制，缓存和通知尚未接入业务。多实例还需要共同可见的原件存储；旧上传任务和旧试聊继续保留原有本地状态机制。详见[流程、配置与验证入口](docs/expert-production/README.md)。
 
-资料书架支持 TXT、Markdown、可选中文字的 PDF、DOCX、EPUB。模型分析只在用户触发相应操作时调用配置的 DeepSeek 服务，相关选定材料及检索片段会随请求发送。本地运行不等于模型离线运行。
+## 运行主应用
 
-## 当前技术组成
+需要 Java 17、Maven、Node.js/npm、Python 3、zsh、PostgreSQL 及 DeepSeek 凭据。Python 文件提取依赖按格式准备，例如 PDF 使用 `pypdf`。
 
-| 部分 | 实现与职责 |
-|---|---|
-| 前端 | JavaScript、esbuild、DSH ModuleLoader、`@deepseek-ai/cordis` 页面插件 |
-| 业务后端 | Java 17；dsh-java 插件宿主；JDK HttpServer；人物、材料、画像、攻略与书架 |
-| 画像执行 | DSH AgentLoop / AgentScope；作用域内只读工具 `book_search`、`chat_search`、`chat_context`；应用校验主体和引用后保存 |
-| 模型与攻略 | ModelRegistry 接入 DeepSeek；StrategyRuntime 管理任务取消、共享时限和有界输出；不要求先生成本人画像 |
-| 数据库 | PostgreSQL 保存业务数据及任务记录；进度更新不增加业务 revision；独立 Logbook 用 SQLite 保存日志 |
-| 来源读取 | `RanchLiveSources` 按需读取平台会话；飞书插件；微信 CLI 与独立历史采集插件 |
-| 会话与依赖 | Agent 内部会话保留在内存；复用现有底座插件与 PostgreSQL，没有新增服务或数据库 |
-
-微信平台按需读取与独立日志导入是不同路径。按需读取当前选择的会话最近消息，受本机同步和读取上限约束；飞书受客户端已加载内容限制。人物关联不是自动订阅全部历史，也不承诺来源更正／撤销已经端到端同步。
-
-## 环境准备
-
-需要 Java 17、Maven、Node.js/npm、Python 3、zsh、PostgreSQL，以及可用的 DeepSeek 凭据。微信／飞书和原生读取相关能力面向已配置的 macOS；Python 文件提取依赖按实际格式安装，例如 PDF 使用 `pypdf`。
-
-**另行准备 dsh-java：** 本仓库未包含底座源码、运行制品和私有配置。必须先取得与本项目合同兼容的底座，安装 `dev.dsh` 的 `0.1.0-SNAPSHOT` Maven 合同依赖，并构建以下文件：
-
-- `app-boot/target/dsh-java.jar`
-- `plugins/model-registry/target/model-registry.jar`
-- `plugins/model-deepseek/target/model-deepseek.jar`
-- 已有 session、session-projection、agent、context、tools、agent-loop 插件制品，确切装配见[运行手册](docs/ops/profile-agent-runbook.md)。
-- 前端 `frontend/src/bootstrap.js` 与 `frontend/vendor/plugins/dsh-client-modules/` 文件。
-
-还需要与当前构建兼容的 `@deepseek-ai/cordis`（本机使用 4.0.2）及 cosmokit 文件。仅安装 AgentScope SDK 不能替代这些底座合同。
+先准备与本仓库兼容的 **dsh-java 宿主、合同 Maven 依赖、模型及 Agent 循环插件**，以及前端 DSH 模块和 Cordis 包。仅安装 AgentScope SDK 不足以运行本项目。确切制品清单与装配见[启动手册](docs/ops/profile-agent-runbook.md)。
 
 | 环境变量 | 用途 |
-|---|---|
+| --- | --- |
 | `DSH_JAVA_HOME` | 已构建的 dsh-java 根目录 |
-| `DSH_PACKAGES` | 包含 `cordis/` 与 `cosmokit/` 的 `@deepseek-ai` 包目录 |
-| `MAVEN_BIN` | Maven 可执行文件路径，供构建及验收脚本使用 |
-| `MAVEN_OPTS` | 可选，通过 `-Dmaven.repo.local=…` 指定已准备的兼容 Maven 缓存 |
-| `DEEPSEEK_API_KEY` | 仅通过启动进程环境传入模型凭据 |
-| `GARDEN_DB_URL` / `GARDEN_DB_USER` / `GARDEN_DB_PASSWORD` | 独立 PostgreSQL 数据库的 JDBC URL、用户和密码；三项一起提供 |
-| `GARDEN_PYTHON` | 具有文字提取依赖的 Python 路径 |
-| `GARDEN_EXTRACTOR` | 可选的文字提取脚本路径，默认 `knowledge/extract.py` |
-| `GARDEN_WECHAT_PYTHON` | 微信适配器 Python，默认 `wechat-cli/.venv/bin/python` |
-| `GARDEN_WECHAT_SOURCE` | 本机已授权的微信来源配置路径；配置与密钥不得提交 |
-| `GARDEN_PORT` | 主应用端口，默认 48740 |
-| `JAVA_BIN` | 可选 Java 可执行文件路径；启动预检要求 Java 17 或更新版本 |
+| `DSH_PACKAGES` | 包含 `cordis/` 和 `cosmokit/` 的包目录 |
+| `MAVEN_BIN`、可选 `MAVEN_OPTS` | Maven 路径；可用 `-Dmaven.repo.local=…` 指定兼容依赖缓存 |
+| `DEEPSEEK_API_KEY` | 模型凭据，仅通过进程环境传入 |
+| `GARDEN_DB_URL` / `GARDEN_DB_USER` / `GARDEN_DB_PASSWORD` | 已存在的独立 PostgreSQL 数据库，三项一起配置 |
+| `GARDEN_PYTHON`、可选 `GARDEN_EXTRACTOR` | 具备提取依赖的 Python；提取脚本默认 `knowledge/extract.py` |
+| `GARDEN_PORT`、可选 `JAVA_BIN` | 主应用端口，默认 `48740`；Java 路径 |
+| `GARDEN_WECHAT_PYTHON` / `GARDEN_WECHAT_SOURCE` | 可选的本机微信适配器和已授权来源配置 |
 
-脚本仍保留开发机默认路径。换电脑时需设置上述路径，不要直接照搬本机绝对路径。三项数据库变量均未设置时，启动器按原本机约定在内存读取底座 `.local/postgres.env`，使用已经存在的独立数据库；不再自动创建数据库。新环境建议显式配置三项数据库变量。
+脚本保留开发机默认路径，换电脑必须按实际环境配置。数据库三项均未设置时，启动器尝试读取底座 `.local/postgres.env` 并使用已有独立数据库，不自动建库。
 
-## 构建与运行
+在仓库根目录执行：
 
-以下命令在仓库根目录执行，前提是上述外部依赖、数据库及环境变量已配置。凭据不要写入 Git 文件或命令示例。
-
-```bash
-# 设置 MAVEN_BIN 为本机 Maven 可执行文件
+```sh
 export MAVEN_BIN="$(command -v mvn)"
-
-# 构建主应用、飞书插件及前端，并执行 Maven 默认测试
 zsh build.sh
-
-# 从当前终端继承模型与数据库环境变量；先只读预检
 python3 run.py --check
 python3 run.py
 ```
 
-`--check` 只读检查配置、端口、Java 和运行制品，不启动服务、不创建数据库，也不连接数据库或模型；通过预检不能代替实际连通性验证。底座合同依赖、宿主和插件必须来自兼容的一批构建，旧的同名 SNAPSHOT 缓存可能不兼容，详见[运行手册](docs/ops/profile-agent-runbook.md)。
+构建包含主应用、飞书插件、前端与 Maven 默认测试。主应用 `--check` 只读核对配置、端口和制品，不连接数据库或模型；通过预检不代表实际连通。启动后打开 [http://127.0.0.1:48740/](http://127.0.0.1:48740/)，在运行终端按 `Ctrl+C` 停止。
 
-主入口：[http://127.0.0.1:48740/](http://127.0.0.1:48740/)；旧会话材料：[conversations.html](http://127.0.0.1:48740/conversations.html)。端口已占用时，用 `GARDEN_PORT` 选择空闲端口；停止时在运行终端按 `Ctrl+C`。
+专家实验室有[独立启动步骤](expert-agent-demo/README.md#运行专家实验室)，使用 `EXPERT_*` 配置，不由上述命令启动。日志入口另用 `python3 logbook/launch.py`，详见 [Logbook](logbook/README.md)。微信历史插件为可选组件，不包含在主构建中；配置见[微信插件说明](plugins/wechat-history/README.md)。
 
-如需独立微信历史插件，另行执行 `"$MAVEN_BIN" -f plugins/wechat-history/pom.xml package`，并按对应组件说明配置。主构建不包含该可选插件。
+## 验证与已知边界
 
-独立日志使用 `python3 logbook/launch.py`，具体初始化和原生依赖见 [Logbook 文档](logbook/README.md)。48741 为日志阅读入口，48742 为独立日志服务；启动主应用不等于这些服务都已启动。微信密钥初始化、客户端权限和本机数据库由用户在自己的设备上配置，仓库不携带这些状态。
+| 范围 | 证据及限制 |
+| --- | --- |
+| 本次管理员生产 | Java 91 项、前端 18 项通过；[独立 HTTP / PG 验收](docs/expert-production/acceptance-results.md)、[前端组件验证](docs/expert-production/frontend-verification.md)；真实模型、浏览器和故障恢复分层记录，不能互相替代 |
+| 主应用攻略 G01，2026-09-25 | [Java 124、Node 65 及隔离真实模型记录](docs/qa/tl-g01-integration-verification.md)；该历史版本保留性别未明确时使用“他”的 Q01 问题 |
+| 主应用画像升级 | [历史集成验收](docs/qa/tl-integration-verification.md)，包括引用、取消、重启中断及删书处理；旧对象摘要仍有“用户描述”的措辞歧义 |
+| 本地发布与数据保护 | [发布记录](docs/ops/local-release-g01-execution-20260925.md)与[独立审核](docs/qa/local-release-review-20260925.md)；这些是既有本地版本的证据 |
 
-## 验证与已知限制
+复现主应用确定性检查（外部依赖和离线缓存须就绪）：
 
-2026-09-25 最终攻略候选 `a51f047` 的验证见[最新集成验收报告](docs/qa/tl-g01-integration-verification.md)。画像与浏览器的历史验收另见[画像升级报告](docs/qa/tl-integration-verification.md)，两者不混作同一轮实测。
-
-| 验证范围 | 结果 |
-|---|---|
-| Java 业务与独立验收门槛 | 124 项通过 |
-| Node 页面组件与独立验收 | 65 项通过 |
-| Python 启动、构建与 smoke 探针 | 发布准备时 15 项通过；G01 未改动这些代码 |
-| 飞书插件 Java | 31 项通过 |
-| 构建与装配 | 主应用、飞书插件和前端构建完成；完整业务宿主 10 个插件 active |
-| 攻略真实模型与数据库 | 两个固定版本各一次虚构材料隔离验证；最终候选正常保存、引用与实际阶段通过，称谓限制仍保留 |
-| 画像真实模型与浏览器（历史验收） | 验证检索、引用、取消、重启中断、删书清理及本人画像时间；页面验证画像、切换、重开、目标提示和删书确认 |
-
-在依赖就绪后复现确定性验证：
-
-```bash
-# release 使用 Maven 离线模式，需要先准备完整依赖缓存
-# 同时运行 Java 默认测试、额外验收门槛和全部 Node 测试
+```sh
 sh tests/acceptance/run.sh release
-
 python3 -m unittest discover -s tests/ops -v
 "$MAVEN_BIN" -f plugins/feishu-history/pom.xml test
 ```
 
-真实模型 smoke 会调用已配置的模型服务，必须使用独立端口和仅含虚构数据的隔离数据库环境，按[运行手册](docs/ops/profile-agent-runbook.md)安排；它不包含在上述确定性测试中。
+专家生产的数据库和前端测试见[专家实验室验证说明](expert-agent-demo/README.md#验证)。真实模型验证会调用供应商，使用隔离端口、测试数据库与虚构材料；不包含在普通确定性测试中。
 
-真实模型样本有限，仍需用户核对结论。攻略概述／依据在性别未明确时仍出现“他”，Q01 按 P2 保留；提示约束未保证全篇中性表达。旧相对日期误用于回复的问题在本次样本中已消除，不代表所有输出的质量保证。另保留历史对象摘要“用户描述”的 P3 措辞歧义，该旧对象结果未再次生成。
+模型分析会把选定材料和必要上下文发给配置的服务；PDF 云解析会把原件发给 MinerU。本地运行不等于离线推理。模型样本有限，取消也不保证供应商立即停止计算。微信读取受本机同步和数量上限约束，飞书读取受客户端已加载内容限制；人物关联不代表持续订阅全部历史。
 
-浏览器未手测运行中取消、中断／错误态及多对象多书籍组合，这些场景的确定性覆盖与实测范围在报告中分列。客户端取消不证明供应商端立即停止计算，已进入同步数据库调用的取消仍受连接／socket 超时约束。
-
-其他组件的 Python 测试分布在 `logbook/tests`、`feishu/tests`、`wechat/tests`、`wechat-cli/tests`、`ranch_sources` 和 `knowledge`，需按组件配置依赖。本轮画像验收不代表全部平台采集与原生客户端功能都已重新验证。
-
-## 文档导航
-
-| 文档 | 用途 |
-|---|---|
-| [最新攻略集成验收](docs/qa/tl-g01-integration-verification.md) | G01 的测试、真实验证、本地发布及已知限制 |
-| [画像升级验收](docs/qa/tl-integration-verification.md) | 前一批画像 Agent 的历史验证、修复记录和范围限制 |
-| [产品验收标准](docs/product/profile-agent-acceptance.md) | 本人／对象画像、证据边界和交互要求 |
-| [启动、预检与回滚](docs/ops/profile-agent-runbook.md) | 外部依赖、插件装配、隔离运行和排障 |
-| [画像运行实现](docs/backend/profile-runtime.md) | Agent 工具循环、预算、取消与持久化设计 |
-| [真实运行记录](docs/ops/profile-real-smoke-report.md) | 真实模型／PostgreSQL smoke 与最终清理证据 |
-| [浏览器验收](docs/frontend/browser-acceptance-5bfd899.md) | 页面实测范围与截图位置 |
-| [聊天日志](logbook/README.md) · [飞书](feishu/README.md) · [微信 CLI](wechat-cli/README-ADAPTATION.md) | 各组件配置与使用方式 |
-
-历史资料：[架构评审入口](docs/README.md)、[图解文字版](docs/architecture-review-20260924/架构评审.md)、[离线交互版](docs/architecture-review-20260924/index.html)。这些是升级前的评审快照，其中的旧流程与改造建议不代表当前实现。离线 HTML 需下载后用浏览器打开，GitHub 文件页只显示源码。[内存评估探针](docs/evidence/AssessmentProbe.java)及[结果](docs/evidence/probe-results.json)同样属于当时版本的历史证据。
-
-## 目录
+## 目录与文档
 
 ```text
-src/                       Java 业务代码与测试
-web/                       Cordis 页面、样式与前端构建
-plugins/feishu-history/     飞书读取插件
-plugins/wechat-history/     微信历史采集插件
-ranch_sources/             平台会话按需读取适配器
-logbook/                   独立日志应用与 SQLite 存储
-wechat-cli/                有上游来源与许可记录的 CLI 适配代码
-wechat/                    日志阅读与兼容入口
-knowledge/                 书籍文字提取
-tests/                     独立验收门槛、启动器与运行探针
-docs/                      产品要求、实现说明、验收报告与历史架构图解
-run.py / build.sh          本地启动与构建
+src/                  主应用 Java 业务与测试
+web/                  主应用 Cordis 前端
+expert-agent-demo/    独立专家实验室、生产审核页面与测试
+plugins/              飞书和微信历史插件
+ranch_sources/        平台会话按需读取适配器
+logbook/              独立聊天日志与 SQLite 存储
+knowledge/            主应用书籍文字提取
+wechat-cli/           带上游来源及许可记录的 CLI 适配
+tests/               主应用独立验收与运行探针
+docs/                 产品、实现、验收及历史架构文档
 ```
 
-## 源码与数据范围
+- [管理员生产入口](docs/expert-production/README.md)：当前流程、配置、合同和验收。
+- [主应用运行手册](docs/ops/profile-agent-runbook.md)：依赖、预检、装配、排障和回滚。
+- [主应用产品要求](docs/product/profile-agent-acceptance.md)与[后续差距](docs/product/architecture-gap-backlog-20260925.md)：已完成范围与待实施事项。
+- [聊天日志](logbook/README.md)、[飞书](feishu/README.md)、[微信适配](wechat-cli/README-ADAPTATION.md)：组件使用说明。
+- [历史架构评审](docs/README.md)与[早期 Demo 记录](README-详细.md)：历史快照，其中的旧流程和建议不代表当前实现。
 
-[GitHub 仓库](https://github.com/hj456992/SuperTrader)管理源码、构建清单、测试和文档；不包含模型密钥、数据库密码、聊天数据库、采集缓存、运行状态、虚拟环境和构建产物。首次克隆不会获得开发机已保存的聊天、人物资料或书架数据。上传源码不等于替换正在运行的本地实例。
+## 源码、数据与许可
 
-`.gitignore` 已配置常见本地数据路径。提交前仍应检查暂存区，避免手工导出的聊天或凭据使用了其他文件名。
+仓库提交源代码、测试、构建清单和文档，不包含密钥、聊天数据库、用户上传书籍、私密 OCR、运行状态、备份、依赖缓存或构建产物。首次克隆不会获得开发机上的人物、聊天和书架数据；专家实验室仅附带原创虚构演示 PDF。
 
-## 许可与第三方来源
-
-见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)、[微信 CLI 上游信息](wechat-cli/UPSTREAM_SOURCE.json)、[上游 LICENSE](wechat-cli/LICENSE)及[适配代码许可](wechat-cli/ADAPTER_LICENSES.md)。外部 dsh-java 和 DSH 包不作为本次源码上传的一部分；不能将某个第三方组件的许可推断为整个仓库的许可。
-
-## 专家生产概要审核：设计与交互原型
-
-[交付入口](docs/expert-production/README.md)包含管理员概要审核原型、状态流转、15表SQL草案、接口合同及验收记录。支持演示否决追问、修订、版本确认和刷新恢复；尚未接入真实模型或生产数据库，不代表专家团队生产流程已实现。
+第三方来源及许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)、[微信 CLI 来源](wechat-cli/UPSTREAM_SOURCE.json)和[适配许可](wechat-cli/ADAPTER_LICENSES.md)。外部 dsh-java 与 DSH 包不包含在本仓库，第三方组件的许可不等于整个项目的许可。

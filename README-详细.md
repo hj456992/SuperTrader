@@ -1,3 +1,5 @@
+> **历史实现记录。** 本文保留早期 Demo 的装配、模型和采集说明，部分内容已被后续实现替代。当前功能、依赖与启动请以[项目 README](README.md)和[专家实验室说明](expert-agent-demo/README.md)为准。
+
 > 当前微信采集入口已改为 dsh-java wechat-history 插件，调用 wechat-cli history；真实微信密钥初始化已完成。最新接入及启动说明见 [logbook/README.md](logbook/README.md)。下文旧采集说明以此为准。
 
 > 当前实现已替换为独立聊天日志应用与爱聊只读接口；不再执行下述旧OCR流程。请以 [logbook/README.md](logbook/README.md) 为准。

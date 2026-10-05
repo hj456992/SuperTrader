@@ -1,5 +1,14 @@
 # 爱聊文档
 
+## 当前入口
+
+- [项目介绍与启动](../README.md)：主应用与独立专家实验室的用途、状态和环境。
+- [管理员专家团队生产](expert-production/README.md)：2026-10-05 新生产流程、模型合同、存储与分层验收。
+- [专家实验室运行](../expert-agent-demo/README.md)：PDF 云解析、资料版本、生产配置与测试。
+- [主应用启动手册](ops/profile-agent-runbook.md)：既有主应用的依赖、装配与排障。
+
+以下架构评审和评估证据为历史快照。
+
 ## 架构评审 · 2026-09-24
 
 [完整文字版](architecture-review-20260924/架构评审.md) · [离线交互 HTML](architecture-review-20260924/index.html) · [图解文件](architecture-review-20260924/assets)

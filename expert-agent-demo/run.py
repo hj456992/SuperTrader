@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import socket
@@ -21,6 +22,18 @@ def main():
     data = Path(os.environ.get('EXPERT_LAB_DATA', str(ROOT / '.local/data'))).resolve()
     java = os.environ.get('JAVA_BIN', '/opt/homebrew/opt/openjdk@17/bin/java')
     python = os.environ.get('EXPERT_PYTHON', str(BUNDLED) if BUNDLED.exists() else sys.executable)
+    db_url = os.environ.get('EXPERT_DB_URL', '')
+    if db_url:
+        if not db_url.startswith('jdbc:postgresql:'):
+            raise ValueError('EXPERT_DB_URL 必须为 PostgreSQL JDBC 地址')
+        schema = os.environ.get('EXPERT_DB_SCHEMA', 'expert_production')
+        if not re.fullmatch(r'[a-z][a-z0-9_]{0,62}', schema):
+            raise ValueError('EXPERT_DB_SCHEMA 格式无效')
+        shared = Path(os.environ.get('EXPERT_SHARED_DIR', str(data / 'shared'))).resolve()
+        shared.mkdir(parents=True, exist_ok=True)
+        if not os.access(shared, os.R_OK | os.W_OK):
+            raise ValueError('专家生产共享目录不可读写')
+        os.environ['EXPERT_SHARED_DIR'] = str(shared)
     rows = []
     for ident, module, inject in [
         ('model-registry', 'model-registry', []), ('model-deepseek', 'model-deepseek', ['llmRuntime']),
@@ -45,7 +58,9 @@ def main():
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(('127.0.0.1', port))
     if args.check:
-        print('本地依赖和端口预检通过；真实模型连接在生成/试聊时验证。')
+        print('本地依赖、端口及配置格式预检通过；数据库、Redis和真实模型连接仍需运行验收。')
+        if not db_url:
+            print('未配置 EXPERT_DB_URL：旧资料库可用，管理员生产接口将返回未配置。')
         return
     runtime = ROOT / '.local'
     runtime.mkdir(mode=0o700, exist_ok=True)

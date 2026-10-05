@@ -1,85 +1,137 @@
-# 爱聊 · 专家实验室（DSH Java 插件 Demo）
+# 爱聊 · 专家实验室
 
-> GitHub 源码快照（2026-09-28）：本目录为独立专家实验室，尚未集成到主应用。仅提交源码、测试、说明及原创虚构测试 PDF；文中提及的真实书籍 OCR、截图、专家运行数据和验收记录保留在开发机，不包含在公开仓库。脚本中的本机路径需按 README 的环境变量配置；UI 测试仍含本机 Playwright 路径。提示词优化目前仅为对话草稿，尚未应用到代码。
+独立的 DSH Java 插件：通过 MinerU 解析 PDF、保留原件与资料版本，再由管理员逐步审阅书籍概要、专家完整提示词和团队配置。
 
-上传 PDF 到 MinerU 精准云 API 进行 OCR，保留原件、页码与资料版本，再选择资料生成专家草稿并试聊。
+**2026-10-05 源码版本：** 管理员生产已接入 PostgreSQL、真实模型接口与审核页面，整体验收仍在进行。专家实验室尚未集成到爱聊主应用，不能据自动化测试通过宣称真实模型和浏览器全流程已验收。进度与问题见[独立验收报告](../docs/expert-production/acceptance-results.md)。
 
-**真实验证状态（2026-09-27）：** 首次312页直接上传被200页限制拒绝。用户确认拆分后，两份临时PDF已顺序完成云解析并合并入库：312页、166,544字符、313个片段。原件及旧启用专家保持不变。逐页布局用于纠正云端段落跨页合并；图表文字未全部OCR，保留原图并记录局限。新专家生成/试聊等待参数确认。证据：`evidence/mineru-split/live-result.json`、`ocr-verification.json`、`original-verification.json`。
+[返回项目首页](../README.md) · [生产流程与合同](../docs/expert-production/README.md) · [前端验证](../docs/expert-production/frontend-verification.md)
 
-这是可加载的 DSH 插件：`META-INF/dsh-plugin.properties` 声明 `dev.ailiao.expert.ExpertLabPlugin`，产物为 `target/expert-lab.jar`。文档加工使用宿主 `ModelRegistry`，试聊中的主专家和子 Agent 使用宿主 `AgentRegistry` / AgentScope 循环。页面及任务记录展示实际调用结果，没有预置回答。业务插件与 DSH 底座、既有 `outputs/demo` 分开；当前未接入正式爱聊页面或数据。
+## 使用流程
 
-## 本机运行
+1. **导入资料**：上传 PDF，等待 MinerU 云解析。给已有资料上传新版本会保留旧版及原件；资料保留物理页码和片段来源。
+2. **选择输入**：填写团队名称、职责，勾选资料并为每份资料指定一个版本。
+3. **开始生产**：点击“生成专家团队”，创建数据库构建并进入 `#production/{buildId}`。先分批预学习并保存成果，再生成整书概要。
+4. **审核概要与专家**：概要确认后，依次审阅 1–6 位专业专家、额外兜底专家和路由主专家。每位专家展示职责、模型、工具、特色能力、边界、来源与完整提示词。
+5. **反馈并修订**：可提问、查看原文、否决或要求修改。否决无原因时先追问；必要澄清或修改产生新稿，须重新审阅。确认绑定实际展示的当前版本，不能只同意名称或职责就视为完整提示词通过。
+6. **确认配置与团队**：审阅关键词、书中示例问答及最终团队清单。全部必要成果确认后才记录团队完成。
 
-当前地址：<http://127.0.0.1:48760/>。页面已有用原创三页资料生成的“职场沟通顾问 · 演示”，可查看分工或开始新试聊。
+所有草稿、消息、修订和审核从一开始保存到 PostgreSQL。生成状态与人工审核状态分别记录；页面支持历史查看、任务暂停／恢复／取消、失败重试和重新打开构建。
+
+团队完成表示管理员生产结束。当前生成 L1/L2/L3 所需配置，不执行最终用户侧路由、向量调用或向量索引，不自动部署或启用到主应用。
+
+旧专家版本的试聊与启用接口保留兼容：旧“启用”只设置本 Demo 的版本指针。旧试聊与新生产是不同流程，不能把旧试聊成功当作新团队生产验收。
+
+## 运行专家实验室
+
+需要 Java 17、Maven、Python 3 + `pypdf`，以及已构建且合同兼容的 dsh-java 宿主和插件。使用主应用同一类底座，但启动独立进程；本仓库不附带底座源码、制品或凭据。
+
+在仓库根目录先进入本目录：
 
 ```sh
-cd /Users/hou/Documents/Codex/2026-09-22/garden-product-design/outputs/expert-agent-demo
+cd expert-agent-demo
+
+# 先设置下表中的依赖路径、模型及数据库环境变量
 zsh build.sh
 python3 run.py --check
 python3 run.py
 ```
 
-启动环境需已设置 `DEEPSEEK_API_KEY`，脚本不把密钥写入配置。默认使用当前已可用的 `deepseek-v4-flash`；生成和试聊会向配置的模型服务发送所选资料文字、问题和必要历史，并产生模型调用费用。上传会将原 PDF 发送给 MinerU，并可能消耗解析额度。Finder 双击 `.command` 不一定继承终端密钥，推荐在已有凭据的终端运行上述命令。停止独立宿主使用该终端 Ctrl-C。
+默认打开 [http://127.0.0.1:48760/](http://127.0.0.1:48760/)，生产页为 [#production](http://127.0.0.1:48760/#production)。端口可通过 `EXPERT_LAB_PORT` 更改；停止使用运行终端的 `Ctrl+C`。首次克隆没有开发机上的资料和专家，可自行上传仓库附带的[原创三页演示资料](evidence/演示资料-职场沟通方法.pdf)。
 
-依赖：Java 17、Maven、与当前宿主匹配的 DSH 合同/插件 jar、Python 3 + pypdf。默认路径按本机已有运行环境配置，没有新增数据库服务。
+`build.sh` 使用 Maven 离线构建，需要预先准备依赖缓存。默认脚本含开发机路径，换电脑请显式设置下表中的路径。
 
 | 配置 | 用途 |
 | --- | --- |
-| `DSH_JAVA_HOME` | DSH 项目及已构建的宿主、插件目录 |
-| `MAVEN_BIN` / `JAVA_BIN` | Maven 和 Java 路径 |
-| `EXPERT_MAVEN_REPO` | 与宿主匹配的合同缓存；默认使用已有爱聊升级工作目录的 `.local/m2`，共享 `~/.m2` 当前含旧合同 |
-| `EXPERT_PYTHON` | 已安装 pypdf 的 Python；核对原件页数，并按用户确认制作临时分卷 |
-| `MINERU_API_TOKEN_FILE` | 私密 Token 文件，默认 `~/.config/mineru/token`；文件权限 600、目录 700 |
-| `MINERU_API_TOKEN` | 可选环境变量，优先于文件；不要写入仓库或日志 |
-| `EXPERT_LAB_PORT` | 本机端口，默认 48760 |
-| `EXPERT_LAB_DATA` | 独立数据目录，默认 `.local/data` |
-| `EXPERT_PROVIDER` / `EXPERT_MODEL` | 模型标识；启动器默认加载 DeepSeek provider，其他 provider 需在宿主装配中提供 |
+| `DSH_JAVA_HOME` | 已构建的 dsh-java 项目根目录 |
+| `MAVEN_BIN` / `JAVA_BIN` | Maven 和 Java 可执行文件路径 |
+| `EXPERT_MAVEN_REPO` | 与宿主匹配的 Maven 合同与依赖缓存 |
+| `EXPERT_PYTHON` | 已安装 `pypdf` 的 Python 可执行文件 |
+| `DEEPSEEK_API_KEY` | 仅通过进程环境传入的模型凭据 |
+| `EXPERT_PROVIDER` / `EXPERT_MODEL` | provider／模型标识；启动器默认值为 `deepseek`／`deepseek-v4-flash`，可用性以自身服务配置为准 |
+| `EXPERT_LAB_PORT` / `EXPERT_LAB_DATA` | 默认端口 `48760`；旧资料与导入数据目录默认 `.local/data` |
+| `MINERU_API_TOKEN_FILE` | 私密 Token 文件，默认 `~/.config/mineru/token`；建议文件权限 `600`、目录 `700` |
+| `MINERU_API_TOKEN` | 可选环境变量，优先于 Token 文件 |
 
-## 怎样体验
+启动器需要 `app-boot/target/dsh-java.jar` 和以下底座插件制品：model-registry、model-deepseek、session、session-projection、agent、context、tools、agent-loop。具体路径及注入见 [run.py](run.py)。本插件产物为 `target/expert-lab.jar`。
 
-1. 超过云端200页限制而失败的整书，可点击“分成每份最多200页，解析后合并”。每份顺序解析、各自保存云任务编号；全部页码验证后才写入同一资料版本。归档和引用保留原始整书，原失败记录保留。
-2. 资料库上传 PDF；后台申请上传地址、原件 PUT、每 5 秒查询 OCR、下载并核对全部物理页码、完整入库。给已有资料选择“新版本”会保留旧版本与原文件。测试资料见 `evidence/演示资料-职场沟通方法.pdf`，内容为原创虚构演示材料。
-3. 在专家工作台填写名称、职责，勾选资料并逐份指定版本。同一资料只有一个版本选择框，后端也拒绝重复选择。
-4. 生成时先按页保留出处和切片，再把全部选中文本分批交给模型，提炼方法与适用边界，最后归并成 1–6 个子 Agent。切片用于处理长文，不是一片创建一个 Agent。
-5. 在分工卡片展开方法和原文；进入试聊，观察主专家选择哪些专业分工、子 Agent 核读哪些来源及返回什么结论。
-6. 有成功子 Agent 分析和有效引用的试聊，才取得启用资格；问候、所有委派失败、取消、超时均不会取得资格。管理员仍需自己判断是否满意，再点击启用。
-7. 修改配置后再生成，得到新的专家版本。它冻结名称、职责、资料版本、方法、分工和模型标识；旧启用指针保持不变。切换版本自动开始新试聊。
+### 管理员生产配置
 
-“启用”目前只设置 Demo 内的专家版本指针，不会发布到现有爱聊，也不表示模型已经获得或通过专业能力认证。
-
-## 模块和复用边界
-
-| 模块 | 职责 |
+| 配置 | 用途 |
 | --- | --- |
-| `ExpertLabPlugin` | 宿主依赖装配、资源生命周期 |
-| `LabStore` / `Knowledge` | 资料和专家版本、原子快照、片段与词项检索 |
-| `PdfImport` / `extract_pdf.py` | 原件页数与空密码可读检查、私密临时分卷；旧文字提取代码仍保留供回归 |
-| `MineruClient` / `MineruImport` | 官方 API、私密导入记录、暂停/恢复、取消与幂等入库 |
-| `MineruResult` / `MineruPageLayout` | ZIP累计体积、页清单及逐页布局校验，恢复原件页码，保留文本与原块 |
-| `ExpertBuilder` / `ModelCalls` | 分批研读、方法提炼、专业分工、引用校验 |
-| `ExpertRuntime` | 主专家 `consult_specialist`；子 Agent `read_passage` / `search_knowledge` |
-| `Jobs` / `LabHttp` | 后台进度、共享时限、取消屏障、本机 HTTP |
-| `resources/web` | 资料库、专家配置、管理员试聊页面 |
+| `EXPERT_DB_URL` | 已存在的 PostgreSQL 数据库 JDBC URL |
+| `EXPERT_DB_USER` / `EXPERT_DB_PASSWORD` | 数据库凭据，仅放进程环境 |
+| `EXPERT_DB_SCHEMA` | 专用 schema，默认 `expert_production`；首次启动创建表 |
+| `EXPERT_SHARED_DIR` | 生产构建引用的原 PDF 目录，默认数据目录下的 `shared`；多实例必须访问同一存储 |
+| `EXPERT_REDIS_URL` / 可选 `EXPERT_REDIS_PASSWORD` | 共享调用额度；配置后故障会保留排队任务并停止新的付费调用 |
+| `EXPERT_MODEL_CALL_LIMIT` | 共享分钟调用额度，默认 `120` |
+| `EXPERT_PRODUCTION_MAX_TOKENS` | 生产模型单次输出预算，默认 `7000` |
+| `EXPERT_PRODUCTION_MAX_CHARACTERS` | 生产输出字符上限，默认 `40000`；超限拒绝保存不完整结果 |
 
-复用时保留插件 jar、提取脚本及配置，把插件条目加入兼容宿主 bootstrap 即可加载；`run.py` 给出了完整独立装配示例。它注入 `llmRuntime / agents / systemPrompt / tools`，依赖现有 model、session、agent-loop 等插件。不需要把编排写进 DSH 底座。当前跨模块入口是插件的 HTTP API，尚未抽取供其他业务插件 `require` 的公共专家合同；统一鉴权、生产存储、主站页面和正式服务合同属于后续集成工作。
+未配置 `EXPERT_DB_URL` 时旧资料库仍可用，但新生产接口返回 `503`。Redis 未配置仅适用于单机开发；不应在共享限额故障时通过关闭配置绕过限额。首次建表针对专用空 schema，不是任意历史版本的自动迁移工具。
 
-主要接口：`GET /api/state`、`POST /api/documents`（原始 PDF，202 返回 importId/jobId）、`GET /api/imports/{id}`、`POST /api/imports/{id}/resume`、`POST /api/imports/{id}/split`（显式同意页数超限后拆分）、`GET /api/document-version?versionId=`、`GET /api/original?versionId=`、`POST /api/experts`、`GET /api/jobs/{id}`、`POST /api/jobs/{id}/cancel`、`POST /api/chat`、`POST /api/activate`、`GET /api/passage?id=`。写接口须携带 state 返回的 `X-Lab-Token`。仅监听 loopback，并校验 Host 和 Origin；不适合直接公网使用。
+`--check` 检查文件、空闲端口与配置格式，不验证数据库、Redis 或模型连通性。**配置数据库时，预检可能创建 `EXPERT_SHARED_DIR` 目录。** 真正启动后才执行数据库初始化并启动工作线程。
 
-## 边界与验证
+## 存储与恢复边界
 
-- 上传仍为 20MiB。本地按官方文档检查不超过 600 页，但本次真实服务拒绝超过 200 页。云 OCR 使用 vlm、ch、强制 OCR、表格/公式识别；入库取消 25 万字符限制，不截断。
-- 已批准：连接 15 秒、API 30 秒、上传/下载各 5 分钟、导入观察窗口 30 分钟；查询连续失败 3 次暂停。后台最多 2 个任务，其中 OCR 最多 1 个。全部分卷ZIP累计最多 200MiB，读取 JSON/Markdown 累计 100MiB，超限不入库。
-- 尚未批准且未改动：专家生成选择最多 8 份、总计 25 万字符，以及以下切片、生成和试聊限制。本书已取得实际166,544字符，生成预算正在一次确认，旧代码数值不代表用户认可。
-- 资料保留版本和页码，段落优先切分，每片最多 2400 字符；研读每批约 18000 字符。跨页方法、复杂排版、模型遗漏仍需要人工核对。
-- 每次生成最长 20 分钟；单轮试聊共享 6 分钟、最多 4 次委派、全队最多 24 个模型步骤；同一会话最多 8 轮。结构化回答解析失败仅允许一次格式重试，仍受总时限与步骤限制。
-- 子 Agent 仅可检索自身绑定的方法来源；已存在的来源 ID 校验不等于语义结论得到证明。没有长书专业能力基准、领域专家评审或负载验收。
-- 数据用本地 JSON 原子快照和 PDF 原文件持久保存。云导入另有私密记录，保存原件、batch ID、阶段与成功版本；已提交的任务恢复时查询原编号，按 importId 幂等入库。上传结果不确定时只能查询云端是否已接收，不能承诺补传。取消仅停止本地处理，云端可能继续。生成/试聊任务仍只在内存；没有通用耐久队列、多租户或生产迁移。
-- 会话在后端保存并支持当前页面连续追问，页面刷新不自动恢复已经完成的历史会话列表。
+| 数据／任务 | 保存与恢复方式 |
+| --- | --- |
+| 新生产构建、草稿、版本、审核、澄清、消息、事件 | PostgreSQL 为权威来源，页面通过快照与事件读取 |
+| 新生产后台任务 | PostgreSQL 持久队列、租约与代次校验，阻止过期工作线程提交 |
+| 模型共享额度 | Redis 已接入；缓存和 Pub/Sub 辅助代码尚未用于业务服务 |
+| 生产引用的 PDF | 复制到配置的共享目录，构建保存资料版本与来源身份 |
+| 旧资料库、旧专家、旧试聊 | 本地 JSON／PDF 与原有运行机制，不宣称跨节点接管 |
+| MinerU 导入 | 本地私密导入记录保存原件、云任务编号和进度；恢复查询原编号并按 importId 幂等入库 |
 
-验证入口：`zsh build.sh`（包含新增云协议、页码、长文及恢复测试，数量以当次报告为准），`tests/pdf-boundaries.py`（旧文字提取与拒绝路径），`tests/ui-regression.mjs`（版本切换、断线恢复）、`tests/ui-mineru-regression.mjs`（恢复导入、保留专家、原件链接）、`tests/ui-mineru-split.mjs`（显式拆分）。`MINERU_REAL_CONFIRM=1 node tests/mineru-live.mjs` 是真实整书云上传，会提交新任务并可能消耗额度，不应反复执行来掩盖失败。旧 `tests/e2e.mjs` 的同步上传假设不再适用于当前云上传入口。结果与截图在 `evidence/`；测试桩不代表云 OCR 成功。技术文档仍维护在相邻 `ailiao-comparison-20260926` 原文档中。
+原文引用由程序核对所选资料，精确引文唯一匹配后转换为 Unicode 码点区间；引用可定位不代表模型解释必然正确。来源、任务和审核规则见[生产模型合同](../docs/expert-production/model-contract.md)与[存储说明](../docs/expert-production/storage-design.md)。
 
-分卷真实验收：`tests/mineru-split-live.mjs`；首次执行会消耗云额度，仅在已获批准时运行。最终48项Java测试通过。真实ZIP解析与3,952个物理文本/公式/表格跨度校验、6页渲染对照见 `evidence/mineru-split/`。解析完成只证明数据链路和页码保留，不代表专业能力或逐字OCR准确性。
+服务只监听 loopback，校验 Host、Origin 与写请求 `X-Lab-Token`，沿用本地管理员身份。当前没有新增公网登录、多租户隔离或正式集群部署。
 
-## 管理员生产审核设计
+## PDF 云解析
 
-新增[概要审核设计与原型](../docs/expert-production/README.md)，供审阅生产聊天流程。原型独立运行，不修改上述现有插件接口或真实运行数据；PostgreSQL/Redis及真实模型处理仍待实现。
+上传会将原 PDF 发送到 MinerU，生成和聊天会将选中材料及必要上下文发送到配置的模型服务，并可能消耗额度。凭据、原件和 OCR 结果不随源码公开。
+
+- 上传上限为 20 MiB。本地检查最多 600 页；此前真实服务对超过 200 页的任务返回限制，因此页面提供显式确认后的每份最多 200 页拆分、顺序解析与合并。
+- 原始整书始终保留，引用页码仍对应原件。分卷 ZIP 累计最多 200 MiB，JSON／Markdown 读取累计最多 100 MiB，超限不入库。
+- 连接 15 秒、API 30 秒、上传／下载各 5 分钟；导入观察窗口 30 分钟，连续查询失败 3 次暂停。取消本地处理不能保证云端停止。
+- 云解析结果按页核对后入库，图表、复杂版式、OCR 疑点和跨页方法仍需人工复核。
+
+历史真实验证曾完成一份 312 页资料的两卷解析与合并；这是数据链路和页码验证，不是逐字准确性或专家能力证明。书籍、OCR、截图和原始响应为私密证据，公开仓库只保留实现、测试及原创虚构 PDF。
+
+## 验证
+
+以下命令在 `expert-agent-demo/` 执行。Java 数据库测试需配置独立测试数据库的 `EXPERT_DB_URL`、`EXPERT_DB_USER`、`EXPERT_DB_PASSWORD`，并授予创建／删除测试 schema 的权限；测试使用随机独占 schema，不应连接正式业务库。
+
+```sh
+# 完整 Java 测试并打包；生产数据库测试需上述环境
+zsh build.sh
+
+# 专项独立 HTTP + PostgreSQL + 受控模型验收
+sh tests/production-acceptance.sh
+
+# 前端协议／组件行为检查，无真实浏览器或供应商调用
+node --test src/test/frontend/production-ui.test.cjs
+node --check src/main/resources/web/production-api.js
+node --check src/main/resources/web/production.js
+node --check src/main/resources/web/app.js
+```
+
+[数据库验收脚本](tests/production-acceptance.sh)要求显式数据库环境，缺失时直接失败。完整 Maven 测试中部分数据库用例在环境缺失时会跳过，因此须检查失败及跳过计数，不能只看构建成功。
+
+最新用例数、修复记录及尚未定位的问题见[独立验收](../docs/expert-production/acceptance-results.md)。[前端报告](../docs/expert-production/frontend-verification.md)单独记录组件测试和真实浏览器状态。受控模型不会消耗供应商额度，也不能代替真实模型验证。
+
+旧解析与兼容检查包括 `tests/pdf-boundaries.py`、`tests/ui-regression.mjs`、`tests/ui-mineru-regression.mjs` 和 `tests/ui-mineru-split.mjs`；UI 脚本仍有开发机环境依赖。真实云脚本 `tests/mineru-live.mjs`、`tests/mineru-split-live.mjs` 及[真实生产流程脚本](../docs/expert-production/checks/real-model-flow.py)会产生外部调用和测试数据，不包含在普通自动化验证中。
+
+## 代码导航
+
+| 文件／模块 | 职责 |
+| --- | --- |
+| `ExpertLabPlugin`、`LabHttp` | DSH 装配、生命周期、本地 HTTP 与生产路由 |
+| `ProductionService`、`ProductionContext`、`ProductionRules` | 流程编排、上下文、版本与审核约束 |
+| `ProductionDatabase`、`ProductionJobQueue`、`ProductionRedis` | 事务持久化、租约队列和共享额度 |
+| `ProductionModel`、`ProductionPrompts`、`ModelCalls` | 模型合同、提示词、调用及输出校验 |
+| `MineruClient`、`MineruImport`、`MineruResult`、`MineruPageLayout` | 云导入、恢复、结果限制与物理页码还原 |
+| `LabStore`、`Knowledge`、`ExpertBuilder`、`ExpertRuntime` | 旧资料、旧专家生成和试聊兼容路径 |
+| `src/main/resources/web/production*` | 管理员生产页面、API 客户端及样式 |
+| `src/main/resources/production-schema.sql` | 实际建表资源，与文档 DDL 同步 |
+
+生产 API 前缀为 `/api/expert-production/v1`；旧资料／导入／试聊 API 保留在 `/api/`。构建入口为 `PUT /api/expert-production/v1/builds/{uuid}`，接口细节与版本约束见[实施合同](../docs/expert-production/implementation-plan.md)。早期 [prototype](../docs/expert-production/prototype/README.md) 仅为历史演示。

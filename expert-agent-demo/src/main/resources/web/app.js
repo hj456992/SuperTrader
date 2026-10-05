@@ -3,7 +3,8 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatText = value => esc(value).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,4} (.+)$/gm, '<strong>$1</strong>');
 let state = {documents:[],experts:[]}, csrf = '', currentExpert = '', currentVersion = '', conversationId = '', busy = false, jobId = '', view = 'library';
-let pollTimer, importTimer;
+let pollTimer, importTimer, productionPage, pendingCreation;
+const productionClient = ProductionAPI.client((path, options) => fetch(path, options), () => csrf);
 const date = value => new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 function notice(message, error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); $('notice').hidden = !message; }
 async function api(path, body, raw = false) {
@@ -12,11 +13,17 @@ async function api(path, body, raw = false) {
   if (!response.ok) { const error = new Error(data.error || '服务暂不可用'); error.status = response.status; throw error; }
   return data;
 }
-function showView(name) {
+function showView(name, route) {
   view = name; document.querySelectorAll('.view').forEach(el => el.hidden = el.id !== 'view-' + name);
   document.querySelectorAll('.nav').forEach(el => el.classList.toggle('active', el.dataset.view === name));
-  $('breadcrumb').textContent = '专家实验室 / ' + ({library:'资料库',experts:'专家工作台',chat:'试聊与验证'}[name]);
-  history.replaceState(null, '', '#' + name);
+  $('breadcrumb').textContent = '专家实验室 / ' + ({library:'资料库',experts:'专家工作台',production:'生产审阅',chat:'试聊与验证'}[name]);
+  if (name === 'production') {
+    if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts')});
+    productionPage.enter(route || {buildId:''});
+  } else {
+    productionPage?.leave();
+    history.replaceState(null, '', '#' + name);
+  }
 }
 function selectedExpert() { return state.experts.find(e => e.id === currentExpert); }
 function selectedVersion() { return selectedExpert()?.versions.find(v => v.id === currentVersion); }
@@ -83,7 +90,21 @@ $('upload-open').onclick=()=>uploadDialog();$('upload-close').onclick=()=>$('upl
 $('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const f=$('pdf-file').files[0];if(!f||f.size>20*1024*1024){$('upload-error').textContent='请选择 20MB 内的 PDF';return;}$('upload-submit').disabled=true;$('upload-submit').textContent='正在接收 PDF…';$('upload-error').textContent='';try{const q=new URLSearchParams({title:$('document-title').value.trim(),documentId:$('upload-document').value,filename:f.name});const r=await api('/api/documents?'+q,f,true);$('upload-dialog').close();watchImport(r.importId);}catch(err){$('upload-error').textContent=err.message;}finally{$('upload-submit').disabled=false;$('upload-submit').textContent='上传并解析';}};
 $('edit-expert').onchange=e=>chooseExpert(e.target.value);$('chat-expert').onchange=e=>chooseExpert(e.target.value);
 ['expert-version','chat-version'].forEach(id=>$(id).onchange=e=>{currentVersion=e.target.value;renderSelectors();renderTeam();loadForm();resetChat();});
-$('expert-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const selections=[...document.querySelectorAll('.selection')].filter(el=>el.querySelector('input').checked).map(el=>({documentId:el.dataset.doc,versionId:el.querySelector('select').value}));if(!selections.length){notice('请至少选择一份 PDF 资料。',true);return;}try{setBusy(true);const r=await api('/api/experts',{expertId:currentExpert,name:$('expert-name').value.trim(),duty:$('expert-duty').value.trim(),selections});notice('');watchJob(r.jobId,'generate');}catch(err){setBusy(false);notice(err.message,true);}};
+$('expert-form').onsubmit=async e=>{
+  e.preventDefault();if(busy)return;
+  const documents=[...document.querySelectorAll('.selection')].filter(el=>el.querySelector('input').checked).map(el=>({documentId:el.dataset.doc,documentVersionId:el.querySelector('select').value}));
+  if(!documents.length){notice('请至少选择一份 PDF 资料。',true);return;}
+  const form={name:$('expert-name').value.trim(),responsibility:$('expert-duty').value.trim(),documents};
+  const fingerprint=JSON.stringify(form);
+  if(!pendingCreation||pendingCreation.fingerprint!==fingerprint)pendingCreation={id:crypto.randomUUID(),fingerprint,body:{teamId:crypto.randomUUID(),teamName:form.name+'团队',...form}};
+  try {
+    setBusy(true);const buildId=pendingCreation.id;
+    await productionClient.create(buildId,pendingCreation.body);pendingCreation=null;
+    notice('生产构建已提交。预学习、审核和后续配置均从服务端恢复。');
+    showView('production',{buildId});
+  } catch(err) {notice(err.message+(err.status===503?'；请配置生产数据库后重试。':!err.status||err.status>=500?'；创建结果未确定，请到生产列表检查，或使用相同配置重试原请求。':''),true);}
+  finally {setBusy(false);}
+};
 $('trial-open').onclick=()=>{showView('chat');$('chat-input').focus();};$('new-chat').onclick=resetChat;
 $('activate').onclick=async()=>{try{await api('/api/activate',{expertId:currentExpert,versionId:currentVersion});await refresh();notice('此专家版本已启用；之后生成的草稿不会替换它。');}catch(err){notice(err.message,true);}};
 $('chat-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const message=$('chat-input').value.trim();if(!selectedVersion()){notice('请先选择一个已生成的专家版本。',true);return;}try{setBusy(true);const r=await api('/api/chat',{expertId:currentExpert,versionId:currentVersion,conversationId,message});addMessage('user',message);$('chat-input').value='';notice('');watchJob(r.jobId,'chat');}catch(err){setBusy(false);notice(err.message,true);}};
@@ -114,4 +135,6 @@ document.addEventListener('click',async e=>{
 });
 $('document-close').onclick=()=>$('document-dialog').close();
 
-(async()=>{try{await refresh();const initial=location.hash.slice(1);showView(['library','experts','chat'].includes(initial)?initial:'library');const pending=JSON.parse(sessionStorage.getItem('expertLabJob')||'null');const importing=sessionStorage.getItem('expertLabImport')||(state.imports||[]).find(r=>r.status==='running')?.id;if(importing)watchImport(importing);else if(pending)watchJob(pending.id,pending.kind);}catch(err){notice('无法连接专家实验室：'+err.message,true);}})();
+(async()=>{try{await refresh();const initial=location.hash.slice(1),productionRoute=ProductionAPI.route(location.hash);if(productionRoute)showView('production',productionRoute);else showView(['library','experts','chat'].includes(initial)?initial:'library');const pending=JSON.parse(sessionStorage.getItem('expertLabJob')||'null');const importing=sessionStorage.getItem('expertLabImport')||(state.imports||[]).find(r=>r.status==='running')?.id;if(importing)watchImport(importing);else if(pending)watchJob(pending.id,pending.kind);}catch(err){notice('无法连接专家实验室：'+err.message,true);}})();
+
+window.addEventListener('hashchange',()=>{const route=ProductionAPI.route(location.hash);if(route)showView('production',route);else{const name=location.hash.slice(1);if(['library','experts','chat'].includes(name))showView(name);}});

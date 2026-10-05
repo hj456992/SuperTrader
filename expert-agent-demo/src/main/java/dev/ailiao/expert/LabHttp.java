@@ -17,11 +17,16 @@ final class LabHttp implements AutoCloseable {
     private final ExpertBuilder builder;
     private final ExpertRuntime runtime;
     private final Jobs jobs;
+    private final ProductionHttp production;
     private final String csrf = Json.id();
     private final int port;
     /** 连接应用服务与独立本机端口。@param port 端口 @param store 仓库 @param pdf 解析器 @param builder 生成服务 @param runtime 试聊服务 @param jobs 后台任务 */
     LabHttp(int port, LabStore store, MineruImport imports, ExpertBuilder builder, ExpertRuntime runtime, Jobs jobs) throws Exception {
+        this(port,store,imports,builder,runtime,jobs,null);
+    }
+    LabHttp(int port, LabStore store, MineruImport imports, ExpertBuilder builder, ExpertRuntime runtime, Jobs jobs, ProductionService productionService) throws Exception {
         this.port = port; this.store = store; this.imports = imports; this.builder = builder; this.runtime = runtime; this.jobs = jobs;
+        this.production=new ProductionHttp(productionService);
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 20); server.setExecutor(executor); server.createContext("/", this::handle);
     }
     /** 开始监听。 */
@@ -34,6 +39,13 @@ final class LabHttp implements AutoCloseable {
             String host = exchange.getRequestHeaders().getFirst("Host");
             if (!Set.of("127.0.0.1:" + port, "localhost:" + port).contains(host == null ? "" : host)) { send(exchange, 403, Json.object().put("error", "仅允许本机访问")); return; }
             String method = exchange.getRequestMethod(), path = exchange.getRequestURI().getPath();
+            if(path.startsWith("/api/expert-production/v1/")){
+                if(!method.equals("GET")){
+                    String origin=exchange.getRequestHeaders().getFirst("Origin");
+                    if(!csrf.equals(exchange.getRequestHeaders().getFirst("X-Lab-Token"))||(origin!=null&&!Set.of("http://127.0.0.1:"+port,"http://localhost:"+port).contains(origin))){send(exchange,403,Json.object().put("error","页面已过期，请刷新后重试"));return;}
+                }
+                if(production.handle(exchange))return;
+            }
             if (method.equals("GET")) {
                 if (path.equals("/api/state")) { ObjectNode value = store.state(); value.put("csrf", csrf); value.set("imports", imports.list()); value.set("jobs", jobs.snapshots()); send(exchange, 200, value); return; }
                 if (path.startsWith("/api/imports/")) { send(exchange, 200, imports.get(path.substring(13))); return; }
@@ -46,7 +58,7 @@ final class LabHttp implements AutoCloseable {
                 if (path.startsWith("/api/jobs/")) { send(exchange, 200, jobs.get(path.substring(10)).snapshot()); return; }
                 if (path.equals("/api/passage")) { send(exchange, 200, store.passage(query(exchange).getOrDefault("id", ""))); return; }
                 if (path.equals("/api/health")) { send(exchange, 200, Json.object().put("status", "ready").put("runtime", "dsh-java / AgentScope")); return; }
-                Map<String, String> resources = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css");
+                Map<String, String> resources = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css", "/production.js", "production.js", "/production.css", "production.css", "/production-api.js", "production-api.js");
                 if (resources.containsKey(path)) {
                     try (InputStream stream = getClass().getResourceAsStream("/web/" + resources.get(path))) {
                         if (stream == null) { send(exchange, 404, Json.object().put("error", "页面尚未构建")); return; }
