@@ -23,3 +23,35 @@
 - 独立测试曾发生一次snapshot500，后续同用例连续三次与全量测试通过；最新105项回归记录5次worker PSQLException，SQLState=08001，栈位于Driver.connect→queue.claim。同期数据库容器未重启、无连接数耗尽或认证失败日志；随后安全诊断在相同场景复现08001→SocketTimeoutException，位于ConnectionFactoryImpl.enableSSL读取响应；已定位SSL探测读取超时，仍未定位探测无响应的底层原因。Docker内SHOW ssl为off，因此仅在忽略的本地loopback专用数据库URL明确sslmode=disable，与该实例实际能力一致，不修改源码默认或集群TLS策略。相同6项在原配置和本地明确配置下均通过；后者1分26秒内未出现worker异常，仅是该轮对照证据，不是根治证明。旧无诊断异常和snapshot500不能据此认定同一根因，保留诊断事实，不把重跑成功当作已经修复。
 
 真实模型样本、原文、模型输出和完整私密执行日志留在忽略的`.local/`中，未上传书籍或凭据。自动审批仅用于明确标注的独立测试团队，不修改原有专家，也不作为用户真实团队的人工确认。
+
+## 根因追查续记：只读证据与待复现项（2026-10-05）
+
+用户不认可将未定位异常留作完成项，本轮继续追查，尚未修改业务代码或宣布修复。
+
+- 中断前以4个并发连接发送200次PostgreSQL SSLRequest，全部取得响应，无异常，最长响应约422.57毫秒。该探测不做认证、不查询业务表；只能证明采样期间探测成功，不能排除间歇性转发或服务调度问题。完整时间样本保留在忽略的`.local/probes/ssl-host.json`。
+- 核读本地实际42.7.10驱动源码：`SslMode.of`未配置SSL时使用prefer；`PGProperty.SSL_RESPONSE_TIMEOUT`为5000毫秒；`ConnectionFactoryImpl.enableSSL`先发送SSLRequest，再等待N/E/S响应。服务返回N可继续非SSL连接，等待超时则沿IOException包装为08001；这不是收到“不支持SSL”后的正常回退。驱动在该异常路径关闭流，没有从该路径发现未关闭socket的证据。
+- 应用`ProductionDatabase.run`每次操作都显式创建并关闭连接；SET search_path失败路径也关闭连接。`ProductionService`有2个worker，空任务间隔150毫秒，理论上单实例仅空轮询就最多约13.3次新建连接/秒（未计连接/查询耗时），双实例及快照轮询增加建连量。它是待验证的负载因素，尚不能记作超时根因；没有直接引入连接池、改变TLS默认或放宽测试。
+- `snapshot`在单个REPEATABLE_READ只读事务中查询，HTTP层将未分类异常映射为500。历史500仅留下PSQLException类名，不能从状态码判断发生在建连还是SQL执行；本轮恢复环境中原`/tmp`日志已不可读，已有验收报告保留其当时摘录。必须用现有安全诊断复现后再归因，不将其直接并入SSL问题。
+- 下一步：在同一时段、相同有限负载下比较宿主机转发端口与容器内直连的SSLRequest响应；记录连接建立/收到请求/返回响应的时间边界。再定向运行双实例接管与snapshot，捕获SQLState和安全异常链；仅在确定原因后补失败回归及最小修复。
+
+本轮权限切换后Docker socket被拒绝；恢复网络及socket访问的权限请求未获授权，现有角色调度也返回“requires approval, but approval policy is never”。因此尚未执行新的容器内对照或真实PG回归，没有绕过权限改用其它通道。恢复相应执行权限后继续；浏览器验收是另一项独立未完成门槛。
+
+### 离线故障注入：已复现错误传播，尚非真实网络根因证明
+
+在受限环境中使用实际42.7.10 JDBC及当前ProductionDatabase/Service/Http，用纯内存SocketFactory注入SSL响应读取SocketTimeoutException；未连接任何网络、未认证或操作数据库。驱动真实发送的8字节SSLRequest为`0000000804d2162f`，配置等待值为5000毫秒；注入异常立即抛出，并未模拟真实的5秒墙钟延迟。
+
+诊断确认：SQLState08001、cause为SocketTimeoutException；每次调用仅建立一次连接；业务SQL回调未执行；失败socket正常关闭；实际snapshot处理器映射为500/INTERNAL_ERROR。这是稳定的应用错误传播复现，说明暂时建连失败能够造成该接口500，不能反向证明历史唯一一次500必定同源，更不能解释真实响应为什么超时。
+
+原始诊断源文件与执行产物保留在忽略的.local/probes中；后续已升级为正式[连接恢复回归](../../expert-agent-demo/src/test/java/dev/ailiao/expert/ProductionConnectionRecoveryTest.java)。它是故障特征诊断，不计入既有105项全量通过，也不作为根因修复或真实PG验收。当前未修改业务代码，真实分层诊断、修复后数据库回归及浏览器验收仍需相应执行权限。
+
+本轮又以`javac -encoding UTF-8 --release 17`从当前源码重新编译ProductionDatabase、ProductionService、ProductionHttp及ProductionDiagnostics，与诊断类共同运行；结果同样为08001→500、SQL回调0次、socket关闭，退出0。初次直接javac因环境默认US-ASCII编译中文注释失败，明确UTF-8后通过；未将这次编译失败计作产品行为失败，也未修改源码字符内容。
+
+## 建连恢复与错误分类修复（2026-10-05，真实环境待复验）
+
+已修复稳定故障注入证实的应用问题：一次临时建连失败会直接让操作失败，并在快照接口返回内部错误500。ProductionDatabase现在仅对Driver.connect期间的08001及明确网络cause最多补1次连接尝试（共2次）；原TLS模式及超时预算不变。首次失败通过现有安全诊断记录，成功重连不隐藏发生过的网络异常。
+
+重试边界在SET search_path、业务回调及事务之前。认证、SSL/证书/协议异常、线程中断、未知或循环异常链不自动重试；业务SQL、回滚与提交失败不重放。两次临时建连失败后保留SQLException异常链，HTTP返回503/DATABASE_UNAVAILABLE，提示管理员刷新核对状态、提交重试保留原请求标识，不声称整个HTTP请求一定尚未产生任何效果。
+
+真实JDBC加内存协议对端测试覆盖：健康事务、首次失败后恢复、持续故障有界、认证失败、TLS失败、线程中断、业务异常不重放、提交响应丢失不重放，以及503错误分类。先运行旧实现得到预期失败：恢复场景失败、只尝试1次、HTTP500而非503；修复后9项全过。连同章节、上下文、来源、模型失败、预学习和安全诊断共32项离线回归，0失败/错误/跳过。新增对端仅存在src/test，不连接网络、不替代真实PG。
+
+这完成了应用层恢复和分类修复，不能消除外部网络故障，也不证明历史唯一一次snapshot500同源。本轮没有真实PG/Docker访问权限，未复跑105项整套集成、未重启当前实例、未完成浏览器验收，不能把先前105项结果移用为本次修改的完整验收。真实分层超时根因仍待实测。

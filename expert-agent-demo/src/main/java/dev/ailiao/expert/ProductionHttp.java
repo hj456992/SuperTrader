@@ -30,7 +30,8 @@ final class ProductionHttp {
                 else throw new ProductionException(404,"NOT_FOUND","生产接口不存在");
             }else throw new ProductionException(404,"NOT_FOUND","生产接口不存在");
             send(exchange,result.path("httpStatus").asInt(200),result);
-        }catch(ProductionException e){send(exchange,e.httpStatus,Json.object().set("error",Json.object().put("code",e.code).put("message",e.getMessage())));}
+        }catch(ProductionDatabase.ConnectionUnavailable e){ProductionDiagnostics.log("HTTP connection unavailable",e);send(exchange,503,Json.object().set("error",Json.object().put("code","DATABASE_UNAVAILABLE").put("message","生产数据库暂时无法连接，请稍后刷新核对状态；重试提交时保留原请求标识。")));}
+        catch(ProductionException e){send(exchange,e.httpStatus,Json.object().set("error",Json.object().put("code",e.code).put("message",e.getMessage())));}
         catch(IllegalArgumentException e){send(exchange,400,Json.object().set("error",Json.object().put("code","INVALID_REQUEST").put("message",e.getMessage()==null?"请求无效":e.getMessage())));}
         catch(Exception e){ProductionDiagnostics.log("HTTP",e);send(exchange,500,Json.object().set("error",Json.object().put("code","INTERNAL_ERROR").put("message","操作未完成，请检查服务状态或稍后重试")));}
         return true;

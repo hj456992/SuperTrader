@@ -23,10 +23,40 @@ final class ProductionDatabase {
         Properties p=new Properties();if(user!=null)p.setProperty("user",user);if(password!=null)p.setProperty("password",password);
         p.setProperty("stringtype","unspecified");p.setProperty("connectTimeout","10");p.setProperty("socketTimeout","30");
         // DSH loads plugins in isolated class loaders; JDBC SPI discovery belongs to the host.
-        Connection c=new org.postgresql.Driver().connect(url,p);
+        Connection c=openConnection(p);
         if(c==null)throw new SQLException("PostgreSQL URL was not accepted");
         try(var st=c.createStatement()){st.execute("SET search_path TO "+schema+", public");}catch(SQLException e){c.close();throw e;}
         return c;
+    }
+    /** Retry only acquisition, before schema setup and before any caller's transaction work. */
+    private Connection openConnection(Properties properties)throws SQLException {
+        for(int attempt=0;;attempt++){
+            try{return new org.postgresql.Driver().connect(url,properties);}
+            catch(SQLException failure){
+                if(!transientConnectFailure(failure))throw failure;
+                if(attempt==0&&!Thread.currentThread().isInterrupted()){
+                    ProductionDiagnostics.log("connection retry before transaction",failure);continue;
+                }
+                throw new ConnectionUnavailable(failure);
+            }
+        }
+    }
+    private static boolean transientConnectFailure(SQLException failure){
+        if(!"08001".equals(failure.getSQLState()))return false;
+        Set<Throwable> seen=Collections.newSetFromMap(new IdentityHashMap<>());
+        boolean network=false;Throwable cause=failure;
+        while(cause!=null){
+            if(!seen.add(cause)||seen.size()>16)return false;
+            // Certificate/protocol failures must never trigger an automatic retry or TLS downgrade.
+            if(cause instanceof javax.net.ssl.SSLException)return false;
+            if(cause instanceof java.io.InterruptedIOException&&!(cause instanceof java.net.SocketTimeoutException))return false;
+            if(cause instanceof java.net.SocketTimeoutException||cause instanceof java.net.SocketException||cause instanceof java.io.EOFException)network=true;
+            cause=cause.getCause();
+        }
+        return network;
+    }
+    static final class ConnectionUnavailable extends SQLException {
+        ConnectionUnavailable(SQLException cause){super("Database connection temporarily unavailable",cause.getSQLState(),cause.getErrorCode(),cause);}
     }
     void migrate() throws Exception {
         transaction(c->{

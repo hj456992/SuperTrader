@@ -49,3 +49,7 @@ reviewContext=`{artifactId,revisionId,presentedMessageId,contentSha256,scope}`�
 action=`{type:approve|reject|pause|resume|cancel|retry,scope}`；reject原因用request.reason，可为空（追问）。所有message保存真实content。状态控制无需reviewContext，approve/reject必须；自然语言审批也必须携带对应展示上下文。模型不能提供缺失的授权。
 resume/retry在构建锁内先检查当前目标的queued/running任务（包括额度等待及待回收租约），存在时返回processing及原jobId，不新增生成任务、不重复付费。resume只激活paused构建；retry只重新排队实际failed/cancelled工作。已生成可审稿可以重新展示而不重新生成，retry不会借重新展示恢复暂停状态。不同clientRequestId也受此保护，原clientRequestId幂等重放仍沿用既有结果。
 PUT构建与POST消息返回202；同payload幂等重放返回已保存result状态；旧version/hash与幂等重用409。阶段completed表现为status=completed, phase=final_review。
+
+## 数据库建连失败的恢复边界
+
+仅Driver.connect阶段的08001且异常链包含SocketTimeoutException、SocketException或EOFException时最多补一次连接尝试；TLS/证书/协议异常、认证异常、线程中断和未知异常不自动重试，不改变SSL配置。首次失败保留安全日志；持续失败以ConnectionUnavailable交给HTTP，返回503/DATABASE_UNAVAILABLE。SET search_path、业务回调、提交和回滚不在重试范围内；不可重放结果不确定的事务。HTTP提示先刷新核对状态，提交重试保留原clientRequestId。
