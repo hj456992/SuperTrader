@@ -24,31 +24,77 @@ final class ProductionContext {
     static ObjectNode generation(ObjectNode full) {
         ObjectNode out=full.deepCopy();ArrayNode units=Json.array(),methods=Json.array(),sources=Json.array(),approved=Json.array();
         Set<String> desired=new LinkedHashSet<>();full.path("plan").path("methodTitles").forEach(n->desired.add(n.asText()));
-        List<JsonNode> candidates=new ArrayList<>();Set<String> preferredSources=new LinkedHashSet<>();int methodCount=0,unitNo=0;
+        List<List<JsonNode>> methodGroups=new ArrayList<>();int methodCount=0,unitNo=0;
+        boolean bookSummary="book_summary".equals(full.path("kind").asText());
         for(JsonNode unit:full.path("learningUnits")){
             ObjectNode index=Json.object().put("batchNo",unitNo++).put("summary",preview(unit.path("summary").asText(),1200)).put("summaryIsPreview",unit.path("summary").asText().length()>1200).put("methodCount",unit.path("methods").size());
-            ArrayNode titles=Json.array();int indexChars=0;
-            for(JsonNode method:unit.path("methods")){methodCount++;String title=method.path("title").asText();if(indexChars<1800){titles.add(preview(title,120));indexChars+=Math.min(120,title.length());}candidates.add(method);}
+            ArrayNode titles=Json.array();int indexChars=0;List<JsonNode> group=new ArrayList<>();methodGroups.add(group);
+            for(JsonNode method:unit.path("methods")){methodCount++;String title=method.path("title").asText();if(indexChars<1800){titles.add(preview(title,120));indexChars+=Math.min(120,title.length());}group.add(method);}
             index.set("methodTitles",titles);index.put("methodIndexIsPartial",titles.size()<unit.path("methods").size());
             if(unit.path("methods").isEmpty()){String reason=unit.path("coverage").path("noMethodReason").asText();index.put("noMethodReason",preview(reason,1200)).put("noMethodReasonIsPreview",reason.length()>1200).put("processedSourceCount",unit.path("coverage").path("processedSourceIds").size());}
+            if(unit.path("coverage").hasNonNull("limitations"))index.set("limitations",unit.path("coverage").path("limitations").deepCopy());
             units.add(index);
         }
-        candidates.sort(Comparator.comparingInt(m->desired.contains(m.path("title").asText())?0:1));int methodChars=0;
-        for(JsonNode method:candidates){int size=method.toString().length();if(methodChars+size<=18000){methods.add(method);methodChars+=size;method.path("sourceIds").forEach(n->preferredSources.add(n.asText()));}}
-        full.path("previousRevision").path("sources").forEach(n->preferredSources.add(n.path("chunkId").asText()));
-        List<JsonNode> ranked=new ArrayList<>();full.path("sources").forEach(ranked::add);ranked.sort(Comparator.comparingInt(n->preferredSources.contains(n.path("id").asText())?0:1));
-        int sourceChars=0;for(JsonNode chunk:ranked){int size=chunk.toString().length();if(sourceChars+size<=18000){sources.add(chunk);sourceChars+=size;}}
-        if(sources.isEmpty()&&!ranked.isEmpty())throw new IllegalArgumentException("单个原文片段超出模型工作窗口");
+        List<JsonNode> candidates=roundRobin(methodGroups);
+        // Reserve a fair first pass for each batch; methods always remain complete.
+        Set<JsonNode> chosen=new LinkedHashSet<>();int methodChars=2;
+        for(JsonNode method:candidates)if(desired.contains(method.path("title").asText())&&methodChars+method.toString().length()+1<=18000){chosen.add(method);methodChars+=method.toString().length()+1;}
+        if(bookSummary&&!methodGroups.isEmpty())for(List<JsonNode> group:methodGroups){
+            int share=(18000-2)/methodGroups.size();
+            for(JsonNode method:group)if(!chosen.contains(method)&&method.toString().length()+1<=share&&methodChars+method.toString().length()+1<=18000){chosen.add(method);methodChars+=method.toString().length()+1;break;}
+        }
+        for(JsonNode method:candidates)if(!chosen.contains(method)&&methodChars+method.toString().length()+1<=18000){chosen.add(method);methodChars+=method.toString().length()+1;}
+        methods.addAll(chosen);
+        Map<String,JsonNode> chunks=new LinkedHashMap<>();full.path("sources").forEach(n->chunks.put(n.path("id").asText(),n));
+        List<List<String>> sourceGroups=new ArrayList<>();int batch=0;
+        for(JsonNode unit:full.path("learningUnits")){
+            Set<String> ids=new LinkedHashSet<>();
+            List<JsonNode> group=methodGroups.get(batch++);
+            for(JsonNode method:methods)if(group.contains(method))method.path("sourceIds").forEach(n->ids.add(n.asText()));
+            unit.path("sourceIds").forEach(n->ids.add(n.asText()));
+            unit.path("coverage").path("processedSourceIds").forEach(n->ids.add(n.asText()));
+            ids.removeIf(id->!chunks.containsKey(id));sourceGroups.add(new ArrayList<>(ids));
+        }
+        Set<String> rankedIds=new LinkedHashSet<>();
+        if(!bookSummary)for(JsonNode method:methods)method.path("sourceIds").forEach(n->rankedIds.add(n.asText()));
+        rankedIds.addAll(roundRobin(sourceGroups));
+        full.path("previousRevision").path("sources").forEach(n->rankedIds.add(n.path("chunkId").asText()));
+        rankedIds.addAll(chunks.keySet());
+        Set<String> included=new LinkedHashSet<>();int sourceChars=2;
+        if(bookSummary){
+            Set<String> representatives=new LinkedHashSet<>();for(List<String> group:sourceGroups)if(!group.isEmpty())representatives.add(group.get(0));
+            int remaining=representatives.size();
+            for(String id:representatives){
+                JsonNode excerpt=sourceExcerpt(chunks.get(id),(18000-sourceChars)/remaining-- -1);
+                if(excerpt!=null){sources.add(excerpt);included.add(id);sourceChars+=excerpt.toString().length()+1;}
+            }
+        }
+        for(String id:rankedIds){JsonNode chunk=chunks.get(id);if(chunk!=null&&!included.contains(id)&&sourceChars+chunk.toString().length()+1<=18000){sources.add(chunk);included.add(id);sourceChars+=chunk.toString().length()+1;}}
+        if(sources.isEmpty()&&!chunks.isEmpty())throw new IllegalArgumentException("单个原文片段超出模型工作窗口");
         for(JsonNode a:full.path("approvedArtifacts")){
             ObjectNode view=Json.object();for(String key:List.of("kind","logical_key","agent_role","current_revision_id","review_status"))if(a.has(key))view.set(key,a.get(key));
-            JsonNode body=a.path("body");ObjectNode info=Json.object();for(String key:List.of("name","responsibility","summary"))if(body.has(key))info.put(key,preview(body.path(key).asText(),600));
+            JsonNode body=a.path("body");
+            if(Set.of("book_summary","keyword_rule","qa_example").contains(a.path("kind").asText())){view.set("body",body.deepCopy());view.put("contextIsSummary",false);approved.add(view);continue;}
+            ObjectNode info=Json.object();for(String key:List.of("name","responsibility","summary"))if(body.has(key))info.put(key,preview(body.path(key).asText(),600));
             info.put("boundariesPreview",preview(body.path("boundaries").toString(),800));view.set("body",info);view.put("contextIsSummary",true);approved.add(view);
         }
-        ObjectNode coverage=Json.object().put("totalSourceChunks",full.path("sources").size()).put("selectedSourceChunks",sources.size()).put("totalLearningUnits",units.size()).put("totalMethods",methodCount).put("fullMethodsInContext",methods.size()).put("allOriginalTextIncluded",sources.size()==full.path("sources").size());
-        coverage.set("selectedSourceIds",Json.MAPPER.valueToTree(sources.findValuesAsText("id")));coverage.put("note","所有批次均有覆盖摘要；只有relevantMethods是完整方法。原文仅为所选证据窗口，其余全文和完整成果保存在数据库。不得将预览声称为完整原文。");
+        ObjectNode coverage=Json.object().put("totalSourceChunks",full.path("sources").size()).put("selectedSourceChunks",sources.size()).put("totalLearningUnits",units.size()).put("totalMethods",methodCount).put("fullMethodsInContext",methods.size()).put("allOriginalTextIncluded",sources.size()==full.path("sources").size()&&sources.findValues("textIsPreview").stream().noneMatch(JsonNode::asBoolean));
+        coverage.set("selectedSourceIds",Json.MAPPER.valueToTree(sources.findValuesAsText("id")));coverage.put("note","所有学习批次均提供摘要及方法索引，代表已保存的学习覆盖；只有relevantMethods是本轮完整方法，预算不足时不保证每批均有完整方法。sources仅是本轮可逐字引用的证据窗口，textIsPreview=true表示该片段仅含逐字前缀。不得因章节未进入引用窗口就声称该章节未学习，也不得声称已读取窗口外原文；真实学习缺口以各批次limitations及摘要中的限制为准，limitations完整保留且不因方法或原文未入窗而省略。");
         out.set("learningUnits",units);out.set("relevantMethods",methods);out.set("sources",sources);out.set("approvedArtifacts",approved);out.set("contextCoverage",coverage);
         if(out.toString().length()>90000)throw new IllegalArgumentException("当前修订及摘要超过模型工作窗口，请缩小单次修改范围");
         return out;
+    }
+    private static <T> List<T> roundRobin(List<List<T>> groups){
+        List<T> out=new ArrayList<>();int largest=groups.stream().mapToInt(List::size).max().orElse(0);
+        for(int i=0;i<largest;i++)for(List<T> group:groups)if(i<group.size())out.add(group.get(i));return out;
+    }
+    /** Only summary evidence is excerpted; quotes remain exact substrings of the stored source. */
+    private static JsonNode sourceExcerpt(JsonNode source,int budget){
+        if(source.toString().length()<=budget)return source;
+        String text=source.path("text").asText();ObjectNode out=source.deepCopy();out.put("textIsPreview",true).put("originalTextChars",text.length());
+        int low=0,high=text.codePointCount(0,text.length());
+        while(low<high){int mid=(low+high+1)/2;out.put("text",text.substring(0,text.offsetByCodePoints(0,mid)));if(out.toString().length()<=budget)low=mid;else high=mid-1;}
+        if(low==0)return null;out.put("text",text.substring(0,text.offsetByCodePoints(0,low)));return out;
     }
     static ArrayNode previousUnits(ArrayNode all){ArrayNode out=Json.array();int fullChars=0;for(int i=0;i<all.size();i++){JsonNode u=all.get(i);if(i>=all.size()-2&&fullChars+u.toString().length()<=24000){out.add(u);fullChars+=u.toString().length();}else out.add(Json.object().put("summary",preview(u.path("summary").asText(),1000)).put("contextIsSummary",true));}return out;}
     static String preview(String text,int max){return text.codePointCount(0,text.length())<=max?text:text.substring(0,text.offsetByCodePoints(0,max))+"（上下文预览，全文已入库）";}

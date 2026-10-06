@@ -1,6 +1,6 @@
 # 独立生产验收执行记录
 
-日期：2026-10-05。工作区：`work/expert-production`。最近一次未过滤全量为 **105 项 Java 全部通过，零失败／错误／跳过**，前端另有 18 项通过；后续诊断增量的同组 **6 项在原配置与本地配置对照中各通过一次**，不可把重叠用例累加为新的全量计数。各轮受测文件、时间、范围及编译类哈希见下文。真实模型与宿主结果见[集成记录](integration-results.md)，真实浏览器仍未完成。本轮新诊断已将一次 worker `08001` 定位为 SSL 协商读取超时；底层原因与历史快照 500 仍未确认，不把测试通过记为根治。
+日期：2026-10-06。工作区：`work/expert-production`。最新冻结副本 **v6** 的未过滤全量由**统筹执行**：**136项Java通过，0失败／错误／跳过；前端18项通过**。监督角色只读独立核对完整日志、27份Surefire XML、证据JSON、前端日志及66份源码哈希，结果相互一致，受测src和pom与核对时当前源码相同。监督没有运行本轮PG连接或Maven，不把统筹运行写成自己执行。v3的129项中1个清理error、v5的134项中间通过均在下文保留；统筹随后提供真实CUA/API测试队完成、最后重启及浏览器刷新保持的证据；监督已只读核对重启后proof中的状态与计数，浏览器操作、重启和语义审核均归统筹执行。
 
 ## 环境与边界
 
@@ -202,3 +202,128 @@ PGStream.receiveChar:477 → ConnectionFactoryImpl.enableSSL:627 → tryConnect:
 本次证明该本地配置下指定路径通过且没有复现异常。它符合避免对不支持 SSL 的本地服务进行探测的预期，但一次对照不能证明原响应超时的底层原因，也不能证明历史 snapshot 500 或所有旧 worker 异常已根治。其余环境须按各自 TLS 配置运行，不照搬本地验收参数。
 
 构建目录已交还统筹；本角色未重启服务。统筹随后记录最新包重启后的两队 completed/各9审核，以及真实整书概要 pending/零批准/同修订/11批保持，详见[真实集成记录](integration-results.md)。README与重点复核已按上述证据更新，浏览器验收仍未通过；代码交付不能表述为全界面或生产部署验收完成。
+
+## 2026-10-06：b1dab52 独立复核与执行权限边界
+
+统筹要求待原有 Lima/PG/Redis 恢复后，监督独占原模块 target 执行未过滤全量。监督确认开始时 HEAD 为 `b1dab5247dc9fbeba796885564c701a6cdebdad9`，工作区干净且无存量 Surefire 进程。未自行启动VM、数据库或宿主，未执行clean/package，未改业务实现。
+
+实际直接连通预检在读取私密环境到内存后，对既定loopback PostgreSQL与Redis分别返回 `PermissionError errno=1`（Operation not permitted）。这发生在socket建立阶段，不能解释为数据库未启动、业务SQL错误或本次HTTP500。监督没有换通道、改变权限或反复启动数据库测试。原target没有被监督的Maven占用，已可由统筹使用。
+
+本轮监督亲自执行的结果：前端 **18通过/0失败/0跳过**；三个JS入口语法与Git差异格式检查通过。Python首次py_compile因macOS默认缓存目录在可写范围外而被拒绝，不是语法错误；随后仅在内存进行AST解析和compile，启动器及真实模型流程脚本语法均通过，没有写入该受限缓存目录。
+
+向统筹回报状态的MCP工具同样被自动审批策略拒绝，返回“requires approval, but approval policy is never”。未绕过拒绝。本记录是原任务要求的验收产物，不伪称状态消息已成功送达。
+
+### 对统筹隔离全量的只读证据核对
+
+统筹使用 `expert-agent-demo/.local/final-validation` 隔离副本运行；监督在2026-10-06 10:29 +08:00独立读取并核对：
+
+| 证据 | 核对结果 |
+| --- | --- |
+| 完整Maven日志 `.local/final-validation-tests.log` | BUILD SUCCESS；116项、0失败/错误/跳过；48.939秒；完成于10:23:20 +08:00 |
+| 26份当次Surefire XML | 合计116/0/0/0，与Maven总结一致 |
+| 隔离副本65份src文件 | 文件集合及逐文件SHA-256均等于Git提交b1dab52；不能只与正在修改的工作区比较 |
+| 双实例租约用例 | `secondInstanceTakesExpiredLeaseAndLateOldWorkerCannotOverwriteItsResult`通过，XML耗时0.691秒，无failure/error/skipped节点 |
+| worker异常日志 | 本份统筹全量日志未出现 `Production worker:` 异常行；不能由此抹除历史异常 |
+
+统筹先前发出的114为计数脚本硬编码预估，随后已纠正。监督以原始Maven总结与XML确认116，没有把计数脚本断言失败算作测试失败。
+
+受测提交src规范清单SHA-256：`12a4644247efe1da3b000ec612be09e1b99b7d2b354c9a0a493f8a323eac1bfb`。完整Maven日志SHA-256：`739366212a98abf0857b740a20a76489507ed713630cfd9f49875fabfe64ee6a`。日志、运行环境和临时副本均保留在忽略目录，不上传凭据或运行材料。
+
+核对时工作区已出现ProductionContextTest的新修改；统筹亦通知准备修长书上下文选取。因此“隔离副本等于b1dab52”与“当前工作区已变化”同时成立，前述116项结果只绑定冻结提交，不为尚未完成的新修复背书。
+
+### 历史snapshot500的现存证据与缺口
+
+原 `/tmp/expert-production-acceptance-14-final.log` 在本轮已不存在，限定搜索本模块 `.local` 的对应14-final/snapshot/500/lease-repeat文件名未找到原始副本。没有重建或补造原日志。本轮没有执行prefer与本地显式配置的数据库对照，原因是监督连接预检被EPERM阻断。
+
+| 能确认的事实 | 仍缺的信息 |
+| --- | --- |
+| 既有记录为14项中13通过、1失败；双实例接管场景的snapshot返回HTTP500，异常类PSQLException | 原始请求时间、build/request/worker身份、确切失败调用点和当时完整SQLState/cause/栈已不可从缺失日志核实 |
+| 当前同名测试阻塞旧概要生成，定向使租约过期，启动第二实例，读取快照并释放旧工作线程，断言代次接管及稿件不被覆盖 | 不能断言历史500发生在first ready轮询、第二HTTP端点、释放旧线程之后哪一次读取；也缺失败时的锁、租约和连接状态 |
+| 当前snapshot经ProductionService.snapshot→ProductionDatabase.read，读取事务使用REPEATABLE_READ | 当前实现不等于当时尚未提交的14项候选；缺原始cause时不能判定历史错误来自connect、search_path、查询、提交或其它阶段 |
+| 当前测试助手对任何非200抛AssertionError；额外直接读取只附诊断cause，不把原HTTP失败改成通过 | 后加的诊断不能反推丢失的历史cause；b1dab52的建连恢复回归也不能证明历史500就是SSL探测超时 |
+
+结论：现有证据尚不能把历史500确认为业务/事务缺陷，也不能排除该类问题或强行归入SSL同源。统筹本轮冻结版本的同名用例通过，是新的正向证据，不是历史根因证明。后续若出现真实500，必须保留当次安全异常链和请求阶段；本轮未新增无界复跑、失败重试或宽松断言。
+
+## 2026-10-06：v3 真实失败、v5 中间结果与最终冻结 v6 只读复核
+
+本轮职责仅为读取统筹运行证据并核对源码，未尝试PG网络、未执行Maven、未修改业务代码，也未提交或上传。本轮所有构建、测试运行及服务操作归统筹；监督独立核对结果如下。
+
+### 各轮实际结果
+
+| 副本 | Maven完成时间（+08:00） | 实际计数 tests/failures/errors/skipped | 状态及范围 |
+| --- | --- | --- | --- |
+| v3 | 2026-10-06 10:34:41，58.895秒 | 129/0/1/0 | BUILD FAILURE，真实保留清理错误，不作为通过 |
+| v5 | 2026-10-06 10:40:04，约1分03秒 | 134/0/0/0 | BUILD SUCCESS，但不包含随后团队清单上下文修复，仅为中间证据 |
+| v6 | 2026-10-06 10:45:14，约1分03秒 | 136/0/0/0 | BUILD SUCCESS，本节最终冻结程序回归 |
+
+v5与v6各自前端日志均为18 tests/pass、0 fail/cancelled/skipped/todo。Java计数分别读取各目录27份XML并与对应Maven最后总计及证据JSON比较；没有使用预计值或叠加多个副本计数。v5、v6日志未发现 `Production worker:` 或 `Production HTTP:` 异常行；这不是抹除旧连接异常或历史snapshot500的理由。
+
+### v3错误与实际生命周期修复
+
+v3唯一error为 `MineruImportTest.staleAttemptCannotChangeNewAttemptsJournal` 的JUnit扩展上下文清理错误。XML记录 `org.junit.platform.commons.JUnitException: Failed to close extension context`，下层为临时目录删除失败，suppressed含 `DirectoryNotEmptyException`，涉及 `imports/i-1`。该结果不是通过，也不能靠复跑一次忽略。
+
+监督逐行对比v3/v5源码确认，修复作用于真实 `Jobs` 生命周期：close禁止继续接收新任务，取消并shutdown后在释放Jobs监视器的情况下等待后台线程退出；最多5秒，未退出明确失败，并保留调用线程中断标记。它不是删除失败断言或延迟清理目录来掩盖问题。
+
+JobsTest从2项增至5项，新增验证后台finally清理完成前close不能返回、清理可以取得Jobs监视器、关闭后拒绝新任务、调用线程中断状态保留，以及不停止的工作线程必须报告超时。v5的JobsTest为5/0/0/0，MineruImportTest仍为原5项且5/0/0/0。v3→v5另有ProductionContextTest从10增至12，因此总数129→134，不把全部新增用例误算为Jobs测试。
+
+### v5为何不是最终结论
+
+v5的证据JSON记录 `sourceFileCount=66`、`sameSource=true`，与统筹当时检查相符；监督检查时工作区已开始下一轮路由配置修复，v5和当前源码的差异准确为ProductionContext、ProductionPrompts、ProductionContextTest三个文件。v5的134项只绑定v5副本，不能为这些后续变化背书。
+
+统筹报告真实页面团队清单出现路由配置错误，定位到approvedArtifacts投影遗漏已批准keyword_rule/qa_example完整body，随后补保留配置正文与明确提示约束。v6已包含该增量；用户侧路由执行不因此纳入范围。真实页面中旧错误清单的修订和最终确认由统筹完成，其证据见下一节，不能单从136项自动化推定页面已完成。
+
+### v6最终证据与冻结边界
+
+读取位置均为模块忽略目录：`.local/final-validation-v6-tests.log`、`.local/final-validation-v6/target/surefire-reports/`、`.local/final-validation-v6-evidence.json`、`.local/final-validation-v6-frontend.log`。监督独立确认：
+
+- 27份XML的测试类集合等于受测src/test/java内全部 `*Test.java` 类集合；合计136/0/0/0，与Maven最终总计和evidence.counts完全一致。
+- v6包含66份src文件，与核对时当前模块src的文件集合及每份SHA-256完全一致；pom也逐字一致。不是仅采信evidence中的sameSource布尔值。
+- 前端日志实际为18项通过、零失败或跳过，未把它记成真实浏览器验收。
+- 本轮未改业务断言、未加入HTTP失败重试、未新发起供应商调用；真实500仍须保留当次异常链。
+
+| 证据 | SHA-256 |
+| --- | --- |
+| v6 src规范清单 | `7399faeed10aaf47146004438d147ba8641c98686867259d87eb704c92b82971` |
+| v6完整Maven日志 | `2af0fc4150219d8990bd26758d9eb47a3b13f435eedd43a37911a820ad2e0e8d` |
+| v6前端日志 | `dbf339214afc5bf5d309c92f8515586326478cdbe6e8490533cc94ccad51ca04` |
+| v3完整失败日志 | `3e204a433fbabfec80452905c94b01b5ae5c9a1636bc37a8cb98bae0e3a32ef8` |
+| v5完整Maven日志 | `25ba68aa727ddc59db1b1209da846aa7c0c962f382b8230a43825bbde0927114` |
+
+受测关键文件：
+
+| 类 | 源码SHA-256 | v6编译类SHA-256 |
+| --- | --- | --- |
+| `Jobs` | `06bc0adf0cd1ea6c69323ba32bfa635c25eb220cef0e023c9b41cd9993d80719` | `5a2b1ebf6907702ceaa22198d1f68113438ef9369966ae3bf9b156fc5395e94d` |
+| `ProductionContext` | `131ca61ae6ceb403382bbad57f78a94c08d54b5bb6bdf902d487fb96dc58f72b` | `53ceabd1c5afd51ca1674c9383d9f821a9265f8fd73d5b9a36311f94ca29dc99` |
+| `ProductionPrompts` | `4c66db7f813da7f01425dfd3abd3db4620685317c61198cff907c0f9ab0ec3a7` | `2a921a875c5e342f5be7153808d4baf8e58b94ff3aba66d68e0c7bfca6f75227` |
+
+本节仅给出冻结源码的程序回归结论；后续真实页面证据见下一节。任何后续源码变更需重新对应验证证据，未给出用户侧执行或上线通过结论。
+
+## v6 真实页面完成的统筹证据及独立只读核对
+
+**执行角色区分：** 以下真实页面操作、模型调用、来源API核验均由统筹完成，监督没有使用浏览器或发起API/PG连接。本角色只读 `.local/final-state/verification.json`，核对其中状态与计数，并把统筹提供的页面结论与本角色实际可见证据分别记录。
+
+统筹报告：在明确标注的测试团队中通过真实CUA逐稿进行9次审核，团队清单修订v2已正确呈现L1/L2/L3。监督从proof独立确认该测试队：
+
+| 字段 | proof实际值 |
+| --- | --- |
+| status / phase | completed / final_review |
+| 明确批准 | 9 |
+| 未决澄清 / 活动任务 | 0 / 0 |
+| 来源链接核验计数 | 39 |
+| 五份专家完整prompt字符数 | 598 / 718 / 784 / 1255 / 980 |
+
+proof保存的是统筹核验摘要，不包含完整清单正文或浏览器录像。因此“页面操作成功、manifest v2语义正确和39次API读取”归于统筹的真实执行证据，不能表述成监督亲自点击、逐条调用或重新审阅原文。v6自动化136项、前端18项及源码一致性则按上一节只读核对。
+
+同份proof中的真实书籍构建保持active、reviewStatus=pending、0条批准、11份学习成果未变、2个未决澄清、0个活动任务。统筹另外说明其为概要v2；监督没有替管理员批准或解决这两个问题。原有两支测试队在proof中也仍为completed、各9条批准、0未决澄清。
+
+proof SHA-256：`7253a17b15e90cde7add375ea779959e5eaec1084bbad0be3e233baa56147bc9`。原始私密proof、书籍与模型内容继续留在忽略目录；本文仅记录必要的脱敏状态。统筹后续确认已更换v6宿主进程并重新执行final-state-check，退出0；本角色本次重读的verification.json是该重启后证据，状态与上述计数保持。统筹还通过CUA刷新核对完成页仍为v2已完成、9次批准聊天保留、确认和发送均不可操作，截图布局可读。这些重启和浏览器操作归统筹执行，本角色仅复核文件，不记为自己重启或操作页面。
+
+至此本角色要求的v3/v5/v6证据核对及报告写入完成，文件冻结供统筹整合交付；未修改源码，未执行提交、推送或部署。
+
+
+## 统筹最终页面与重启补充（2026-10-06）
+
+此节由统筹补充，不是监督角色操作浏览器的声明。统筹用CUA在本地48763测试团队79d7e5a9-ad72-4d3c-bb85-aa97aabc1339走完9次确认，最终manifest v2修正L1关键词、L2余弦严格>0.90、L3主专家路由；status=completed、phase=final_review、0未决澄清。39条来源经只读接口读取，五份专家完整prompt长度598/718/784/1255/980。最终v6宿主重启后再次读取得到同一状态，浏览器刷新显示v2已完成，approve/send均禁用，审核聊天保留。
+
+真实书籍bb772764-3b95-4dfd-a307-ab31a224c628的概要v2仍pending、0批准、2项必要澄清保留；11份学习修订身份与原始快照完全一致。两支历史原创测试团队仍completed、各9批准。私密核验结果为module .local/final-state/verification.json，原始快照不提交公共仓库。管理员生产链路本轮完成；不把它扩写为最终用户路由执行或生产集群部署通过。

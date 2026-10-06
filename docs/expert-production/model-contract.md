@@ -1,6 +1,6 @@
 # 生产模型与 HTTP 测试合同
 
-本轮实现合同，2026-10-05。`ProductionModel.json(purpose,input,cancelled)` 只返回候选 JSON，程序验证后才能写入。下面固定三种 purpose，测试替身只放 src/test。
+本轮实现合同，2026-10-06。`ProductionModel.json(purpose,input,cancelled)` 只返回候选 JSON，程序验证后才能写入。下面固定三种 purpose，测试替身只放 src/test。
 
 ## prelearn
 
@@ -13,6 +13,8 @@
 
 输入 `{buildId,name,responsibility,kind,agentRole,logicalKey,plan,learningUnits:[覆盖摘要及方法索引],relevantMethods:[完整方法],approvedArtifacts:[职责/边界摘要],sources:[{id,documentVersionId,pageNo,text}],previousRevision:revision|null,changeReason:string,contextCoverage:object}`。
 整书全文保存在PG，单次generate使用最多18000字符的相关完整方法和18000字符原文窗口；全部批次保留覆盖索引，省略或预览明确标注。已批准专家的完整prompt不在每轮重复注入；当前修订对象保留原完整稿。总输入超过90000字符拒绝调用并保留可重试状态，不能无界发送整书。`contextCoverage`记录原文总数、所选原文身份、学习批次数和本次完整方法数；输出只能引用实际进入本轮窗口的来源。
+概要生成的完整方法按学习批次轮转选择，原文先给各批代表方法分配窗口，避免前部章节挤占全部预算。窗口不足时保留原文的逐字Unicode码点前缀，并标明textIsPreview与原字符数；预览不能宣称全文已进入。各批coverage.limitations完整保留，超总预算明确失败。下游生成完整保留已确认概要body（包括概要尾部、outline、limitations、分工）以及关键词/问答配置body（含全部规则、问答、阈值及分支），以传递管理员修正；仍不重复注入所有已批准专家的完整提示词。提示词要求综合全部学习索引，区分整书学习覆盖和本次引用窗口；该约束不保证模型语义永不偏离，生成稿仍须逐项审核。
+
 输出统一 `{body:object,systemPrompt:string,sources:[{chunkId,quote,purpose}],clarifications:[string]}`。quote必须逐字复制本轮指定chunk中的唯一原文，程序精确匹配后计算Unicode码点左闭右开范围，模型不手算offset。不匹配、多处匹配、未知chunk或切断码点均拒绝。兼容旧来源`{chunkId,startOffset,endOffset,purpose}`的合法整数偏移；若引文与偏移同时提供，二者必须完全一致，不自动夹边界或修正冲突。持久化与摘要使用规范化`{chunkId,startOffset,endOffset,purpose}`，原文通过不可变chunk可重建。sources非空、必须在本轮原文窗口。
 
 - kind=book_summary: body `{title,summary,outline:[object|string],limitations:[string],specialists:[{key,name,responsibility,methodTitles:[string]}]}`；specialists 1–6，key唯一。
@@ -29,6 +31,8 @@ clarifications为空代表模型无待澄清问题；非空逐条持久化，处
 输出 `{intent:"ask|read_source|approve|reject|revise|provide_reason|pause|resume|cancel|retry|focus",targetRevisionId:string,scope:string,rewrittenText:string,reason:string,reply:string,conditional:boolean,ambiguous:boolean,quoted:boolean,resolveClarificationIds:[id],sourceIds:[chunkId]}`。
 模型返回的`rewrittenText`缺失、null或空白文本时，程序逐字保留`message.content`并保存`rewritten=false`；非字符串拒绝，非空字符串保留原值并按与原话是否相同记录`rewritten`，不补猜语义。三个安全标志必须全部为明确的布尔false才可进入状态修改分支；任一为true、缺失、null或其他类型时仅回复澄清，不执行控制任务、审核/修订、焦点切换或问题关闭。显式按钮由服务构造明确意图，仍执行版本与范围校验。
 只有 unconditional + unambiguous + 非引文 + 完整scope + reviewContext真实展示 + 当前版本才可批准。无原因reject追问；provide_reason/revise必须实际reason，生成新版本pending；普通ask/read_source不推进。若管理员回答requirement/source_conflict，必须携带其展示上下文，按原话形成新修订并展示新的完整提示词后再审批；不能只关闭问题后批准未纳入答案的旧提示词。纯confirmation_scope澄清可以只解锁范围。reply是对管理员的公开回答，不是内部思考。多意图或不明对象必须ambiguous=true并追问，不能擅自批准。
+
+当修订或影响定义的澄清实际排入新稿任务后，公开回复由程序按事务结果给出“新稿生成任务已排队，生成完成后请重新审核”，避免模型回复仍要求确认是否改稿。普通讨论、无原因否决的追问维持原流程。
 
 ## 生产模型失败诊断与预算
 

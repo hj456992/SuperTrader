@@ -305,7 +305,7 @@ final class ProductionService implements AutoCloseable {
                 for(String questionId:definitionQuestions)execute(c,"UPDATE ep_clarification SET resolution_revision_id=? WHERE id=?",newRevision,questionId);
                 bump(c,b);result.put("type","clarification_revision_queued").put("revisionId",newRevision);
             }
-            String answer=s(intent,"reply");addMessage(c,b,"assistant",null,answer.isBlank()?"请说明要查看或修改的对象和范围。":answer,Json.object(),"succeeded",message);return result;
+            String answer=clarifiedArtifact!=null?"已记录澄清，新稿生成任务已排队；生成完成后请重新审核完整内容。":s(intent,"reply");addMessage(c,b,"assistant",null,answer.isBlank()?"请说明要查看或修改的对象和范围。":answer,Json.object(),"succeeded",message);return result;
         }
         if(!status.equals("active"))throw error(409,"BUILD_PAUSED","构建已暂停，请先恢复后再修改或批准");
         ObjectNode a=reviewTarget(c,b,request);String r=s(a,"current_revision_id");
@@ -331,7 +331,8 @@ final class ProductionService implements AutoCloseable {
                 revise(c,b,a,reason);bump(c,b);result.put("type","revision_queued");
             }
         }else throw error(422,"UNKNOWN_INTENT","无法安全执行此意图，请明确对象和范围");
-        if(!s(intent,"reply").isBlank())addMessage(c,b,"assistant",null,s(intent,"reply"),Json.object(),"succeeded",message);return result;
+        String answer="revision_queued".equals(s(result,"type"))?"已记录修改意见，新稿生成任务已排队；生成完成后请重新审核完整内容。":s(intent,"reply");
+        if(!answer.isBlank())addMessage(c,b,"assistant",null,answer,Json.object(),"succeeded",message);return result;
     }
     /** 构建锁内复用已有工作；新的clientId也不能为同一目标重复付费生成。 */
     private ObjectNode resumeOrRetry(Connection c,String b,ObjectNode state,String message,String type)throws Exception{

@@ -12,8 +12,10 @@ final class Jobs implements AutoCloseable {
     interface Work { ObjectNode run(Job job) throws Exception; }
     private final Map<String, Job> jobs = new LinkedHashMap<>();
     private final ExecutorService workers = Executors.newFixedThreadPool(2);
+    private boolean closed;
     /** 启动任务并限制并发。@param kind 任务种类 @param key 防止同会话并发 @param work 实际工作 */
     synchronized Job start(String kind, String key, Work work) {
+        if (closed) { throw new IllegalStateException("任务服务已关闭"); }
         if (jobs.values().stream().filter(j -> j.running()).count() >= 2) { throw new IllegalArgumentException("已有两个任务运行，请等待或取消后重试"); }
         if (!key.isBlank() && jobs.values().stream().anyMatch(j -> j.running() && key.equals(j.key))) { throw new IllegalArgumentException("该会话已有任务运行"); }
         while (jobs.size() >= 40) {
@@ -37,7 +39,22 @@ final class Jobs implements AutoCloseable {
         ArrayNode values = Json.array(); jobs.values().forEach(j -> values.add(j.snapshot())); return values;
     }
     /** 停止所有任务，关闭插件资源。 */
-    @Override public synchronized void close() { jobs.values().forEach(Job::cancel); workers.shutdownNow(); }
+    @Override public void close() {
+        synchronized (this) {
+            if (!closed) { closed = true; jobs.values().forEach(Job::cancel); workers.shutdownNow(); }
+        }
+        // Cancellation marks job state immediately; journal/finally cleanup still runs on the worker.
+        // Release the Jobs monitor before joining, since cleanup may need it.
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5); boolean interrupted = false;
+        try {
+            while (!workers.isTerminated()) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) { throw new IllegalStateException("后台任务未在关闭时限内停止"); }
+                try { workers.awaitTermination(remaining, TimeUnit.NANOSECONDS); }
+                catch (InterruptedException e) { interrupted = true; }
+            }
+        } finally { if (interrupted) { Thread.currentThread().interrupt(); } }
+    }
 
     static final class Job {
         final String id = Json.id();
