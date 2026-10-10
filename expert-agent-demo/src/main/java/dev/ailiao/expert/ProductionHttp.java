@@ -17,7 +17,8 @@ final class ProductionHttp {
         try{
             if(service==null)throw new ProductionException(503,"DATABASE_NOT_CONFIGURED","生产数据库未配置，无法保存或审核构建");
             String method=exchange.getRequestMethod();String[] parts=path.substring(BASE.length()+1).split("/");ObjectNode result;
-            if(parts.length==1&&parts[0].equals("builds")&&method.equals("GET"))result=service.list();
+            if(parts.length==1&&parts[0].equals("proposals")&&method.equals("POST"))result=service.propose(body(exchange));
+            else if(parts.length==1&&parts[0].equals("builds")&&method.equals("GET"))result=service.list();
             else if(parts.length>=2&&parts[0].equals("builds")){
                 String id=parts[1];
                 if(parts.length==2&&method.equals("PUT"))result=service.create(id,body(exchange));

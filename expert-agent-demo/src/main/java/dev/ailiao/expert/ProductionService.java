@@ -39,6 +39,36 @@ final class ProductionService implements AutoCloseable {
     private ObjectNode current(Connection c,String buildId)throws Exception{ObjectNode b=build(c,buildId);return nullable(b,"current_artifact_id")==null?null:artifact(c,s(b,"current_artifact_id"));}
     private ObjectNode creation(Connection c,String buildId)throws Exception{return (ObjectNode)one(c,"SELECT context_snapshot FROM ep_message WHERE build_id=? AND client_request_id='build:create'",buildId).path("context_snapshot").path("creationRequest");}
 
+    /** Canonical source selection is the durable identity of one proposed team. */
+    ObjectNode propose(ObjectNode proposal)throws Exception{
+        ArrayNode supplied=ProductionRules.array(proposal,"documents",true);
+        if(supplied.size()>8)throw error(422,"DOCUMENT_NOT_READY","请选择 1–8 份资料");
+        List<ObjectNode> selected=new ArrayList<>();Set<String> documents=new HashSet<>();
+        JsonNode library=legacy.state().path("documents");
+        for(JsonNode item:supplied){
+            String doc=Json.required(item,"documentId",80),version=Json.required(item,"documentVersionId",80);uuid(doc);uuid(version);
+            if(!documents.add(doc))throw error(422,"DOCUMENT_NOT_READY","同一资料只能选择一个版本");
+            JsonNode matched=null;for(JsonNode candidate:library)if(doc.equals(s(candidate,"id"))){matched=candidate;break;}
+            if(matched==null)throw error(422,"DOCUMENT_NOT_READY","资料不存在");
+            boolean ready=false;for(JsonNode candidate:matched.path("versions"))if(version.equals(s(candidate,"id"))&&candidate.path("chunkCount").asInt()>0){ready=true;break;}
+            if(!ready)throw error(422,"DOCUMENT_NOT_READY","资料版本不存在、未就绪或不属于所选资料");
+            selected.add(Json.object().put("documentId",doc).put("documentVersionId",version).put("title",s(matched,"title")));
+        }
+        selected.sort(Comparator.comparing((ObjectNode n)->s(n,"documentId")).thenComparing(n->s(n,"documentVersionId")));
+        ArrayNode pairs=Json.array(),legacyPairs=Json.array();List<String> titles=new ArrayList<>();
+        for(ObjectNode item:selected){pairs.add(Json.object().put("documentId",s(item,"documentId")).put("documentVersionId",s(item,"documentVersionId")));legacyPairs.add(Json.object().put("documentId",s(item,"documentId")).put("versionId",s(item,"documentVersionId")));titles.add(s(item,"title"));}
+        try{legacy.selectedChunks(legacyPairs);}catch(IllegalArgumentException ex){throw error(422,"DOCUMENT_NOT_READY",ex.getMessage());}
+        String identity="workbench:v1:"+ACTOR+":"+pairs;
+        String team=UUID.nameUUIDFromBytes((identity+":team").getBytes(StandardCharsets.UTF_8)).toString();
+        String build=UUID.nameUUIDFromBytes((identity+":build").getBytes(StandardCharsets.UTF_8)).toString();
+        while(true){String candidate=build;ObjectNode found=db.read(c->one(c,"SELECT status FROM ep_build WHERE id=?",candidate));if(found==null||!"cancelled".equals(s(found,"status")))break;build=UUID.nameUUIDFromBytes((identity+":after:"+build).getBytes(StandardCharsets.UTF_8)).toString();}
+        String name="资料专家团队："+String.join("、",titles);if(name.length()>200)name=name.substring(0,200);
+        ObjectNode request=Json.object().put("origin","workbench").put("teamId",team).put("teamName",name).put("name",name)
+            .put("responsibility","学习全部所选资料中的方法，按有依据的主题形成同一团队内的专业分工，并回答适用问题；资料不足时说明边界。");
+        request.set("documents",pairs);
+        return create(build,request);
+    }
+
     ObjectNode create(String buildId,ObjectNode request)throws Exception{
         uuid(buildId);String team=Json.required(request,"teamId",80);uuid(team);Json.required(request,"name",200);Json.required(request,"responsibility",4000);
         String fingerprint=ProductionRules.hash(request);
@@ -102,6 +132,7 @@ final class ProductionService implements AutoCloseable {
             a.set("revisions",revisions);artifacts.add(a);if(s(row,"id").equals(s(b,"current_artifact_id")))out.set("currentArtifact",a);if("book_summary".equals(s(row,"kind")))out.set("summary",a.path("currentRevision"));
         }out.set("artifacts",artifacts);if(!out.has("currentArtifact"))out.putNull("currentArtifact");
         out.set("jobs",nodes(query(c,"SELECT id,kind,status,phase,target_revision_id AS \"targetRevisionId\",checkpoint,error,attempt FROM ep_job WHERE build_id=? ORDER BY created_at",id)));
+        ObjectNode request=creation(c,id);if("workbench".equals(s(request,"origin"))){ObjectNode proposal=Json.object();proposal.set("documents",request.path("documents").deepCopy());proposal.set("sources",nodes(query(c,"SELECT c.id AS \"chunkId\",c.document_version_id AS \"documentVersionId\",c.page_no AS \"pageNo\",d.title FROM ep_source_chunk c JOIN ep_build_document bd ON bd.document_version_id=c.document_version_id JOIN ep_document d ON d.id=bd.document_id WHERE bd.build_id=? ORDER BY c.document_version_id,c.page_no,c.chunk_no",id)));out.set("proposal",proposal);}
         out.set("clarifications",nodes(query(c,"SELECT id,artifact_id AS \"artifactId\",revision_id AS \"revisionId\",kind,question,status,answer,opened_message_id AS \"openedMessageId\" FROM ep_clarification WHERE build_id=? ORDER BY created_at",id)));
         out.set("reviews",nodes(query(c,"SELECT id,revision_id AS \"revisionId\",scope,decision,reason,actor_id AS \"actorId\",message_id AS \"messageId\",action_no AS \"actionNo\",presented_message_id AS \"presentedMessageId\",reviewed_sha256 AS \"reviewedSha256\",decided_at AS \"decidedAt\" FROM ep_review WHERE build_id=? ORDER BY decided_at,id",id)));
         ArrayNode messages=Json.array();for(ObjectNode m:query(c,"SELECT * FROM ep_message WHERE build_id=? ORDER BY seq",id)){ObjectNode view=Json.object().put("id",s(m,"id")).put("seq",s(m,"seq")).put("role",s(m,"role")).put("content",s(m,"content")).put("processingStatus",s(m,"processing_status"));view.set("result",m.path("result"));view.set("interpretation",m.path("interpretation"));if(m.path("context_snapshot").has("presentation"))view.set("presentation",m.path("context_snapshot").path("presentation"));messages.add(view);}out.set("messages",messages);
@@ -225,7 +256,7 @@ final class ProductionService implements AutoCloseable {
         final ObjectNode normalizedSources;
         try{normalizedSources=ProductionRules.normalizeSources(rawOutput,(ArrayNode)window.path("sources"));}
         catch(IllegalArgumentException invalid){ObjectNode detail=Json.object().put("field","sources").put("type",rawOutput.path("sources").getNodeType().name());detail.set("items",ProductionRules.sourceShape(rawOutput,(ArrayNode)window.path("sources")));System.err.println("Production generation validation: "+detail);throw invalid;}
-        try{output=ProductionRules.normalizeChapters(s(input,"kind"),normalizedSources,(ArrayNode)window.path("sources"));ProductionRules.validateGenerated(s(input,"kind"),output,(ArrayNode)window.path("sources"),(ArrayNode)input.path("specialists"));}
+        try{output=ProductionRules.normalizeChapters(s(input,"kind"),normalizedSources,(ArrayNode)window.path("sources"));ProductionRules.validateGenerated(s(input,"kind"),output,(ArrayNode)window.path("sources"),(ArrayNode)input.path("specialists"));if("workbench".equals(s(input,"origin"))&&"book_summary".equals(s(input,"kind")))ProductionRules.validateProposalCandidates(output,(ArrayNode)window.path("sources"));}
         catch(IllegalArgumentException invalid){System.err.println("Production generation validation: "+(invalid instanceof ProductionRules.ValidationFailure failure?failure.details():Json.object().put("stage","artifact_constraints").put("errorType",invalid.getClass().getSimpleName())));throw invalid;}
         queue.withLease(claim,c->{ObjectNode a=artifact(c,aId);if(!r.equals(s(a,"current_revision_id")))throw new CancellationException("目标已更新");List<String> deps=dependencies(c,b,a);if(!Json.MAPPER.valueToTree(deps).equals(input.path("dependencyIds")))throw new CancellationException("上游版本已变化");
             if("team_manifest".equals(s(a,"kind"))){assertFinalReady(c,b,aId);((ObjectNode)output.path("body")).set("members",manifestMembers(c,b,aId));}

@@ -112,7 +112,7 @@ final class ProductionTestServer implements AutoCloseable {
     }
 
     /** Only the external semantic/model boundary is substituted; this is NOT model-quality evidence. */
-    static final class ControlledModel implements ProductionModel {
+    static class ControlledModel implements ProductionModel {
         volatile String blockedPurpose="", blockedKind="";
         volatile boolean invalidSource, failGeneration, clarifyFirstAgent, maliciousApproval;
         volatile CountDownLatch entered=new CountDownLatch(1), proceed=new CountDownLatch(0);

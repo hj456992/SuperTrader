@@ -140,4 +140,13 @@ final class ProductionRules {
             default->throw new IllegalArgumentException("未知成果类型");
         }
     }
+    static void validateProposalCandidates(ObjectNode output,ArrayNode chunks){
+        Set<String> allowed=new HashSet<>();chunks.forEach(chunk->allowed.add(chunk.path("id").asText()));
+        for(JsonNode specialist:output.path("body").path("specialists")){
+            ArrayNode questions=array(specialist,"typicalQuestions",true),sources=array(specialist,"sourceIds",true);
+            if(questions.size()>8||sources.size()>24)throw new IllegalArgumentException("候选问题或来源数量过多");
+            for(JsonNode question:questions)if(!question.isTextual()||question.asText().isBlank()||question.asText().length()>500)throw new IllegalArgumentException("候选问题必须是有界的非空字符串");
+            for(JsonNode id:sources)if(!id.isTextual()||!allowed.contains(id.asText()))throw new IllegalArgumentException("候选来源不在本轮原文窗口");
+        }
+    }
 }
