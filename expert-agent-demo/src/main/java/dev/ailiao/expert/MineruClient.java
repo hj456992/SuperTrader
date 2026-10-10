@@ -20,7 +20,20 @@ final class MineruClient {
     record Ticket(String batchId, URI uploadUrl) {}
     static final class Failure extends IllegalArgumentException {
         final boolean retryable;
-        Failure(String message, boolean retryable) { super(message); this.retryable = retryable; }
+        final String code, phase;
+        final List<String> causeTypes;
+        final Integer httpStatus;
+        Failure(String message, boolean retryable) { this(message, retryable, "MINERU_FAILURE", "", List.of(), null); }
+        private Failure(String message, boolean retryable, String code, String phase, List<String> causeTypes, Integer httpStatus) {
+            super(message, null); this.retryable = retryable; this.code = code; this.phase = phase;
+            this.causeTypes = List.copyOf(causeTypes); this.httpStatus = httpStatus;
+        }
+        ObjectNode diagnostics() {
+            ObjectNode result = Json.object().put("code", code).put("phase", phase).put("retryable", retryable);
+            result.set("causeTypes", Json.MAPPER.valueToTree(causeTypes));
+            if (httpStatus != null) { result.put("httpStatus", httpStatus); }
+            return result;
+        }
     }
     private final URI base;
     private final TokenSource token;
@@ -84,8 +97,8 @@ final class MineruClient {
         if (remainingBytes <= 0 || remainingBytes > ZIP_LIMIT) { throw new Failure("结果ZIP累计超过200MiB，未继续下载", false); }
         Path part = target.resolveSibling(target.getFileName() + ".part");
         try {
-            HttpRequest request = HttpRequest.newBuilder(blobUri(url)).timeout(job.remaining(300)).GET().build();
-            HttpResponse<Path> response = send(blobs, request, info -> bounded(HttpResponse.BodySubscribers.ofFile(part), remainingBytes), job, 300, "结果下载");
+            HttpRequest request = HttpRequest.newBuilder(blobUri(url)).timeout(job.remaining(900)).GET().build();
+            HttpResponse<Path> response = send(blobs, request, info -> bounded(HttpResponse.BodySubscribers.ofFile(part), remainingBytes), job, 900, "结果下载");
             httpStatus(response.statusCode(), "结果下载"); job.check();
             Files.move(part, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             Files.setPosixFilePermissions(target, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
@@ -102,7 +115,8 @@ final class MineruClient {
     private static void httpStatus(int status, String phase) {
         if (status >= 200 && status < 300) { return; }
         String explanation = status == 401 || status == 403 ? "鉴权或文件链接权限失败" : status == 429 ? "请求频率或额度受限" : "服务响应异常";
-        throw new Failure("MinerU " + phase + "：" + explanation + "（HTTP " + status + "）", status == 429 || status >= 500);
+        throw new Failure("MinerU " + phase + "：" + explanation + "（HTTP " + status + "）", status == 429 || status >= 500,
+            "MINERU_HTTP_ERROR", phase, List.of(), status);
     }
     static String errorMessage(String code) {
         String safeCode = code.matches("[A-Za-z0-9_-]+") ? code : "unknown";
@@ -120,10 +134,31 @@ final class MineruClient {
         try { return future.get(job.remaining(seconds).toMillis(), TimeUnit.MILLISECONDS); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); throw e; }
         catch (ExecutionException | TimeoutException e) {
-            Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
-            while (cause != null) { if (cause instanceof Failure failure) { throw failure; } cause = cause.getCause(); }
-            throw new Failure("MinerU " + phase + "网络失败或超时；未自动重新提交解析", true);
+            throw transportFailure(e, phase);
         } finally { if (!future.isDone()) { future.cancel(true); } }
+    }
+    /** Copy only bounded type names; retaining the original cause can expose signed URLs in stack traces. */
+    private static Failure transportFailure(Throwable error, String phase) {
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<String> types = new ArrayList<>(); String code = "MINERU_TRANSPORT_FAILURE"; int priority = 0;
+        Failure known = null;
+        for (Throwable cause = error; cause != null && seen.size() < 12 && seen.add(cause); cause = cause.getCause()) {
+            types.add(cause.getClass().getName());
+            if (cause instanceof Failure failure) { known = failure; break; }
+            int rank = cause instanceof javax.net.ssl.SSLException ? 5 : cause instanceof HttpConnectTimeoutException ? 4
+                : cause instanceof HttpTimeoutException || cause instanceof TimeoutException || cause instanceof SocketTimeoutException ? 3
+                : cause instanceof ConnectException || cause instanceof UnknownHostException || cause instanceof NoRouteToHostException ? 2
+                : cause instanceof IOException ? 1 : 0;
+            if (rank > priority) {
+                priority = rank;
+                code = switch (rank) {
+                    case 5 -> "MINERU_TLS_FAILURE"; case 4 -> "MINERU_CONNECT_TIMEOUT"; case 3 -> "MINERU_REQUEST_TIMEOUT";
+                    case 2 -> "MINERU_CONNECTION_FAILED"; case 1 -> "MINERU_NETWORK_IO"; default -> "MINERU_TRANSPORT_FAILURE";
+                };
+            }
+        }
+        if (known != null) { return new Failure(known.getMessage(), known.retryable, known.code, phase, types, known.httpStatus); }
+        return new Failure("MinerU " + phase + "网络失败或超时（" + code + "）；未自动重新提交解析", true, code, phase, types, null);
     }
     private static <T> HttpResponse.BodySubscriber<T> bounded(HttpResponse.BodySubscriber<T> delegate, long limit) {
         return new HttpResponse.BodySubscriber<>() {

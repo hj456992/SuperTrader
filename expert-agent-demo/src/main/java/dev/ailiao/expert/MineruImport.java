@@ -28,6 +28,7 @@ final class MineruImport {
                 ObjectNode record = (ObjectNode) Json.MAPPER.readTree(Files.readAllBytes(file));
                 String id = record.path("id").asText();
                 if (!id.equals(folder.getFileName().toString())) { throw new IllegalStateException("导入记录身份不一致"); }
+                recoverSavedBatches(record, folder);
                 records.put(id, record);
                 ObjectNode result = store.importResult(id);
                 if (result != null) { record.put("status", "completed"); record.set("result", result); }
@@ -48,7 +49,7 @@ final class MineruImport {
     }
     private boolean canResume(ObjectNode value) {
         String status = value.path("status").asText();
-        if (status.equals("running") || status.equals("completed") || value.path("remoteFailed").asBoolean()) { return false; }
+        if (status.equals("running") || status.equals("completed") || value.path("remoteFailed").asBoolean() || value.path("pageLimitExceeded").asBoolean()) { return false; }
         if (value.has("parts")) {
             for (JsonNode part : value.path("parts")) {
                 if (part.path("submissionAttempted").asBoolean() && part.path("batchId").asText().isBlank()) { return false; }
@@ -58,9 +59,9 @@ final class MineruImport {
         return !value.path("batchId").asText().isBlank() || !value.path("submissionAttempted").asBoolean();
     }
     private boolean canSplit(ObjectNode value) {
-        return value.path("status").asText().equals("failed") && value.path("remoteFailed").asBoolean()
+        return !Set.of("running", "completed").contains(value.path("status").asText())
+            && (value.path("pageLimitExceeded").asBoolean() || (value.path("remoteFailed").asBoolean() && value.path("error").asText().contains("200")))
             && value.path("pageCount").asInt() > 200 && !value.has("splitSourceId")
-            && value.path("error").asText().contains("200")
             && records.values().stream().noneMatch(r -> value.path("id").asText().equals(r.path("splitSourceId").asText()));
     }
     /** Explicit user choice starts a new journal; the original rejected attempt remains evidence. */
@@ -73,7 +74,7 @@ final class MineruImport {
                 }
             }
             source = record(sourceId).deepCopy();
-            if (!canSplit(source)) { throw new IllegalArgumentException("只有超过200页限制的失败整书任务可选择拆分"); }
+            if (!canSplit(source)) { throw new IllegalArgumentException("只有超过200页限制的暂停或失败整书任务可选择拆分"); }
             if (!splitReservations.add(sourceId)) { throw new IllegalArgumentException("拆分任务正在创建，请稍后查看原任务"); }
         }
         try {
@@ -118,7 +119,7 @@ final class MineruImport {
     private ObjectNode launch(String id) throws Exception {
         java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);
         Jobs.Job job = jobs.start("import", "ocr", work -> { ready.await(); return run(id, work); });
-        try { synchronized (this) { ObjectNode value = record(id); value.put("status", "running").put("jobId", job.id).put("message", "准备云解析任务"); value.remove("error"); save(value); } }
+        try { synchronized (this) { ObjectNode value = record(id); value.put("status", "running").put("jobId", job.id).put("message", "准备云解析任务"); value.remove(List.of("error", "errorDetails")); save(value); } }
         catch (Exception e) { job.cancel(); throw e; }
         finally { ready.countDown(); }
         return Json.object().put("importId", id).put("jobId", job.id);
@@ -147,6 +148,10 @@ final class MineruImport {
                 ObjectNode info = pdf.inspect(original, job); expected = info.path("pageCount").asInt();
                 int pages = expected;
                 updateCurrent(id, job, r -> r.put("pageCount", pages).set("pdfInfo", info));
+            }
+            if (expected > 200 && !initial.has("splitSourceId") && initial.path("batchId").asText().isBlank() && !Files.isRegularFile(folder.resolve("result.zip"))) {
+                updateCurrent(id, job, r -> r.put("pageLimitExceeded", true));
+                throw new IllegalArgumentException("原文件共" + expected + "页，超过 MinerU 单次200页限制；请选择分卷解析后合并，原文件保持不变");
             }
             ObjectNode parsed;
             ObjectNode provenance = Json.object().put("provider", "mineru").put("model", "vlm");
@@ -204,12 +209,13 @@ final class MineruImport {
         } catch (Exception error) {
             synchronized (this) {
                 if (owns(id, job)) {
-                    ObjectNode r = record(id); ObjectNode committed = store.importResult(id);
+                    ObjectNode r = record(id); recoverSavedBatches(r, root.resolve(id)); ObjectNode committed = store.importResult(id);
                     if (committed != null) { finish(id, job, committed); }
                     else {
                         boolean cancelled = r.path("status").asText().equals("cancelled");
                         String message = error instanceof IllegalArgumentException || error instanceof java.util.concurrent.CancellationException ? error.getMessage() : "本地处理或网络中断，已保留原任务，可继续核查";
                         if (message == null) { message = "处理已暂停"; }
+                        if (error instanceof MineruClient.Failure failure) { r.set("errorDetails", failure.diagnostics()); }
                         r.put("status", cancelled ? "cancelled" : r.path("remoteFailed").asBoolean() ? "failed" : "paused").put("error", message).put("message", message); save(r);
                     }
                 }
@@ -224,15 +230,21 @@ final class MineruImport {
         String prefix = index < 0 ? "" : "第" + (index + 1) + "份（原第" + (offset + 1) + "–" + (offset + expected) + "页）：";
         if (!Files.isRegularFile(zip)) {
             String batch = initial.path("batchId").asText();
+            boolean uploaded = initial.hasNonNull("uploadedAt");
+            Path ticketFile = input.resolveSibling(input.getFileName() + ".upload.json");
             if (batch.isBlank()) {
                 if (initial.path("submissionAttempted").asBoolean()) { throw new IllegalArgumentException("上次提交结果不确定，未自动重提；请核查 MinerU 控制台"); }
                 stage(id, job, "submitting", prefix + "申请上传地址");
                 updateSource(id, job, index, r -> r.put("submissionAttempted", true));
                 MineruClient.Ticket ticket = client.requestUpload(input.getFileName().toString(), index < 0 ? id : id + "-" + index, job);
                 batch = ticket.batchId(); String savedBatch = batch;
+                // Signed URLs are credentials: separate private sidecar, never public journal/provenance.
+                writeJson(ticketFile, Json.object().put("batchId", batch).put("uploadUrl", ticket.uploadUrl().toString())
+                    .put("sha256", fileHash(input)));
                 updateSource(id, job, index, r -> r.put("batchId", savedBatch).put("submittedAt", Instant.now().toString()));
                 stage(id, job, "uploading", prefix + "上传至 MinerU"); client.upload(ticket.uploadUrl(), input, job);
                 updateSource(id, job, index, r -> r.put("uploadedAt", Instant.now().toString()));
+                uploaded = true;
             }
             int failures = 0;
             while (true) {
@@ -256,12 +268,32 @@ final class MineruImport {
                     client.download(remote.path("full_zip_url").asText(), zip, job, remainingZipBytes); break;
                 }
                 if (!Set.of("waiting-file", "pending", "running", "converting").contains(state)) { throw new IllegalArgumentException("MinerU 返回未知任务状态，已暂停核查"); }
+                if (state.equals("waiting-file") && expected > 200 && index < 0) {
+                    updateCurrent(id, job, r -> r.put("pageLimitExceeded", true));
+                    throw new IllegalArgumentException("原文件共" + expected + "页，云端仍等待文件，超过单次200页限制；请选择分卷解析后合并");
+                }
+                if (state.equals("waiting-file") && !uploaded) {
+                    if (!Files.isRegularFile(ticketFile)) {
+                        throw new IllegalArgumentException(prefix + "云端仍在等待文件，但旧任务未保存上传地址，无法补传；请核查原任务或重新选择导入，未自动新建云任务");
+                    }
+                    JsonNode ticket = Json.MAPPER.readTree(Files.readAllBytes(ticketFile));
+                    if (!batch.equals(ticket.path("batchId").asText()) || !fileHash(input).equals(ticket.path("sha256").asText())) {
+                        throw new IllegalArgumentException(prefix + "上传凭据与原任务或文件不一致，已停止补传");
+                    }
+                    stage(id, job, "uploading", prefix + "云端确认等待文件，向原任务补传原文件");
+                    java.net.URI uploadUrl;
+                    try { uploadUrl = java.net.URI.create(ticket.path("uploadUrl").asText()); }
+                    catch (IllegalArgumentException invalid) { throw new IllegalArgumentException("保存的上传地址无效，已停止补传"); }
+                    client.upload(uploadUrl, input, job);
+                    updateSource(id, job, index, r -> r.put("uploadedAt", Instant.now().toString()));
+                    uploaded = true;
+                    continue;
+                }
                 int done = progress.path("extracted_pages").asInt();
                 if (done < 0 || done > expected) { throw new IllegalArgumentException("云端解析进度超出页数，已暂停核查"); }
                 updateCurrent(id, job, r -> { r.put("extractedPages", offset + done); if (index >= 0) { source(r, index).put("extractedPages", done); } });
                 String message = switch (state) {
-                    case "waiting-file" -> !initial.path("batchId").asText().isBlank() && !initial.hasNonNull("uploadedAt")
-                        ? "上次上传结果不确定；仅查询原任务，请核查 MinerU 控制台" : "云端等待确认上传；本地继续查询原任务";
+                    case "waiting-file" -> "云端等待确认上传；本地继续查询原任务";
                     case "pending" -> "MinerU 排队中";
                     case "running" -> "整书已解析 " + (offset + done) + "/" + total + " 页";
                     default -> "MinerU 正在转换结果";
@@ -273,6 +305,29 @@ final class MineruImport {
             r.put("extractedPages", offset + expected);
             if (index >= 0) { source(r, index).put("status", "completed").put("extractedPages", expected); }
         });
+    }
+    /** Repair the sidecar -> public journal crash window without making any cloud request. */
+    private static void recoverSavedBatches(ObjectNode record, Path folder) {
+        if (record.has("parts")) {
+            for (int i = 0; i < record.path("parts").size(); i++) {
+                restoreBatch((ObjectNode) record.path("parts").get(i), folder.resolve(String.format(Locale.ROOT, "part-%03d.pdf", i + 1)));
+            }
+        } else { restoreBatch(record, folder.resolve("original.pdf")); }
+    }
+    private static void restoreBatch(ObjectNode source, Path input) {
+        if (!source.path("submissionAttempted").asBoolean() || !source.path("batchId").asText().isBlank()) { return; }
+        Path ticketFile = input.resolveSibling(input.getFileName() + ".upload.json");
+        try {
+            if (!Files.isRegularFile(ticketFile) || Files.isSymbolicLink(ticketFile) || Files.isSymbolicLink(input)) { return; }
+            JsonNode ticket = Json.MAPPER.readTree(Files.readAllBytes(ticketFile));
+            String batch = ticket.path("batchId").asText();
+            if (batch.matches("[A-Za-z0-9_-]+") && fileHash(input).equals(ticket.path("sha256").asText()) && !ticket.path("uploadUrl").asText().isBlank()) {
+                source.put("batchId", batch);
+            }
+        } catch (Exception ignored) { /* Unverified credentials cannot authorize resubmission. */ }
+    }
+    private static String fileHash(Path file) throws Exception {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
     }
     private static ObjectNode source(ObjectNode record, int index) { return index < 0 ? record : (ObjectNode) record.path("parts").get(index); }
     private void updateSource(String id, Jobs.Job job, int index, java.util.function.Consumer<ObjectNode> change) throws Exception {

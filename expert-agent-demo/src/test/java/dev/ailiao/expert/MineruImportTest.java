@@ -31,7 +31,7 @@ class MineruImportTest {
             assertEquals("querying",service.get("i-1").path("phase").asText());
         } finally {release.countDown();server.stop(0);}
     }
-    @Test void resumedWaitingFileReportsUncertainUploadWithoutReupload() throws Exception {
+    @Test void resumedLegacyWaitingFilePausesWithMissingTicketReason() throws Exception {
         Path folder=dir.resolve("imports/i-1");Files.createDirectories(folder);
         Files.writeString(folder.resolve("state.json"),"{\"id\":\"i-1\",\"status\":\"paused\",\"batchId\":\"batch-1\",\"pageCount\":1}");
         HttpServer server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
@@ -45,8 +45,9 @@ class MineruImportTest {
             var service=new MineruImport(dir,new LabStore(dir),jobs,new MineruClient(URI.create("http://127.0.0.1:"+server.getAddress().getPort()),()->"token"),new PdfImport("python3",Path.of("extract_pdf.py"),dir.resolve("tmp")));
             String jobId=service.resume("i-1").path("jobId").asText();
             long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(3);
-            while(!service.get("i-1").path("message").asText().contains("上次上传结果不确定") && System.nanoTime()<deadline) Thread.sleep(10);
-            assertTrue(service.get("i-1").path("message").asText().contains("仅查询原任务"));
+            while(service.get("i-1").path("status").asText().equals("running") && System.nanoTime()<deadline) Thread.sleep(10);
+            assertEquals("paused",service.get("i-1").path("status").asText());
+            assertTrue(service.get("i-1").path("message").asText().contains("上传地址"));
             assertEquals(0,uploads.get());
             service.cancelJob(jobId);
         } finally {server.stop(0);}
