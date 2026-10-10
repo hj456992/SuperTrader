@@ -5,10 +5,37 @@ import dev.dsh.contract.llm.ModelRegistry;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import reactor.core.publisher.Flux;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductionModelFailureTest {
+    @Test void productionSelectsOneCompleteWorkbenchSummarySchemaAndBatchLocalPrelearnSources()throws Exception{
+        AtomicReference<String> instruction=new AtomicReference<>();
+        ModelRegistry registry=(config,signal)->CompletableFuture.completedFuture(new ModelRegistry.PreparedCall(){
+            public Map<String,Object> config(){return config;}
+            public Map<String,Object> adapterDefaults(){return Map.of();}
+            public Map<String,Object> context(){return Map.of();}
+            public String systemPromptUpdate(){return "in-history";}
+            public Map<String,Object> retryPolicy(){return Map.of();}
+            public Flux<Map<String,Object>> stream(Map<String,Object> request){
+                var messages=(List<?>)request.get("messages");var system=(Map<?,?>)messages.get(0);
+                var content=(List<?>)system.get("content");instruction.set((String)((Map<?,?>)content.get(0)).get("text"));
+                return Flux.just(Map.of("type","text-delta","text","{}"),Map.of("type","finish","reason",Map.of("kind","stop")));
+            }
+        });
+        ModelCalls calls=new ModelCalls(registry,"test-only","controlled-stream");
+        calls.production("generate",Json.object().put("kind","book_summary").put("origin","workbench"),()->false);
+        String workbench=instruction.get();
+        assertTrue(workbench.contains("specialists:[{key,name,responsibility,methodTitles:[],typicalQuestions:[],sourceIds:[]}]"));
+        assertFalse(workbench.contains("specialists:[{key,name,responsibility,methodTitles:[]}]}"));
+        calls.production("generate",Json.object().put("kind","book_summary"),()->false);
+        String legacy=instruction.get();assertTrue(legacy.contains("specialists:[{key,name,responsibility,methodTitles:[]}]}"));
+        assertFalse(legacy.contains("typicalQuestions"));
+        calls.production("prelearn",Json.object(),()->false);
+        assertTrue(instruction.get().contains("passages.id"));
+        assertTrue(instruction.get().contains("previousUnits"));
+    }
     private ModelCalls calls(Flux<Map<String,Object>> chunks){
         ModelRegistry registry=(config,signal)->CompletableFuture.completedFuture(new ModelRegistry.PreparedCall(){
             public Map<String,Object> config(){return config;}

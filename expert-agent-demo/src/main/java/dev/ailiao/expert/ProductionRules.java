@@ -52,6 +52,9 @@ final class ProductionRules {
             super(message);shape=Json.object().put("field",field).put("type",value.getNodeType().name()).put("length",value.isTextual()?value.asText().length():value.size());
             if(value.isArray()){Set<String> types=new TreeSet<>();value.forEach(v->types.add(v.getNodeType().name()));shape.set("elementTypes",Json.MAPPER.valueToTree(types));}
         }
+        ValidationFailure(int candidateIndex,String field,JsonNode value,String message){
+            this(field,value,message);shape.put("candidateIndex",candidateIndex).put("nodeType",value.getNodeType().name()).put("count",value.isArray()?value.size():0);
+        }
         ObjectNode details(){return shape.deepCopy();}
     }
     private static String requiredField(JsonNode node,String key,int max){
@@ -142,11 +145,14 @@ final class ProductionRules {
     }
     static void validateProposalCandidates(ObjectNode output,ArrayNode chunks){
         Set<String> allowed=new HashSet<>();chunks.forEach(chunk->allowed.add(chunk.path("id").asText()));
+        int candidateIndex=0;
         for(JsonNode specialist:output.path("body").path("specialists")){
-            ArrayNode questions=array(specialist,"typicalQuestions",true),sources=array(specialist,"sourceIds",true);
-            if(questions.size()>8||sources.size()>24)throw new IllegalArgumentException("候选问题或来源数量过多");
-            for(JsonNode question:questions)if(!question.isTextual()||question.asText().isBlank()||question.asText().length()>500)throw new IllegalArgumentException("候选问题必须是有界的非空字符串");
-            for(JsonNode id:sources)if(!id.isTextual()||!allowed.contains(id.asText()))throw new IllegalArgumentException("候选来源不在本轮原文窗口");
+            JsonNode questionNode=specialist.path("typicalQuestions"),sourceNode=specialist.path("sourceIds");
+            if(!(questionNode instanceof ArrayNode questions)||questions.isEmpty()||questions.size()>8)throw new ValidationFailure(candidateIndex,"typicalQuestions",questionNode,"候选问题需为1–8条非空字符串");
+            if(!(sourceNode instanceof ArrayNode sources)||sources.isEmpty()||sources.size()>24)throw new ValidationFailure(candidateIndex,"sourceIds",sourceNode,"候选来源需为1–24个本轮片段身份");
+            int questionIndex=0;for(JsonNode question:questions){if(!question.isTextual()||question.asText().isBlank()||question.asText().length()>500)throw new ValidationFailure(candidateIndex,"typicalQuestions["+questionIndex+"]",question,"候选问题必须是有界的非空字符串");questionIndex++;}
+            int sourceIndex=0;for(JsonNode id:sources){if(!id.isTextual()||!allowed.contains(id.asText()))throw new ValidationFailure(candidateIndex,"sourceIds["+sourceIndex+"]",id,"候选来源不在本轮原文窗口");sourceIndex++;}
+            candidateIndex++;
         }
     }
 }

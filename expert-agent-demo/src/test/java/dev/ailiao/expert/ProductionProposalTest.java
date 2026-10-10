@@ -37,6 +37,34 @@ class ProductionProposalTest {
         }
     }
 
+    @Test void candidateFailureDetailsExposeOnlyShapeAndIndex() {
+        ObjectNode candidate=Json.object().put("key","secret-candidate");
+        ObjectNode output=Json.object();output.set("body",Json.object().set("specialists",Json.array().add(candidate)));
+        ProductionRules.ValidationFailure failure=assertThrows(ProductionRules.ValidationFailure.class,
+            ()->ProductionRules.validateProposalCandidates(output,Json.array()));
+        ObjectNode shape=failure.details();
+        assertEquals(0,shape.path("candidateIndex").asInt(-1));
+        assertEquals("typicalQuestions",shape.path("field").asText());
+        assertEquals("MISSING",shape.path("type").asText());
+        assertEquals("MISSING",shape.path("nodeType").asText());
+        assertEquals(0,shape.path("count").asInt(-1));
+        assertEquals(0,shape.path("length").asInt(-1));
+        assertFalse(shape.toString().contains("secret-candidate"));
+    }
+
+    @Test void invalidCandidateSourceDiagnosticOmitsPrivateSourceId() {
+        ObjectNode candidate=Json.object();candidate.set("typicalQuestions",Json.array().add("如何应用？"));
+        candidate.set("sourceIds",Json.array().add("private-invalid-source-id"));
+        ObjectNode output=Json.object();output.set("body",Json.object().set("specialists",Json.array().add(candidate)));
+        ProductionRules.ValidationFailure failure=assertThrows(ProductionRules.ValidationFailure.class,
+            ()->ProductionRules.validateProposalCandidates(output,Json.array()));
+        ObjectNode shape=failure.details();
+        assertEquals(0,shape.path("candidateIndex").asInt(-1));
+        assertEquals("sourceIds[0]",shape.path("field").asText());
+        assertEquals("STRING",shape.path("nodeType").asText());
+        assertFalse(shape.toString().contains("private-invalid-source-id"));
+    }
+
     @Test void selectOnlyPostPersistsOneUnapprovedBuildAndMetadata() throws Exception {
         try(var test=new ProductionTestServer(temporary)) {
             var response=test.request("POST","/proposals",request(test));

@@ -21,7 +21,7 @@ final class ModelCalls {
         try {
             try{tokens=Integer.parseInt(System.getenv().getOrDefault("EXPERT_PRODUCTION_MAX_TOKENS","7000"));characters=Integer.parseInt(System.getenv().getOrDefault("EXPERT_PRODUCTION_MAX_CHARACTERS","40000"));if(tokens<1024||tokens>32768||characters<4000||characters>262144)throw new IllegalArgumentException();}
             catch(IllegalArgumentException invalid){throw new ProductionModelException("MODEL_CONFIGURATION_INVALID","none",tokens,characters);}
-            if(cancelled.getAsBoolean())job.cancel();return json(ProductionPrompts.forPurpose(purpose),input.toString(),job,tokens,characters,true);
+            if(cancelled.getAsBoolean())job.cancel();return json(ProductionPrompts.forPurpose(purpose,input),input.toString(),job,tokens,characters,true);
         }catch(java.util.concurrent.CancellationException cancelledCall){throw cancelledCall;}
         catch(Exception error){ProductionModelException safe=ProductionModelException.classify(error,tokens,characters);System.err.println("Production model failure: "+safe.details());throw safe;}
         finally { watch.cancel(false);watcher.shutdownNow(); }
