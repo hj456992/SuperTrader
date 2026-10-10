@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatText = value => esc(value).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,4} (.+)$/gm, '<strong>$1</strong>');
 let state = {documents:[],experts:[]}, csrf = '', currentExpert = '', currentVersion = '', conversationId = '', busy = false, jobId = '', view = 'library';
-let pollTimer, importTimer, productionPage, workbenchPage, pendingCreation;
+let pollTimer, importTimer, productionPage, workbenchPage, pendingCreation, expertMode = 'new';
 const productionClient = ProductionAPI.client((path, options) => fetch(path, options), () => csrf);
 const date = value => new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 function notice(message, error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); $('notice').hidden = !message; }
@@ -18,11 +18,16 @@ function showView(name, route) {
   document.querySelectorAll('.nav').forEach(el => el.classList.toggle('active', el.dataset.view === name));
   $('breadcrumb').textContent = '专家实验室 / ' + ({library:'资料库',experts:'专家工作台',production:'生产审阅',chat:'试聊与验证'}[name]);
   if(name==='experts'){
-    if(!workbenchPage)workbenchPage=WorkbenchUI.create({root:$('workbench-root'),client:productionClient,onReview:buildId=>showView('production',{buildId})});
-    workbenchPage.setDocuments(state.documents);workbenchPage.enter();
+    if(route?.mode==='new')expertMode='new';
+    $('workbench-root').hidden=expertMode!=='new';$('legacy-expert').hidden=expertMode!=='legacy';
+    $('legacy-toggle').textContent=expertMode==='new'?'查看已有专家或使用旧版手动配置':'返回新团队候选';
+    if(expertMode==='new'){
+      if(!workbenchPage)workbenchPage=WorkbenchUI.create({root:$('workbench-root'),client:productionClient,onReview:buildId=>showView('production',{buildId})});
+      workbenchPage.setDocuments(state.documents);workbenchPage.enter();
+    }else workbenchPage?.leave();
   }else workbenchPage?.leave();
   if (name === 'production') {
-    if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts')});
+    if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts',{mode:'new'})});
     productionPage.enter(route || {buildId:''});
   } else {
     productionPage?.leave();
@@ -93,7 +98,7 @@ $('upload-open').onclick=()=>uploadDialog();$('upload-close').onclick=()=>$('upl
 ['dragenter','dragover'].forEach(ev=>$('dropzone').addEventListener(ev,e=>{e.preventDefault();$('dropzone').classList.add('dragover');}));['dragleave','drop'].forEach(ev=>$('dropzone').addEventListener(ev,e=>{e.preventDefault();$('dropzone').classList.remove('dragover');if(ev==='drop'&&e.dataTransfer.files.length){$('pdf-file').files=e.dataTransfer.files;fileChanged();}}));
 $('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const f=$('pdf-file').files[0];if(!f||f.size>20*1024*1024){$('upload-error').textContent='请选择 20MB 内的 PDF';return;}$('upload-submit').disabled=true;$('upload-submit').textContent='正在接收 PDF…';$('upload-error').textContent='';try{const q=new URLSearchParams({title:$('document-title').value.trim(),documentId:$('upload-document').value,filename:f.name});const r=await api('/api/documents?'+q,f,true);$('upload-dialog').close();watchImport(r.importId);}catch(err){$('upload-error').textContent=err.message;}finally{$('upload-submit').disabled=false;$('upload-submit').textContent='上传并解析';}};
 $('edit-expert').onchange=e=>chooseExpert(e.target.value);$('chat-expert').onchange=e=>chooseExpert(e.target.value);
-$('legacy-toggle').onclick=()=>{$('legacy-expert').hidden=!$('legacy-expert').hidden;};
+$('legacy-toggle').onclick=()=>{expertMode=expertMode==='new'?'legacy':'new';showView('experts');};
 ['expert-version','chat-version'].forEach(id=>$(id).onchange=e=>{currentVersion=e.target.value;renderSelectors();renderTeam();loadForm();resetChat();});
 $('expert-form').onsubmit=async e=>{
   e.preventDefault();if(busy)return;
