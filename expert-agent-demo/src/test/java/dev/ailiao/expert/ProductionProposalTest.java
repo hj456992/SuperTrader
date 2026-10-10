@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -154,6 +155,24 @@ class ProductionProposalTest {
             assertEquals(build,test.request("POST","/proposals",request(test)).body().path("buildId").asText());
             assertEquals("paused",test.snapshot(build).path("status").asText());
             assertEquals(1,test.db.read(c->ProductionDatabase.one(c,"SELECT count(*) n FROM ep_build")).path("n").asInt());
+        }
+    }
+
+    @Test void renamedSourceTitleDoesNotChangeIdentityOrAddWork() throws Exception {
+        ProposalModel model=new ProposalModel();
+        try(var test=new ProductionTestServer(temporary,model)) {
+            String first=test.request("POST","/proposals",request(test)).body().path("buildId").asText();
+            Path file=test.root.resolve("legacy-fixture/state.json");
+            ObjectNode state=Json.parse(Files.readString(file));
+            ((ObjectNode)state.path("documents").get(0)).put("title","资料更名后的显示名称");
+            Files.writeString(file,state.toString());
+            LabStore renamed=new LabStore(test.root.resolve("legacy-fixture"));
+            try(var service=new ProductionService(test.db,model,renamed,test.redis,test.root.resolve("shared-fixture"))) {
+                ObjectNode reused=service.propose(request(test));
+                assertEquals(first,reused.path("buildId").asText());
+                assertEquals(1,test.db.read(c->ProductionDatabase.one(c,"SELECT count(*) n FROM ep_job WHERE build_id=?",first)).path("n").asInt());
+                assertEquals(0,model.inputs.size());
+            }
         }
     }
 

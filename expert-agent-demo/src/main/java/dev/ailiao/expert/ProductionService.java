@@ -66,14 +66,20 @@ final class ProductionService implements AutoCloseable {
         ObjectNode request=Json.object().put("origin","workbench").put("teamId",team).put("teamName",name).put("name",name)
             .put("responsibility","学习全部所选资料中的方法，按有依据的主题形成同一团队内的专业分工，并回答适用问题；资料不足时说明边界。");
         request.set("documents",pairs);
-        return create(build,request);
+        return create(build,request,true);
     }
 
-    ObjectNode create(String buildId,ObjectNode request)throws Exception{
+    ObjectNode create(String buildId,ObjectNode request)throws Exception{return create(buildId,request,false);}
+    private static boolean sameProposal(JsonNode stored,ObjectNode request){
+        JsonNode old=stored.path("context_snapshot").path("creationRequest");
+        return "workbench".equals(s(old,"origin"))&&"workbench".equals(s(request,"origin"))
+            &&s(old,"teamId").equals(s(request,"teamId"))&&old.path("documents").equals(request.path("documents"));
+    }
+    private ObjectNode create(String buildId,ObjectNode request,boolean sourceIdentity)throws Exception{
         uuid(buildId);String team=Json.required(request,"teamId",80);uuid(team);Json.required(request,"name",200);Json.required(request,"responsibility",4000);
         String fingerprint=ProductionRules.hash(request);
         ObjectNode existing=db.read(c->one(c,"SELECT context_snapshot FROM ep_message WHERE build_id=? AND client_request_id='build:create'",buildId));
-        if(existing!=null){if(!fingerprint.equals(existing.path("context_snapshot").path("requestHash").asText()))throw error(409,"IDEMPOTENCY_KEY_REUSED","构建身份已用于其他内容");return acceptedBuild(buildId);}
+        if(existing!=null){if(!fingerprint.equals(existing.path("context_snapshot").path("requestHash").asText())&&!(sourceIdentity&&sameProposal(existing,request)))throw error(409,"IDEMPOTENCY_KEY_REUSED","构建身份已用于其他内容");return acceptedBuild(buildId);}
         ArrayNode selections=Json.array();for(JsonNode d:ProductionRules.array(request,"documents",true))selections.add(Json.object().put("documentId",s(d,"documentId")).put("versionId",s(d,"documentVersionId")));
         ArrayNode chunks;try{chunks=legacy.selectedChunks(selections);}catch(IllegalArgumentException ex){throw error(422,"DOCUMENT_NOT_READY",ex.getMessage());}
         ArrayNode versions=Json.array();Files.createDirectories(sharedFiles);
@@ -89,7 +95,7 @@ final class ProductionService implements AutoCloseable {
             execute(c,"INSERT INTO ep_team(id,name,created_by) VALUES(?,?,?) ON CONFLICT(id) DO NOTHING",team,request.path("teamName").asText(s(request,"name")),ACTOR);
             one(c,"SELECT id FROM ep_team WHERE id=? FOR UPDATE",team);
             ObjectNode dup=one(c,"SELECT context_snapshot FROM ep_message WHERE build_id=? AND client_request_id='build:create'",buildId);
-            if(dup!=null){if(!fingerprint.equals(dup.path("context_snapshot").path("requestHash").asText()))throw error(409,"IDEMPOTENCY_KEY_REUSED","构建身份冲突");return null;}
+            if(dup!=null){if(!fingerprint.equals(dup.path("context_snapshot").path("requestHash").asText())&&!(sourceIdentity&&sameProposal(dup,request)))throw error(409,"IDEMPOTENCY_KEY_REUSED","构建身份冲突");return null;}
             int no=one(c,"SELECT coalesce(max(build_no),0)+1 n FROM ep_build WHERE team_id=?",team).path("n").asInt();
             execute(c,"INSERT INTO ep_build(id,team_id,build_no,created_by) VALUES(?,?,?,?)",buildId,team,no,ACTOR);
             for(JsonNode version:versions){String v=s(version,"id"),doc=s(version,"documentId");String title="已选资料";for(JsonNode chunk:chunks)if(v.equals(s(chunk,"versionId"))){title=s(chunk,"title");break;}
