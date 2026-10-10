@@ -51,7 +51,7 @@
     }
     const bp=id=>'/builds/'+encodeURIComponent(id);
     return {
-      list:()=>request('/builds'),create:(id,body)=>request(bp(id),'PUT',body),
+      list:()=>request('/builds'),create:(id,body)=>request(bp(id),'PUT',body),propose:documents=>request('/proposals','POST',{documents}),
       snapshot:(id,before)=>request(bp(id)+'/snapshot'+(before?'?messageBeforeSeq='+encodeURIComponent(before):'')),
       events:(id,after)=>request(bp(id)+'/events?afterSeq='+encodeURIComponent(after||'0')),
       message:(id,body)=>request(bp(id)+'/messages','POST',body),

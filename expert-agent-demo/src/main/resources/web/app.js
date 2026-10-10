@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatText = value => esc(value).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/^#{1,4} (.+)$/gm, '<strong>$1</strong>');
 let state = {documents:[],experts:[]}, csrf = '', currentExpert = '', currentVersion = '', conversationId = '', busy = false, jobId = '', view = 'library';
-let pollTimer, importTimer, productionPage, pendingCreation;
+let pollTimer, importTimer, productionPage, workbenchPage, pendingCreation;
 const productionClient = ProductionAPI.client((path, options) => fetch(path, options), () => csrf);
 const date = value => new Date(value).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 function notice(message, error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); $('notice').hidden = !message; }
@@ -17,6 +17,10 @@ function showView(name, route) {
   view = name; document.querySelectorAll('.view').forEach(el => el.hidden = el.id !== 'view-' + name);
   document.querySelectorAll('.nav').forEach(el => el.classList.toggle('active', el.dataset.view === name));
   $('breadcrumb').textContent = '专家实验室 / ' + ({library:'资料库',experts:'专家工作台',production:'生产审阅',chat:'试聊与验证'}[name]);
+  if(name==='experts'){
+    if(!workbenchPage)workbenchPage=WorkbenchUI.create({root:$('workbench-root'),client:productionClient,onReview:buildId=>showView('production',{buildId})});
+    workbenchPage.setDocuments(state.documents);workbenchPage.enter();
+  }else workbenchPage?.leave();
   if (name === 'production') {
     if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts')});
     productionPage.enter(route || {buildId:''});
@@ -30,7 +34,7 @@ function selectedVersion() { return selectedExpert()?.versions.find(v => v.id ==
 async function refresh() {
   state = await api('/api/state'); csrf = state.csrf;
   if (currentExpert && !selectedExpert()) { currentExpert = ''; currentVersion = ''; }
-  renderLibrary(); renderSelectors(); renderTeam();
+  renderLibrary(); renderSelectors(); renderTeam();workbenchPage?.setDocuments(state.documents);
 }
 function renderLibrary() {
   $('imports').innerHTML=(state.imports||[]).filter(r=>r.status!=='completed').map(r=>`<article class="document"><div class="document-header"><div class="doc-info"><h3>${esc(r.title||'PDF 云解析')}</h3><p>${esc(r.message||r.status)}</p></div>${r.status==='running'?`<button class="secondary" data-watch-import="${esc(r.id)}">查看进度</button>`:''}${r.canSplit?`<button class="secondary" data-split-import="${esc(r.id)}">分成每份最多200页，解析后合并</button>`:''}${r.canResume?`<button class="secondary" data-resume-import="${esc(r.id)}">继续原任务</button>`:''}</div></article>`).join('');
@@ -89,6 +93,7 @@ $('upload-open').onclick=()=>uploadDialog();$('upload-close').onclick=()=>$('upl
 ['dragenter','dragover'].forEach(ev=>$('dropzone').addEventListener(ev,e=>{e.preventDefault();$('dropzone').classList.add('dragover');}));['dragleave','drop'].forEach(ev=>$('dropzone').addEventListener(ev,e=>{e.preventDefault();$('dropzone').classList.remove('dragover');if(ev==='drop'&&e.dataTransfer.files.length){$('pdf-file').files=e.dataTransfer.files;fileChanged();}}));
 $('upload-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const f=$('pdf-file').files[0];if(!f||f.size>20*1024*1024){$('upload-error').textContent='请选择 20MB 内的 PDF';return;}$('upload-submit').disabled=true;$('upload-submit').textContent='正在接收 PDF…';$('upload-error').textContent='';try{const q=new URLSearchParams({title:$('document-title').value.trim(),documentId:$('upload-document').value,filename:f.name});const r=await api('/api/documents?'+q,f,true);$('upload-dialog').close();watchImport(r.importId);}catch(err){$('upload-error').textContent=err.message;}finally{$('upload-submit').disabled=false;$('upload-submit').textContent='上传并解析';}};
 $('edit-expert').onchange=e=>chooseExpert(e.target.value);$('chat-expert').onchange=e=>chooseExpert(e.target.value);
+$('legacy-toggle').onclick=()=>{$('legacy-expert').hidden=!$('legacy-expert').hidden;};
 ['expert-version','chat-version'].forEach(id=>$(id).onchange=e=>{currentVersion=e.target.value;renderSelectors();renderTeam();loadForm();resetChat();});
 $('expert-form').onsubmit=async e=>{
   e.preventDefault();if(busy)return;

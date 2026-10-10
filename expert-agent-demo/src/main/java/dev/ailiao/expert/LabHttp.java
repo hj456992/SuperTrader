@@ -58,7 +58,7 @@ final class LabHttp implements AutoCloseable {
                 if (path.startsWith("/api/jobs/")) { send(exchange, 200, jobs.get(path.substring(10)).snapshot()); return; }
                 if (path.equals("/api/passage")) { send(exchange, 200, store.passage(query(exchange).getOrDefault("id", ""))); return; }
                 if (path.equals("/api/health")) { send(exchange, 200, Json.object().put("status", "ready").put("runtime", "dsh-java / AgentScope")); return; }
-                Map<String, String> resources = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css", "/production.js", "production.js", "/production.css", "production.css", "/production-api.js", "production-api.js");
+                Map<String, String> resources = Map.of("/", "index.html", "/app.js", "app.js", "/style.css", "style.css", "/production.js", "production.js", "/production.css", "production.css", "/production-api.js", "production-api.js", "/workbench.js", "workbench.js", "/workbench.css", "workbench.css");
                 if (resources.containsKey(path)) {
                     try (InputStream stream = getClass().getResourceAsStream("/web/" + resources.get(path))) {
                         if (stream == null) { send(exchange, 404, Json.object().put("error", "页面尚未构建")); return; }
