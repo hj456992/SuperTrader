@@ -1,5 +1,15 @@
 # 概要审核第一闭环接口契约
 
+## 工作台候选入口（2026-10-10，已实现接口）
+
+`POST /api/expert-production/v1/proposals` 接收 `{"documents":[{"documentId":"…","documentVersionId":"…"}]}`，不要求先填写名称或职责。使用现有本地 Host/CSRF 校验，返回 HTTP 202 和已有 acceptedBuild 结构；管理员身份仍是本地 Demo 的 local-admin，未接入正式多租户鉴权。
+
+服务验证资料就绪及版本归属，按资料/版本身份规范排序后派生确定的团队和构建 ID。同组合重复、重排、并发请求及资料改名都复用原构建，不重复排队；取消的构建允许创建确定的后继构建，暂停或失败不会被入口隐式恢复。旧 `PUT /builds/{buildId}` 保持完整创建请求指纹校验。工作台创建请求额外记录 `origin=workbench`，复用已有预学习与概要生成任务及表结构。
+
+该来源的快照额外包含 `proposal.documents` 和 `proposal.sources`，后者只有 `chunkId/documentVersionId/pageNo/title` 元数据；正文仍由现有来源接口读取。`summary.body.specialists` 中每位候选除原有字段外，还须提供非空 `typicalQuestions` 和 `sourceIds`，来源 ID 校验为本轮真实输入中的片段，修订概要也执行校验。候选数量仍为1–6，展示和进入审阅不会产生批准记录，概要确认后才继续生成专家完整提示词。
+
+下面保留最初的概要闭环设计合同，包含当时尚未实现的阶段描述；当前完整管理员生产状态及验证以 [集成记录](integration-results.md) 为准。
+
 2026-10-05，详细设计草案。依据 [本轮范围](README.md)、[存储设计](storage-design.md)、[建表草案](schema.sql)。未实现接口、执行建表或部署 Redis。仅展开已上传资料的预学习与概要审核；概要确认后停在 `phase=specialists,status=active`，不创建真实专家，不把整个构建标为 completed。
 
 ## 状态与数据约定
