@@ -51,3 +51,30 @@ test('预学习失败和已停止的当前生成可以重试，暂停与取消�
   for(const buildStatus of ['paused','cancelled']){s.status=buildStatus;b.setSnapshot(s);await b.dom.getElementById('ep-refresh').fire('click');assert.equal(b.dom.getElementById('ep-retry').disabled,true);}
  }
 });
+
+test('审阅正文显示中文问题并隐藏内部标识，空白项不占列表',async()=>{
+ const s=fixture();s.currentArtifact.kind='book_summary';s.currentArtifact.currentRevision.body={specialists:[{key:'thinking_logic',name:'思考逻辑专家',typicalQuestions:['如何归纳？','',null,'   '],sourceIds:['source-a']}],schemaVersion:1};s.proposal={sources:[{chunkId:'source-a',title:'金字塔原理',pageNo:23}]};
+ const b=component(s);await b.ui.enter({buildId:'build-1'});const body=b.dom.getElementById('ep-body');assert.match(body.textContent,/典型问题/);assert.match(body.textContent,/如何归纳/);assert.doesNotMatch(body.textContent,/typicalQuestions|thinking_logic|source-a|schemaVersion/);assert.ok(body.querySelectorAll('li').every(x=>x.textContent.trim()));
+ assert.doesNotMatch(b.dom.getElementById('ep-revision-meta').textContent,/hash2|内容摘要/);assert.match(b.dom.getElementById('ep-revision-meta').textContent,/第 2 版/);const technical=b.dom.getElementById('ep-technical');assert.equal(technical.tagName,'DETAILS');assert.ok(!technical.open);assert.match(technical.textContent,/thinking_logic/);assert.match(technical.textContent,/hash2/);
+});
+test('候选来源按书名页码展示且点击读取对应原文，无元信息也保留核查入口',async()=>{
+ const s=fixture();s.currentArtifact.currentRevision.body={sourceIds:['source-a','missing-meta']};s.proposal={sources:[{chunkId:'source-a',title:'金字塔原理',pageNo:23}]};const calls=[];
+ const b=component(s,{source:async(id,source)=>{calls.push([id,source]);return {documentVersionId:'private-version-id',pageNo:23,chapterPath:'归纳推理',text:'供核对的原文',originalPageUrl:'/api/expert-production/v1/builds/build-1/source-versions/v/file#page=23'};}});await b.ui.enter({buildId:'build-1'});
+ const buttons=b.dom.getElementById('ep-body').querySelectorAll('button');assert.match(buttons[0].textContent,/金字塔原理.*23.*查看原文/);await buttons[0].fire('click');assert.equal(calls[0][1].chunkId,'source-a');assert.match(b.dom.getElementById('ep-source-meta').textContent,/金字塔原理.*23/);assert.doesNotMatch(b.dom.getElementById('ep-source-meta').textContent,/private-version-id|Unicode/);assert.match(b.dom.getElementById('ep-source-text').textContent,/供核对的原文/);
+ assert.match(buttons[1].textContent,/来源 2.*页码待核对/);await buttons[1].fire('click');assert.equal(calls[1][1].chunkId,'missing-meta');
+});
+test('历史稿来源使用所查看版本，保留精确引文范围及确认身份',async()=>{
+ const s=fixture();s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',body:{sourceIds:['old-source']},sources:[{chunkId:'old-source',pageNo:4,startOffset:1,endOffset:8,purpose:'说明归纳过程'}]}];const calls=[];const b=component(s,{source:async(id,source)=>{calls.push(source);return {pageNo:4,text:'旧稿对应原文'};}});await b.ui.enter({buildId:'build-1',artifactId:'agent-1',revisionId:'old'});const buttons=b.dom.getElementById('ep-sources').querySelectorAll('button');await buttons[0].fire('click');assert.equal(calls[0].chunkId,'old-source');assert.equal(calls[0].startOffset,1);assert.equal(calls[0].endOffset,8);assert.match(b.dom.getElementById('ep-sources').textContent,/说明归纳过程/);assert.equal(b.dom.getElementById('ep-approve').disabled,true);
+ await b.ui.enter({buildId:'build-1'});await b.dom.getElementById('ep-approve').fire('click');assert.equal(b.calls[0].reviewContext.contentSha256,'hash2');assert.equal(b.calls[0].reviewContext.revisionId,'rev-2');
+});
+test('路由规则用专家名称与中文策略表达，未知补充字段值和完整提示词保留',async()=>{
+ const s=fixture();s.summary={body:{specialists:[{key:'thinking_logic',name:'思考逻辑专家'}]}};s.currentArtifact.currentRevision.body={rules:[{specialistKey:'thinking_logic',keywords:['推理']}],metric:'cosine',multiMatch:'L3',noMatch:'L2',comparison:'>',embeddingProvider:'aliyun-bailian',extraInfo:'这段业务信息必须保留'};s.currentArtifact.currentRevision.systemPrompt='必须保留原始提示词 read_passage 和 thinking_logic';const b=component(s);await b.ui.enter({buildId:'build-1'});const body=b.dom.getElementById('ep-body').textContent;assert.match(body,/思考逻辑专家/);assert.match(body,/余弦相似度/);assert.match(body,/主专家路由/);assert.match(body,/问答匹配/);assert.match(body,/阿里云百炼/);assert.match(body,/这段业务信息必须保留/);assert.doesNotMatch(body,/thinking_logic|extraInfo|cosine|aliyun-bailian/);assert.match(b.dom.getElementById('ep-prompt').textContent,/read_passage 和 thinking_logic/);assert.doesNotMatch(b.dom.getElementById('ep-scope').textContent,/artifact.full/);
+});
+
+test('最终清单将后端成员身份解析为对应版本中文名称，不泄露分工key',async()=>{
+ const s=fixture();const expert=JSON.parse(JSON.stringify(s.currentArtifact));expert.logicalKey='specialist:thinking_logic';expert.revisions=[{...expert.currentRevision,id:'rev-1',revisionNo:1,body:{name:'历史推理专家'}}];s.artifacts=[expert];s.currentArtifact={id:'manifest',kind:'team_manifest',currentRevision:{id:'manifest-r',revisionNo:1,generationStatus:'succeeded',reviewStatus:'pending',body:{members:[{artifactId:expert.id,kind:'agent',logicalKey:'specialist:thinking_logic',revisionId:'rev-1',contentSha256:'private-hash'}]}}};
+ const b=component(s);await b.ui.enter({buildId:'build-1'});const body=b.dom.getElementById('ep-body').textContent;assert.match(body,/历史推理专家/);assert.match(body,/第 1 版/);assert.doesNotMatch(body,/thinking_logic|private-hash|agent-1|rev-1|表达顾问/);
+});
+test('来源修订对比保留新旧引用说明及原文引文',async()=>{
+ const s=fixture();s.currentArtifact.currentRevision.sources=[{chunkId:'s',pageNo:2,purpose:'新引用说明',quote:'新引文'}];s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',revisionNo:1,sources:[{chunkId:'s',pageNo:2,purpose:'旧引用说明',quote:'旧引文'}]}];const b=component(s);await b.ui.enter({buildId:'build-1'});const diff=b.dom.getElementById('ep-diff').textContent;for(const text of ['新引用说明','旧引用说明','新引文','旧引文'])assert.ok(diff.includes(text));
+});
