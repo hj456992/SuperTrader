@@ -25,3 +25,29 @@ test('网络结果未知时手动重试复用完整原请求',async()=>{const ca
 test('历史稿自由提问不附带过期审核身份，原话保持不变',()=>{const A=moduleUnderTest(),s=fixture();s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',contentSha256:'old-hash'}];s.messages.push({id:'old-message',role:'assistant',presentation:{artifactId:'agent-1',revisionId:'old',contentSha256:'old-hash',scope:'artifact.full'}});const target=A.target(s,'agent-1','old');const r=A.messageRequest(s,target,'旧版有哪些不同？','old-question');assert.equal(r.reviewContext,undefined);assert.equal(r.content,'旧版有哪些不同？');});
 test('切换到读取失败的新构建不会残留上一构建完成提示',async()=>{let reads=0;const done=fixture();done.status='completed';done.phase='final_review';const b=component(done,{snapshot:async()=>{if(reads++===0)return done;throw new Error('新构建暂不可读');}});await b.ui.enter({buildId:'build-1'});assert.equal(b.dom.getElementById('ep-completion').hidden,false);await b.ui.enter({buildId:'build-2'});assert.equal(b.dom.getElementById('ep-completion').hidden,true);});
 test('关键词、问答和最终完整流程均来自真实响应并对应正确scope',async()=>{for(const [kind,body,scope] of [['keyword_rule',{rules:[{specialistKey:'writer',keywords:['汇报','结构']}]},'artifact.full'],['qa_example',{examples:[{question:'如何表达？',answer:'先确认问题，再组织依据。',sourceIds:['s1']}],comparison:'>',threshold:0.9},'artifact.full'],['team_manifest',{summary:'团队完成流程',flow:['关键词匹配','多专家交给主专家路由'],members:[{revisionId:'rev-x'}]},'team.full']]){const s=fixture();s.currentArtifact.kind=kind;s.currentArtifact.currentRevision.body=body;s.messages[0].presentation.scope=scope;const b=component(s);await b.ui.enter({buildId:'build-1'});assert.match(b.root.textContent,new RegExp(kind==='keyword_rule'?'汇报':kind==='qa_example'?'如何表达':'多专家交给主专家路由'));await b.dom.getElementById('ep-approve').fire('click');assert.equal(b.calls[0].action.scope,scope);}});
+
+test('恢复成功后旧失败归入折叠历史，不能重复重试已就绪成果',async()=>{
+ const s=fixture();s.jobs=[{id:'p1',kind:'prelearn',status:'failed',error:{message:'预学习方法引用本批以外的来源'}},{id:'p2',kind:'prelearn',status:'succeeded'},{id:'g1',kind:'generate_artifact',targetRevisionId:'rev-2',status:'failed',error:{message:'模型缺少有效 typicalQuestions'}},{id:'g2',kind:'generate_artifact',targetRevisionId:'rev-2',status:'succeeded'}];
+ const b=component(s);await b.ui.enter({buildId:'build-1'});
+ assert.equal(b.dom.getElementById('ep-retry').disabled,true);
+ assert.doesNotMatch(b.dom.getElementById('ep-jobs').textContent,/处理失败|typicalQuestions|本批以外/);
+ const history=b.dom.getElementById('ep-job-history');assert.equal(history.tagName,'DETAILS');assert.ok(!history.open);assert.equal(history.hidden,false);
+ assert.match(history.textContent,/预学习方法引用本批以外的来源/);assert.match(history.textContent,/模型缺少有效 typicalQuestions/);assert.match(history.textContent,/后续尝试已成功/);
+});
+test('当前稿真实失败可重试，排队重试后旧错误不再作为当前故障',async()=>{
+ const s=fixture();s.currentArtifact.currentRevision.generationStatus='failed';s.jobs=[{id:'g1',kind:'generate_artifact',targetRevisionId:'rev-2',status:'failed',error:{message:'当前模型调用失败'}}];
+ const b=component(s);await b.ui.enter({buildId:'build-1'});assert.equal(b.dom.getElementById('ep-retry').disabled,false);assert.match(b.dom.getElementById('ep-jobs').textContent,/当前模型调用失败/);
+ s.currentArtifact.currentRevision.generationStatus='queued';s.jobs.push({id:'g2',kind:'generate_artifact',targetRevisionId:'rev-2',status:'queued'});b.setSnapshot(s);await b.dom.getElementById('ep-refresh').fire('click');
+ assert.equal(b.dom.getElementById('ep-retry').disabled,true);assert.doesNotMatch(b.dom.getElementById('ep-jobs').textContent,/当前模型调用失败/);assert.match(b.dom.getElementById('ep-jobs').textContent,/排队中/);assert.match(b.dom.getElementById('ep-job-history').textContent,/当前模型调用失败/);
+});
+test('回看历史稿或消息处理失败不改变当前生成任务的重试资格',async()=>{
+ const s=fixture();s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',generationStatus:'failed'}];s.jobs=[{id:'old-job',kind:'generate_artifact',targetRevisionId:'old',status:'failed',error:'旧稿失败'},{id:'message-job',kind:'interpret_message',targetRevisionId:'rev-2',status:'failed',error:'消息识别失败'}];
+ const b=component(s);await b.ui.enter({buildId:'build-1',artifactId:'agent-1',revisionId:'old'});assert.equal(b.dom.getElementById('ep-retry').disabled,true);assert.doesNotMatch(b.dom.getElementById('ep-jobs').textContent,/失败/);assert.match(b.dom.getElementById('ep-job-history').textContent,/旧稿失败/);assert.match(b.dom.getElementById('ep-job-history').textContent,/消息识别失败/);assert.doesNotMatch(b.dom.getElementById('ep-job-history').textContent,/后续尝试已成功/);
+});
+test('预学习失败和已停止的当前生成可以重试，暂停与取消构建不能重试',async()=>{
+ for(const phase of ['prelearning','specialists'])for(const status of ['failed','cancelled']){
+  const s=fixture();s.phase=phase;s.currentArtifact.currentRevision.generationStatus=status;s.jobs=[{id:'j1',kind:phase==='prelearning'?'prelearn':'revise_artifact',targetRevisionId:phase==='prelearning'?null:'rev-2',status}];
+  const b=component(s);await b.ui.enter({buildId:'build-1'});assert.equal(b.dom.getElementById('ep-retry').disabled,false);
+  for(const buildStatus of ['paused','cancelled']){s.status=buildStatus;b.setSnapshot(s);await b.dom.getElementById('ep-refresh').fire('click');assert.equal(b.dom.getElementById('ep-retry').disabled,true);}
+ }
+});

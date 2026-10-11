@@ -28,6 +28,7 @@
     const toolbar=el('div','ep-toolbar');const titlebox=el('div');titlebox.append(add('ep-build-title','h2'),add('ep-position','p','muted'));
     const controls=el('div','row');for(const [type,text] of [['pause','暂停生成'],['resume','恢复'],['retry','重试失败任务'],['cancel','取消构建']]){controls.append(button(text,'secondary',()=>type==='cancel'?nodes['ep-cancel-dialog'].showModal():submit(text,{type}),'ep-'+type));}
     controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls);detail.append(toolbar,add('ep-jobs','div','ep-jobs'));
+    const jobHistory=add('ep-job-history','details','ep-diff');jobHistory.hidden=true;jobHistory.append(add('ep-job-history-title','summary'),el('p','muted','以下是此前尝试的失败记录，不代表当前任务状态。'),add('ep-job-history-items'));detail.append(jobHistory);
     const grid=el('div','ep-grid');const nav=add('ep-stages','nav','ep-stages');nav.setAttribute('aria-label','专家生产阶段');
     const work=el('div','ep-work');const art=el('section','ep-artifact');
     const artHead=el('div','ep-card-head');artHead.append(add('ep-artifact-title','h2'),add('ep-review-badge','span','tag'));art.append(artHead);
@@ -70,15 +71,33 @@
     function renderMessages(){if(!state)return;const records=[...older,...(state.messages||[])];if(state.waitingQuestionMessage&&!records.some(m=>m.id===state.waitingQuestionMessage.id))records.push(state.waitingQuestionMessage);const seen=new Set();const unique=records.filter(m=>!seen.has(m.id)&&(seen.add(m.id),true)).sort((a,b)=>{try{return BigInt(a.seq||0)<BigInt(b.seq||0)?-1:1;}catch{return 0;}});const key=JSON.stringify(unique);
       if(key!==messageKey){const log=nodes['ep-messages'];const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<70;log.replaceChildren(...unique.map(m=>{const row=el('div','ep-message '+(m.role==='user'||m.role==='admin'?'ep-admin':''));row.append(el('div','ep-message-role',m.role==='assistant'?'构建 Master':m.role==='user'||m.role==='admin'?'管理员':'生产记录'),el('div','ep-bubble',m.content||''));const ps=m.processingStatus;const error=m.result?.error;const label=ps?({queued:'等待处理',running:'处理中',succeeded:'已处理',failed:'处理失败',cancelled:'已取消'}[ps]||ps):'';row.append(el('div','ep-meta',label+(m.result?.httpStatus>=400?' · '+(typeof error==='string'?error:error?.message||m.result?.message||`处理未完成 (${m.result.httpStatus})`):'')));return row;}));if(nearBottom||!messageKey)log.scrollTop=log.scrollHeight;messageKey=key;}
       nodes['ep-older'].hidden=!(older.length?olderCursor:state.hasOlderMessages);}
+    function renderJobs() {
+      const jobs=state.jobs||[],prelearning=state.phase==='prelearning',revision=A.target(state)?.revision;
+      // Retry follows the server's current generation target, never the viewed historical revision or chat jobs.
+      const relevant=jobs.filter(j=>prelearning?j.kind==='prelearn':!!revision&&j.kind!=='interpret_message'&&j.targetRevisionId===revision.id);
+      const latest=relevant.at(-1),pending=relevant.some(j=>['queued','running'].includes(j.status));
+      const retryable=!pending&&['failed','cancelled'].includes(latest?.status)&&(prelearning||['failed','cancelled'].includes(revision?.generationStatus));
+      const currentFailure=retryable?latest:null;
+      function row(j,label,error=false){const box=el('div','ep-job'+(error?' ep-error':''));const msg=typeof j.error==='string'?j.error:j.error?.message||'';box.append(el('strong','',`${j.kind||'任务'} · ${label}`),el('span','',msg||j.phase||''));return box;}
+      const live=jobs.filter(j=>['queued','running'].includes(j.status)||j===currentFailure);
+      nodes['ep-jobs'].replaceChildren(...live.map(j=>row(j,statusText[j.status]||j.status,j.status==='failed')));
+      if(!prelearning&&revision?.generationStatus==='succeeded'&&!pending)nodes['ep-jobs'].append(el('p','muted','当前生成已就绪，请继续审阅。'));
+      const history=jobs.filter(j=>j.status==='failed'&&j!==currentFailure);
+      jobHistory.hidden=!history.length;nodes['ep-job-history-title'].textContent=`历史失败记录（${history.length}）`;
+      nodes['ep-job-history-items'].replaceChildren(...history.map(j=>{
+        const recovered=j.kind!=='interpret_message'&&jobs.slice(jobs.indexOf(j)+1).some(next=>next.status==='succeeded'&&(j.kind==='prelearn'?next.kind==='prelearn':next.kind!=='interpret_message'&&next.kind!=='prelearn'&&!!j.targetRevisionId&&next.targetRevisionId===j.targetRevisionId));
+        return row(j,recovered?'此前失败，后续尝试已成功':'历史处理失败');
+      }));
+      return retryable;
+    }
     function render() {
       nodes['ep-resend'].hidden=!pendingRequest;nodes['ep-resend'].disabled=posting;
-      if(!state){nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','reject','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
+      if(!state){jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','reject','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
       const t=target(),a=t?.artifact,r=t?.revision,all=A.artifacts(state),current=state.currentArtifact;
       nodes['ep-build-title'].textContent=state.name||'生产构建';nodes['ep-position'].textContent=`${statusText[state.status]||state.status} · 当前阶段：${A.phases.find(p=>p[0]===state.phase)?.[1]||state.phase} · 查看：${t?currentName(t)+' v'+r.revisionNo:'等待稿件'}`;
       nodes['ep-stages'].replaceChildren(...A.phases.map(([phase,label],i)=>{const available=all.filter(x=>A.phaseFor(x)===phase);const b=button('','ep-stage'+(state.phase===phase?' active':''),()=>{if(available.length)selectFocus(available[0].id,'');});b.disabled=!available.length;b.append(el('span','ep-step',String(i+1).padStart(2,'0')),el('span','',label),el('small','',available.length?`${available.length} 份成果`:state.phase===phase?'处理中':'待生成'));if(state.phase===phase)b.setAttribute('aria-current','step');return b;}));
-      const blocked=posting||needsReload||loading;
-      nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!(state.jobs||[]).some(j=>j.status==='failed');nodes['ep-send'].disabled=posting||needsReload||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
-      nodes['ep-jobs'].replaceChildren(...(state.jobs||[]).filter(j=>['queued','running','failed'].includes(j.status)).map(j=>{const box=el('div','ep-job'+(j.status==='failed'?' ep-error':''));const msg=typeof j.error==='string'?j.error:j.error?.message||'';box.append(el('strong','',`${j.kind||'任务'} · ${statusText[j.status]||j.status}`),el('span','',msg||j.phase||''));return box;}));
+      const blocked=posting||needsReload||loading,retryable=renderJobs();
+      nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!retryable;nodes['ep-send'].disabled=posting||needsReload||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
       aselect.replaceChildren(...all.map(x=>{const o=el('option','',`${kindText[x.kind]||x.kind} · ${x.currentRevision?.body?.name||x.currentRevision?.body?.title||x.logicalKey||x.id}`);o.value=x.id;o.selected=x.id===a?.id;return o;}));
       const revisions=a?[a.currentRevision,...(a.revisions||[])].filter(Boolean).filter((x,i,list)=>list.findIndex(y=>y.id===x.id)===i).sort((x,y)=>Number(y.revisionNo)-Number(x.revisionNo)):[];
       rselect.replaceChildren(...revisions.map(v=>{const o=el('option','',`v${v.revisionNo} · ${statusText[v.reviewStatus]||v.reviewStatus}${v.id===a.currentRevision?.id?' · 当前稿':''}`);o.value=v.id;o.selected=v.id===r?.id;return o;}));
