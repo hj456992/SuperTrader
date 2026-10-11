@@ -22,7 +22,7 @@
   function currentName(t){return t?.revision.body?.name||t?.revision.body?.title||kindText[t?.artifact.kind]||'当前成果';}
   function create({root,client,onRoute=()=>{},onNew=()=>{}}) {
     let state=null,buildId='',focusArtifact='',focusRevision='',epoch=0,timer=null,active=false,posting=false,loading=false,needsReload=false,pendingRequest=null,draftContext=null;
-    let older=[],olderCursor='',messageKey='',sourceRequest=0;
+    let older=[],olderCursor='',messageKey='',sourceRequest=0,regenerateContext=null;
     const nodes={};
     function button(text,cls,click,id){const node=makeButton(text,cls,click,id);if(id)nodes[id]=node;return node;}
     const add=(id,tag='div',cls='')=>{const node=el(tag,cls);node.id=id;nodes[id]=node;return node;};
@@ -32,8 +32,9 @@
     const listPanel=el('section','ep-builds panel');const listHead=el('div','section-title');listHead.append(el('h2','','生产构建'),button('刷新列表','text-button',()=>loadList()));listPanel.append(listHead,add('ep-list'));
     const detail=add('ep-detail');detail.hidden=true;
     const toolbar=el('div','ep-toolbar');const titlebox=el('div');titlebox.append(add('ep-build-title','h2'),add('ep-position','p','muted'));
-    const controls=el('div','row');for(const [type,text] of [['pause','暂停生成'],['resume','恢复'],['retry','重试失败任务'],['cancel','取消构建']]){controls.append(button(text,'secondary',()=>type==='cancel'?nodes['ep-cancel-dialog'].showModal():submit(text,{type}),'ep-'+type));}
-    controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls);detail.append(toolbar,add('ep-reading-status','p','notice'),add('ep-jobs','div','ep-jobs'));
+    const controls=add('ep-controls','div','row');controls.append(button('下一步','primary',()=>{const t=target();return submit(`确认${currentName(t)} v${t?.revision.revisionNo} 的完整内容${t?.artifact.kind==='agent'?'及完整专家工作指令':''}`,{type:'approve'});},'ep-approve'));for(const [type,text] of [['pause','暂停生成'],['resume','恢复'],['retry','重试失败任务'],['cancel','取消']]){controls.append(button(text,'secondary',()=>type==='cancel'?nodes['ep-cancel-dialog'].showModal():submit(text,{type}),'ep-'+type));}
+    controls.append(button('重新生成','secondary',()=>openRegenerate(),'ep-regenerate'));
+    controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls,add('ep-next-hint','p','ep-meta'));detail.append(toolbar,add('ep-reading-status','p','notice'),add('ep-jobs','div','ep-jobs'));
     const jobHistory=add('ep-job-history','details','ep-diff');jobHistory.hidden=true;jobHistory.append(add('ep-job-history-title','summary'),el('p','muted','以下是此前尝试的失败记录，不代表当前任务状态。'),add('ep-job-history-items'));
     const grid=el('div','ep-grid');const nav=add('ep-stages','nav','ep-stages');nav.setAttribute('aria-label','专家生产阶段');
     const work=el('div','ep-work');const art=el('section','ep-artifact');
@@ -42,8 +43,7 @@
     art.append(selectrow,add('ep-revision-meta','div','ep-meta'),add('ep-history-warning','div','ep-warning'),add('ep-body'),add('ep-prompt'),add('ep-sources'));
     const technical=add('ep-technical','details','ep-diff');technical.append(el('summary','','技术详情（内部标识与原始记录）'),jobHistory,add('ep-technical-body'));art.append(technical);
     const history=el('details','ep-diff');history.append(el('summary','','修订差异与审核历史'),add('ep-diff'));art.append(history);
-    const actions=el('div','ep-review-actions');actions.append(button('否决此版本','secondary',()=>{const t=target();return submit(`不通过${currentName(t)} v${t?.revision.revisionNo}`,{type:'reject'});},'ep-reject'),button('确认完整稿','primary',()=>{const t=target();return submit(`确认${currentName(t)} v${t?.revision.revisionNo} 的完整内容${t?.artifact.kind==='agent'?'及完整提示词':''}`,{type:'approve'});},'ep-approve'));
-    art.append(actions,add('ep-scope','p','ep-meta'));
+    art.append(add('ep-scope','p','ep-meta'));
     const chat=el('section','ep-chat');const chatHead=el('div','ep-card-head');chatHead.append(el('h2','','与搭建助手 审阅'),el('span','ep-meta','原话与处理结果由服务端保存'));chat.append(chatHead,add('ep-clarifications'),button('加载更早记录','text-button',()=>loadOlder(),'ep-older'),add('ep-messages','div','ep-messages'));
     nodes['ep-messages'].setAttribute('role','log');nodes['ep-messages'].setAttribute('aria-label','生产审阅聊天');
     const form=add('ep-chat-form','form','ep-composer');const label=el('label','sr-only','管理员审阅意见');label.setAttribute('for','ep-input');const input=add('ep-input','textarea');input.rows=4;input.placeholder='提出疑问、说明修改原因，或明确确认所见版本。';const foot=el('div','ep-composer-foot');foot.append(el('span','ep-meta','自由聊天由搭建助手 处理；讨论不等于确认。'),button('发送意见 ↑','primary',()=>{},'ep-send'));nodes['ep-send'].type='submit';form.append(label,input,foot);chat.append(form);
@@ -52,11 +52,25 @@
     root.replaceChildren(head,banner,resend,listPanel,detail);
     const sourceDialog=add('ep-source-dialog','dialog');const sourceHead=el('div','dialog-heading');sourceHead.append(el('h2','','原文核对'),button('关闭','text-button',()=>sourceDialog.close()));const sourceTech=el('details','ep-diff');sourceTech.append(el('summary','','来源技术详情'),add('ep-source-technical','pre','ep-value'));sourceDialog.append(sourceHead,add('ep-source-meta','p','muted'),add('ep-source-text','pre'),add('ep-source-link','a'),sourceTech);root.append(sourceDialog);
     const cancelDialog=add('ep-cancel-dialog','dialog');cancelDialog.append(el('h2','','取消本次构建？'),el('p','','取消后不能恢复此构建。已保存的资料、修订和审核记录将保留；正在进行的外部调用可能无法撤销。'));const cancelActions=el('div','row');cancelActions.append(button('继续审阅','secondary',()=>cancelDialog.close()),button('确认取消构建','primary',async()=>{cancelDialog.close();await submit('取消本次构建',{type:'cancel'});}));cancelDialog.append(cancelActions);root.append(cancelDialog);
+    const regenerateDialog=add('ep-regenerate-dialog','dialog');regenerateDialog.append(el('h2','','重新生成当前稿'),add('ep-regenerate-target','p'),el('p','','仅重做当前稿，保留旧稿供对比，不重新阅读整本书。不填修改要求时，按原要求重新生成。'));
+    const regenerateLabel=el('label','','修改要求（可选）');regenerateLabel.setAttribute('for','ep-regenerate-reason');regenerateDialog.append(regenerateLabel,add('ep-regenerate-reason','textarea'),add('ep-regenerate-error','p','ep-error'));
+    const regenerateActions=el('div','row');regenerateActions.append(button('返回审阅','secondary',()=>regenerateDialog.close(),'ep-regenerate-back'),button('确认重新生成','primary',()=>regenerate(),'ep-regenerate-confirm'));regenerateDialog.append(regenerateActions);root.append(regenerateDialog);
     form.addEventListener('submit',e=>{e.preventDefault();return submit(input.value);});
     input.addEventListener('input',()=>{if(!input.value)draftContext=null;else if(!draftContext&&state)draftContext={state,target:target()};});
     aselect.addEventListener('change',()=>selectFocus(aselect.value,''));rselect.addEventListener('change',()=>selectFocus(target()?.artifact.id||'',rselect.value));
     function notify(message,error=false){banner.textContent=message;banner.className='notice'+(error?' error':'');banner.hidden=!message;}
     function target(){const selected=A.target(state,focusArtifact,focusRevision);return selected?.artifact.kind==='learning_unit'?null:selected;}
+    function hasPendingWork(){return !!pendingRequest||(state?.jobs||[]).some(j=>['queued','running'].includes(j.status));}
+    function canRegenerate(){const t=target();return !!t&&state.status==='active'&&!posting&&!needsReload&&!loading&&!hasPendingWork()&&t.artifact.id===(state.currentArtifact?.id||state.currentArtifactId)&&t.revision.id===t.artifact.currentRevision?.id&&t.revision.generationStatus==='succeeded'&&t.revision.reviewStatus!=='completed'&&t.artifact.dependencyState!=='stale'&&!!A.presentation(state,t);}
+    function openRegenerate(){if(!canRegenerate())return;const t=target();if(regenerateContext?.buildId!==buildId||regenerateContext?.target.artifact.id!==t.artifact.id||regenerateContext?.target.revision.id!==t.revision.id)nodes['ep-regenerate-reason'].value='';regenerateContext={state,target:t,buildId};nodes['ep-regenerate-target'].textContent=`当前稿：${currentName(regenerateContext.target)} · 第 ${regenerateContext.target.revision.revisionNo} 版`;nodes['ep-regenerate-error'].textContent='';regenerateDialog.showModal();}
+    async function regenerate(){
+      const context=regenerateContext,t=target();if(!context)return;
+      if(context.buildId!==buildId||String(context.state.lockVersion)!==String(state?.lockVersion)||context.target.revision.id!==t?.revision.id){nodes['ep-regenerate-error'].textContent='版本已变化，请返回审阅并核对最新稿，再重新打开此操作。';return;}
+      if(!canRegenerate()){nodes['ep-regenerate-error'].textContent='当前有任务处理中或稿件尚不可修改，请返回审阅核对状态。';return;}
+      const changes=nodes['ep-regenerate-reason'].value.trim(),reason=changes||'管理员要求按原要求重新生成当前稿，未提供额外修改要求。';
+      const request=A.messageRequest(context.state,context.target,`重新生成${currentName(context.target)}第 ${context.target.revision.revisionNo} 版。${changes?'修改要求：'+changes:'按原要求重新生成当前稿。'}`,crypto.randomUUID(),{type:'reject'});request.reason=reason;
+      regenerateDialog.close();const accepted=await sendRequest(request);if(accepted&&regenerateContext===context){nodes['ep-regenerate-reason'].value='';regenerateContext=null;}
+    }
     function normalizeFocus(){
       if(!focusArtifact||A.target(state,focusArtifact)?.artifact.kind!=='learning_unit')return;
       const summary=A.artifacts(state).find(a=>a.kind==='book_summary');focusArtifact=summary?.id||'';focusRevision='';onRoute(A.hashFor(buildId,focusArtifact));
@@ -64,12 +78,12 @@
     function selectFocus(a,r){focusArtifact=a;focusRevision=r;onRoute(A.hashFor(buildId,a,r));render();}
     async function loadList(){try{const result=await client.list();nodes['ep-list'].replaceChildren();const list=result.builds||[];if(!list.length){nodes['ep-list'].append(el('p','muted','还没有生产构建。请选择已有资料并新建。'));return;}for(const b of list){const item=button('','ep-build',()=>enter({buildId:b.buildId}));item.append(el('strong','',b.name||'未命名构建'),el('span','',`${A.phases.find(p=>p[0]===b.phase)?.[1]||b.phase} · ${statusText[b.status]||b.status}`),el('small','',b.updatedAt?new Date(b.updatedAt).toLocaleString('zh-CN'):'已保存'));nodes['ep-list'].append(item);}}catch(error){nodes['ep-list'].replaceChildren(el('p','ep-error',error.message));notify(error.message,true);}}
     async function enter(route={}) {
-      active=true;const token=++epoch;clearTimeout(timer);buildId=route.buildId||'';focusArtifact=route.artifactId||'';focusRevision=route.revisionId||'';state=null;older=[];olderCursor='';pendingRequest=null;draftContext=null;input.value='';messageKey='';needsReload=true;posting=false;loading=false;detail.hidden=!buildId;nodes['ep-resend'].hidden=true;
+      regenerateDialog.close();regenerateContext=null;nodes['ep-regenerate-reason'].value='';active=true;const token=++epoch;clearTimeout(timer);buildId=route.buildId||'';focusArtifact=route.artifactId||'';focusRevision=route.revisionId||'';state=null;older=[];olderCursor='';pendingRequest=null;draftContext=null;input.value='';messageKey='';needsReload=true;posting=false;loading=false;detail.hidden=!buildId;nodes['ep-resend'].hidden=true;
       onRoute(A.hashFor(buildId,focusArtifact,focusRevision));notify('');render();
       await loadList();if(token!==epoch||!active)return;
       if(buildId)await refreshSnapshot(token);schedule();
     }
-    function leave(){active=false;epoch++;clearTimeout(timer);sourceDialog.close();cancelDialog.close();}
+    function leave(){active=false;epoch++;clearTimeout(timer);sourceDialog.close();cancelDialog.close();regenerateDialog.close();regenerateContext=null;nodes['ep-regenerate-reason'].value='';}
     function schedule(){clearTimeout(timer);if(active&&buildId)timer=setTimeout(poll,2500);}
     async function poll(){const token=epoch;if(active&&buildId&&!posting&&!loading){try{const events=await client.events(buildId,state?.lastEventSeq||'0');if(token!==epoch)return;if(!state||needsReload||events.events?.length)await refreshSnapshot(token);}catch(error){if(token===epoch){needsReload=true;notify('连接暂时中断：'+error.message+'。审核已暂停，恢复后刷新状态。',true);render();}}}schedule();}
     async function refreshSnapshot(token=epoch) {
@@ -142,12 +156,15 @@
     }
     function render() {
       nodes['ep-resend'].hidden=!pendingRequest;nodes['ep-resend'].disabled=posting;
-      if(!state){nodes['ep-reading-status'].hidden=true;jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-technical-body','ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','reject','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
+      if(!state){nodes['ep-next-hint'].hidden=true;nodes['ep-approve'].hidden=true;nodes['ep-regenerate'].hidden=true;nodes['ep-reading-status'].hidden=true;jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-technical-body','ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','regenerate','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
       const t=target(),a=t?.artifact,r=t?.revision,all=A.artifacts(state).filter(x=>x.kind!=='learning_unit'),current=state.currentArtifact;
       nodes['ep-build-title'].textContent=state.name||'生产构建';nodes['ep-position'].textContent=`${statusText[state.status]||state.status} · 当前阶段：${A.phases.find(p=>p[0]===state.phase)?.[1]||state.phase} · 查看：${t?currentName(t)+' v'+r.revisionNo:'等待稿件'}`;
       nodes['ep-reading-status'].hidden=state.phase!=='prelearning';nodes['ep-reading-status'].textContent='阅读资料尚未完成。完成后将在这里展示全书概要、篇章与主题理解及专家分工；如任务失败，请查看原因后重试。';
       nodes['ep-stages'].replaceChildren(...A.phases.filter(([phase])=>phase!=='prelearning').map(([phase,label],i)=>{const available=all.filter(x=>A.phaseFor(x)===phase);const b=button('','ep-stage'+(state.phase===phase?' active':''),()=>{if(available.length)selectFocus(available[0].id,'');});b.disabled=!available.length;b.append(el('span','ep-step',String(i+1).padStart(2,'0')),el('span','',label),el('small','',available.length?`${available.length} 份成果`:state.phase===phase?'处理中':'待生成'));if(state.phase===phase)b.setAttribute('aria-current','step');return b;}));
-      const blocked=posting||needsReload||loading,retryable=renderJobs();
+      const blocked=posting||needsReload||loading,retryable=renderJobs(),reviewReady=state.status==='active'&&state.phase!=='prelearning'&&A.target(state)?.artifact.kind!=='learning_unit'&&A.target(state)?.revision.generationStatus==='succeeded';
+      for(const id of ['pause','resume','retry','refresh'])nodes['ep-'+id].hidden=reviewReady;
+      nodes['ep-approve'].hidden=!reviewReady;nodes['ep-regenerate'].hidden=!reviewReady;nodes['ep-regenerate'].disabled=!canRegenerate();
+      nodes['ep-next-hint'].hidden=!reviewReady;nodes['ep-next-hint'].textContent=a?.kind==='team_manifest'?'最后一步：点击“下一步”即确认完整团队流程并完成搭建。':'点击“下一步”即确认当前完整稿，并进入下一项审阅。';
       nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!retryable;nodes['ep-send'].disabled=posting||needsReload||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
       selectrow.hidden=!all.length;
       aselect.replaceChildren(...all.map(x=>{const o=el('option','',`${kindText[x.kind]||x.kind} · ${x.currentRevision?.body?.name||x.currentRevision?.body?.title||kindText[x.kind]||'待命名成果'}`);o.value=x.id;o.selected=x.id===a?.id;return o;}));
@@ -162,18 +179,16 @@
         const summaryLabels={summary:'全书概要',outline:'篇章与主题理解',specialists:'专家分工与依据',limitations:'待核对事项与理解边界'};
         const entries=a.kind==='book_summary'?[...Object.keys(summaryLabels).map(key=>[key,body[key]??(key==='summary'?'尚未提供全书概要':[])]),...Object.entries(body).filter(([key])=>key!=='title'&&!(key in summaryLabels))]:Object.entries(body);
         for(const [key,value] of entries){if(!technicalFields.has(key))nodes['ep-body'].append(field(a.kind==='book_summary'?(summaryLabels[key]||fieldLabel(key)):fieldLabel(key),value,context,key));}
-        if(a.kind==='agent'){nodes['ep-prompt'].append(field('完整业务提示词',r.systemPrompt||'尚未生成完整提示词，不能确认此专家。'));}
-        else if(r.systemPrompt)nodes['ep-prompt'].append(field('完整业务提示词',r.systemPrompt));
+        if(a.kind==='agent'){nodes['ep-prompt'].append(el('p','ep-prompt-note','这是当前专家实际使用的完整指令，请确认是否符合职责、边界和资料要求。'),field('专家工作指令（提示词）',r.systemPrompt||'尚未生成完整工作指令，不能确认此专家。'));}
         const sh=el('div','ep-sources');sh.append(el('h3','','资料来源'));if(!(r.sources||[]).length)sh.append(el('p','muted','此版本未返回直接来源片段；请核对上游依赖与覆盖说明。'));for(const [index,source] of (r.sources||[]).entries()){sh.append(sourceButton(source,index,r));if(source.purpose)sh.append(el('p','muted',source.purpose));if(source.qualityFlags?.length)sh.append(el('p','ep-warning','该原文存在质量提示，请结合原文件核对。'));}nodes['ep-sources'].append(sh);
         const prev=revisions.filter(v=>Number(v.revisionNo)<Number(r.revisionNo)).sort((x,y)=>Number(y.revisionNo)-Number(x.revisionNo))[0];
-        if(prev){nodes['ep-diff'].append(el('h4','',`v${prev.revisionNo} → v${r.revisionNo}`));const before={...(prev.body||{}),systemPrompt:prev.systemPrompt,sources:prev.sources},after={...(r.body||{}),systemPrompt:r.systemPrompt,sources:r.sources};for(const key of new Set([...Object.keys(before),...Object.keys(after)])){if(display(before[key])!==display(after[key])){const diff=el('section','ep-diff-field');if(technicalFields.has(key))continue;diff.append(el('h4','',({systemPrompt:'完整提示词',sources:'引用依据'}[key])||fieldLabel(key)));for(const [value,version,cls] of [[before[key],prev,'ep-before'],[after[key],r,'ep-after']]){const box=el('div',cls);if(key==='sources'){for(const [i,source] of (value||[]).entries()){box.append(sourceButton(source,i,version));if(source.purpose)box.append(field('引用说明',source.purpose));if(source.quote)box.append(field('引文',source.quote));}if(!value?.length)box.append(el('p','muted','无引用依据'));if(display(prev.sources)!==display(r.sources))box.append(el('p','muted','引用依据已修改，请分别打开原文核对引用范围。'));}else box.append(valueNode(value,reviewContext(version),key));diff.append(box);}nodes['ep-diff'].append(diff);}}}else nodes['ep-diff'].append(el('p','muted','这是首个修订，尚无前一版差异。'));
+        if(prev){nodes['ep-diff'].append(el('h4','',`v${prev.revisionNo} → v${r.revisionNo}`));const before={...(prev.body||{}),systemPrompt:prev.systemPrompt,sources:prev.sources},after={...(r.body||{}),systemPrompt:r.systemPrompt,sources:r.sources};for(const key of new Set([...Object.keys(before),...Object.keys(after)])){if(display(before[key])!==display(after[key])){const diff=el('section','ep-diff-field');if(technicalFields.has(key)||(key==='systemPrompt'&&a.kind!=='agent'))continue;diff.append(el('h4','',({systemPrompt:'专家工作指令（提示词）',sources:'引用依据'}[key])||fieldLabel(key)));for(const [value,version,cls] of [[before[key],prev,'ep-before'],[after[key],r,'ep-after']]){const box=el('div',cls);if(key==='sources'){for(const [i,source] of (value||[]).entries()){box.append(sourceButton(source,i,version));if(source.purpose)box.append(field('引用说明',source.purpose));if(source.quote)box.append(field('引文',source.quote));}if(!value?.length)box.append(el('p','muted','无引用依据'));if(display(prev.sources)!==display(r.sources))box.append(el('p','muted','引用依据已修改，请分别打开原文核对引用范围。'));}else box.append(valueNode(value,reviewContext(version),key));diff.append(box);}nodes['ep-diff'].append(diff);}}}else nodes['ep-diff'].append(el('p','muted','这是首个修订，尚无前一版差异。'));
         if(r.changeReason)nodes['ep-diff'].append(field('修改原因',r.changeReason));
         const clarifications=(state.clarifications||[]).filter(c=>!c.artifactId||c.artifactId===a.id);
         for(const c of clarifications)nodes['ep-diff'].append(field('澄清记录 · '+(statusText[c.status]||c.status),(c.question||'')+(c.answer?'\n管理员回答：'+c.answer:'')));
         for(const review of (state.reviews||r.reviews||[]).filter(x=>!x.revisionId||x.revisionId===r.id))nodes['ep-diff'].append(field('审核记录',review,context));
       }
-      nodes['ep-approve'].disabled=blocked||!A.canReview(state,t);nodes['ep-approve'].textContent=a?.kind==='team_manifest'?'确认完整团队流程':a?.kind==='agent'?'确认完整专家稿与提示词':'确认此版本完整内容';
-      nodes['ep-reject'].disabled=blocked||!t||historical||state.status!=='active'||r.generationStatus!=='succeeded';
+      nodes['ep-approve'].disabled=blocked||hasPendingWork()||!A.canReview(state,t);
       nodes['ep-scope'].textContent=t?`确认范围：${scopeText[A.scopeFor(a)]||'当前完整内容'}${a.kind==='agent'?' · 包含职责、模型、工具、特色能力、边界和完整提示词':''}${!A.presentation(state,t)?' · 尚无匹配的服务端展示记录，不能确认':''}${(state.clarifications||[]).some(c=>c.status==='open')?' · 先解决待澄清事项':''}`:'';
       nodes['ep-clarifications'].replaceChildren(...(state.clarifications||[]).filter(c=>c.status==='open').map(c=>{const box=el('div','ep-clarification');box.append(el('strong','','待澄清'),el('p','',c.question||c.content||''));return box;}));
       renderMessages();nodes['ep-completion'].hidden=state.status!=='completed';nodes['ep-completion'].textContent='管理员已确认本构建的完整生产流程。团队生产完成；这不代表用户侧部署或能力评测已经通过。';
@@ -188,11 +203,11 @@
     }
     async function submit(content,action) {
       if(posting||!state||needsReload||!content.trim())return;
-      const t=target();if(action?.type==='approve'&&!A.canReview(state,t)){notify('此稿尚不满足确认条件，请核对当前版本和待澄清事项。',true);return;}
+      const t=target();if(action?.type==='approve'&&(hasPendingWork()||!A.canReview(state,t))){notify('此稿尚不满足确认条件，请核对当前版本和待澄清事项。',true);return;}
       const context=!action&&draftContext?draftContext:{state,target:t};const request=A.messageRequest(context.state,context.target,content,crypto.randomUUID(),action);return sendRequest(request);
     }
     async function sendRequest(request){const token=epoch,id=buildId;posting=true;pendingRequest=null;render();
-      try{await client.message(id,request);if(token!==epoch)return;if(input.value===request.content){input.value='';draftContext=null;}pendingRequest=null;notify('意见已保存，正在读取服务端处理结果。');await refreshSnapshot(token);}
+      try{const response=await client.message(id,request);if(token!==epoch)return;if(input.value===request.content){input.value='';draftContext=null;}pendingRequest=null;notify('意见已保存，正在读取服务端处理结果。');await refreshSnapshot(token);return response?.processingStatus!=='failed'&&!(response?.httpStatus>=400)&&!(response?.result?.httpStatus>=400);}
       catch(error){if(token!==epoch)return;if(error.status===409){draftContext=null;await refreshSnapshot(token);notify(error.message+'。原话保留，请核对最新版本后重新发送；没有自动批准新稿。',true);}else{if(!error.status||error.status>=500)pendingRequest={buildId:id,request};notify(error.message+(pendingRequest?'。结果尚不确定，可按原身份重发；不会自动重复提交。':''),true);}}
       finally{if(token===epoch){posting=false;render();schedule();}}
     }
