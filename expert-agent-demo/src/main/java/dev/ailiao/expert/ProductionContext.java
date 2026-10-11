@@ -12,7 +12,7 @@ final class ProductionContext {
         JsonNode allMessages=old.path("messages");for(int i=0;i<allMessages.size();i++){JsonNode m=allMessages.get(i);boolean referenced=m.path("id").asText().equals(replied)||m.path("id").asText().equals(waiting);
             if(i>=allMessages.size()-12||referenced){ObjectNode view=Json.object().put("id",m.path("id").asText()).put("role",m.path("role").asText()).put("content",referenced?m.path("content").asText():preview(m.path("content").asText(),1600));if(m.has("presentation"))view.set("presentation",m.path("presentation"));messages.add(view);}}
         snapshot.set("messages",messages);ArrayNode artifacts=Json.array();
-        for(JsonNode a:old.path("artifacts")){ObjectNode v=Json.object();for(String key:List.of("id","kind","agentRole","logicalKey","dependencyState"))v.set(key,a.path(key));JsonNode r=a.path("currentRevision");ObjectNode rv=Json.object();for(String key:List.of("id","revisionNo","generationStatus","reviewStatus","contentSha256"))rv.set(key,r.path(key));rv.set("sources",r.path("sources"));ObjectNode body=Json.object();for(String key:List.of("name","summary","responsibility"))body.put(key,preview(r.path("body").path(key).asText(),600));rv.set("body",body);v.set("currentRevision",rv);v.put("contextIsSummary",true);artifacts.add(v);}
+        for(JsonNode a:old.path("artifacts")){ObjectNode v=Json.object();for(String key:List.of("id","kind","agentRole","logicalKey","dependencyState"))v.set(key,a.path(key));JsonNode r=a.path("currentRevision");ObjectNode rv=Json.object();for(String key:List.of("id","revisionNo","generationStatus","reviewStatus","contentSha256"))rv.set(key,r.path(key));rv.put("sourceCount",r.path("sources").size());rv.set("sourceChunkIds",Json.MAPPER.valueToTree(new LinkedHashSet<>(r.path("sources").findValuesAsText("chunkId"))));ObjectNode body=Json.object();for(String key:List.of("name","summary","responsibility"))body.put(key,preview(r.path("body").path(key).asText(),600));rv.set("body",body);v.set("currentRevision",rv);v.put("contextIsSummary",true);artifacts.add(v);}
         snapshot.set("artifacts",artifacts);snapshot.remove("summary");if(snapshot.path("currentArtifact") instanceof ObjectNode current)current.remove("revisions");ArrayNode jobs=Json.array();for(JsonNode j:old.path("jobs"))if(Set.of("queued","running","failed").contains(j.path("status").asText())){ObjectNode view=Json.object();for(String key:List.of("id","kind","status","phase","error"))view.set(key,j.path(key));jobs.add(view);}snapshot.set("jobs",jobs);
         ArrayNode clarifications=Json.array();for(JsonNode q:old.path("clarifications"))if("open".equals(q.path("status").asText()))clarifications.add(q);snapshot.set("clarifications",clarifications);
         Set<String> preferred=new HashSet<>();old.path("currentArtifact").path("currentRevision").path("sources").forEach(n->preferred.add(n.path("chunkId").asText()));
@@ -25,7 +25,7 @@ final class ProductionContext {
         ObjectNode out=full.deepCopy();ArrayNode units=Json.array(),methods=Json.array(),sources=Json.array(),approved=Json.array();
         Set<String> desired=new LinkedHashSet<>();full.path("plan").path("methodTitles").forEach(n->desired.add(n.asText()));
         List<List<JsonNode>> methodGroups=new ArrayList<>();int methodCount=0,unitNo=0;
-        boolean bookSummary="book_summary".equals(full.path("kind").asText());
+        boolean balancedEvidence=Set.of("book_summary","qa_example").contains(full.path("kind").asText());
         for(JsonNode unit:full.path("learningUnits")){
             ObjectNode index=Json.object().put("batchNo",unitNo++).put("summary",preview(unit.path("summary").asText(),1200)).put("summaryIsPreview",unit.path("summary").asText().length()>1200).put("methodCount",unit.path("methods").size());
             ArrayNode titles=Json.array();int indexChars=0;List<JsonNode> group=new ArrayList<>();methodGroups.add(group);
@@ -39,7 +39,7 @@ final class ProductionContext {
         // Reserve a fair first pass for each batch; methods always remain complete.
         Set<JsonNode> chosen=new LinkedHashSet<>();int methodChars=2;
         for(JsonNode method:candidates)if(desired.contains(method.path("title").asText())&&methodChars+method.toString().length()+1<=18000){chosen.add(method);methodChars+=method.toString().length()+1;}
-        if(bookSummary&&!methodGroups.isEmpty())for(List<JsonNode> group:methodGroups){
+        if(balancedEvidence&&!methodGroups.isEmpty())for(List<JsonNode> group:methodGroups){
             int share=(18000-2)/methodGroups.size();
             for(JsonNode method:group)if(!chosen.contains(method)&&method.toString().length()+1<=share&&methodChars+method.toString().length()+1<=18000){chosen.add(method);methodChars+=method.toString().length()+1;break;}
         }
@@ -56,12 +56,12 @@ final class ProductionContext {
             ids.removeIf(id->!chunks.containsKey(id));sourceGroups.add(new ArrayList<>(ids));
         }
         Set<String> rankedIds=new LinkedHashSet<>();
-        if(!bookSummary)for(JsonNode method:methods)method.path("sourceIds").forEach(n->rankedIds.add(n.asText()));
+        if(!balancedEvidence)for(JsonNode method:methods)method.path("sourceIds").forEach(n->rankedIds.add(n.asText()));
         rankedIds.addAll(roundRobin(sourceGroups));
         full.path("previousRevision").path("sources").forEach(n->rankedIds.add(n.path("chunkId").asText()));
         rankedIds.addAll(chunks.keySet());
         Set<String> included=new LinkedHashSet<>();int sourceChars=2;
-        if(bookSummary){
+        if(balancedEvidence){
             Set<String> representatives=new LinkedHashSet<>();for(List<String> group:sourceGroups)if(!group.isEmpty())representatives.add(group.get(0));
             int remaining=representatives.size();
             for(String id:representatives){
@@ -88,7 +88,7 @@ final class ProductionContext {
         List<T> out=new ArrayList<>();int largest=groups.stream().mapToInt(List::size).max().orElse(0);
         for(int i=0;i<largest;i++)for(List<T> group:groups)if(i<group.size())out.add(group.get(i));return out;
     }
-    /** Only summary evidence is excerpted; quotes remain exact substrings of the stored source. */
+    /** Whole-team summary/QA evidence is excerpted; quotes remain exact stored substrings. */
     private static JsonNode sourceExcerpt(JsonNode source,int budget){
         if(source.toString().length()<=budget)return source;
         String text=source.path("text").asText();ObjectNode out=source.deepCopy();out.put("textIsPreview",true).put("originalTextChars",text.length());

@@ -120,7 +120,7 @@
         }
         if(key==='members'&&Array.isArray(value)){
           const list=el('ul','ep-items');
-          for(const member of value){const item=el('li');const artifact=A.artifacts(state).find(a=>a.id===member.artifactId);const saved=[artifact?.currentRevision,...(artifact?.revisions||[])].find(r=>r?.id===member.revisionId);item.append(el('strong','',saved?.body?.name||saved?.body?.title||'成员名称待核对'),el('p','muted',`${kindText[member.kind]||'团队成果'} · ${saved?'第 '+saved.revisionNo+' 版':'版本待核对（见技术详情）'}`));list.append(item);}if(!value.length)list.append(el('li','muted','未提供成员'));return list;
+          for(const member of value){const item=el('li');const artifact=A.artifacts(state).find(a=>a.id===member.artifactId);const saved=[artifact?.currentRevision,...(artifact?.revisions||[])].find(r=>r?.id===member.revisionId);item.append(el('strong','',saved?.body?.name||saved?.body?.title||(saved&&['keyword_rule','qa_example'].includes(member.kind)?kindText[member.kind]:'成员名称待核对')),el('p','muted',`${kindText[member.kind]||'团队成果'} · ${saved?'第 '+saved.revisionNo+' 版':'版本待核对（见技术详情）'}`));list.append(item);}if(!value.length)list.append(el('li','muted','未提供成员'));return list;
         }
         if(key!=='sourceIds')return null;
         const list=el('div','ep-source-list');const ids=(Array.isArray(value)?value:[]).filter(id=>typeof id==='string'&&id.trim());

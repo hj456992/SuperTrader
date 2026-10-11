@@ -75,6 +75,12 @@ test('最终清单将后端成员身份解析为对应版本中文名称，不�
  const s=fixture();const expert=JSON.parse(JSON.stringify(s.currentArtifact));expert.logicalKey='specialist:thinking_logic';expert.revisions=[{...expert.currentRevision,id:'rev-1',revisionNo:1,body:{name:'历史推理专家'}}];s.artifacts=[expert];s.currentArtifact={id:'manifest',kind:'team_manifest',currentRevision:{id:'manifest-r',revisionNo:1,generationStatus:'succeeded',reviewStatus:'pending',body:{members:[{artifactId:expert.id,kind:'agent',logicalKey:'specialist:thinking_logic',revisionId:'rev-1',contentSha256:'private-hash'}]}}};
  const b=component(s);await b.ui.enter({buildId:'build-1'});const body=b.dom.getElementById('ep-body').textContent;assert.match(body,/历史推理专家/);assert.match(body,/第 1 版/);assert.doesNotMatch(body,/thinking_logic|private-hash|agent-1|rev-1|表达顾问/);
 });
+test('最终清单的已保存规则和问答用成果名称，未找到版本仍提示核对',async()=>{
+ const s=fixture();s.artifacts=['keyword_rule','qa_example'].map(kind=>({id:kind,kind,currentRevision:{id:kind+'-v1',revisionNo:1,body:{}}}));
+ s.currentArtifact={id:'manifest',kind:'team_manifest',currentRevision:{id:'manifest-r',generationStatus:'succeeded',reviewStatus:'pending',body:{members:s.artifacts.map(a=>({artifactId:a.id,kind:a.kind,revisionId:a.currentRevision.id}))}}};
+ let b=component(s);await b.ui.enter({buildId:'build-1'});let body=b.dom.getElementById('ep-body').textContent;assert.match(body,/关键词规则/);assert.match(body,/示例问答/);assert.doesNotMatch(body,/成员名称待核对|版本待核对/);
+ s.currentArtifact.currentRevision.body.members[0].revisionId='missing';b=component(s);await b.ui.enter({buildId:'build-1'});body=b.dom.getElementById('ep-body').textContent;assert.match(body,/成员名称待核对/);assert.match(body,/版本待核对/);
+});
 test('来源修订对比保留新旧引用说明及原文引文',async()=>{
  const s=fixture();s.currentArtifact.currentRevision.sources=[{chunkId:'s',pageNo:2,purpose:'新引用说明',quote:'新引文'}];s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',revisionNo:1,sources:[{chunkId:'s',pageNo:2,purpose:'旧引用说明',quote:'旧引文'}]}];const b=component(s);await b.ui.enter({buildId:'build-1'});const diff=b.dom.getElementById('ep-diff').textContent;for(const text of ['新引用说明','旧引用说明','新引文','旧引文'])assert.ok(diff.includes(text));
 });

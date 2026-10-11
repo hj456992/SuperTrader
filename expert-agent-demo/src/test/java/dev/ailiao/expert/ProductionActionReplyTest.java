@@ -67,6 +67,62 @@ class ProductionActionReplyTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings={"修改：", "不通过：", "补充原因："})
+    void revisionGenerationReceivesOriginalRequirementsWhenSemanticReasonIsOnlyASummary(String prefix)throws Exception{
+        try(var test=new ProductionTestServer(root)){
+            String text=prefix+"目标明确但涉及多个分工时交主专家路由；本书范围内未覆盖且资料充分的问题由兜底专家答复；资料不足先澄清。请更新完整提示词，不批准旧稿。";
+            var generatedReason=new java.util.concurrent.atomic.AtomicReference<String>();
+            ProductionModel model=(purpose,input,cancelled)->{
+                if(purpose.equals("generate")&&!input.path("changeReason").asText().isBlank())generatedReason.set(input.path("changeReason").asText());
+                ObjectNode out=test.model.json(purpose,input,cancelled);
+                if(purpose.equals("interpret"))out.put("reason","管理员要求将澄清答案纳入新稿，而不是批准。");
+                return out;
+            };
+            test.service=new ProductionService(test.db,model,test.legacy,test.redis,root.resolve("shared-fixture"));
+            test.services.add(test.service);test.base=test.serve(test.service);
+            String build=create(test);test.service.start();ObjectNode before=ready(test,build,"");
+            submit(test,build,before,text,"revision_queued");
+            ObjectNode after=ready(test,build,revision(before).path("id").asText());
+            assertTrue(revision(after).path("changeReason").asText().contains(text),"新修订必须完整携带管理员原话，不能只保存模型的概述");
+            assertNotNull(generatedReason.get());assertTrue(generatedReason.get().contains(text),"真实生成调用必须收到具体修改要求");
+            assertEquals("pending",revision(after).path("reviewStatus").asText());
+            assertEquals(0,count(test,"ep_review",build,"decision='approve'"));
+        }
+    }
+
+    @Test void explicitRevisionWithEmptyModelReasonStillUsesTheOriginalRequest()throws Exception{
+        try(var test=emptyReasonServer()){
+            String build=create(test);test.service.start();ObjectNode before=ready(test,build,"");
+            String text="修改：补全L1无命中进入L2，目标明确的跨分工问题不能原样交回兜底。";
+            submit(test,build,before,text,"revision_queued");
+            ObjectNode after=ready(test,build,revision(before).path("id").asText());
+            assertTrue(revision(after).path("changeReason").asText().contains(text));
+            assertEquals("pending",revision(after).path("reviewStatus").asText());
+            assertEquals(0,count(test,"ep_review",build,"decision='approve'"));
+        }
+    }
+    @Test void rejectionWithoutReasonOnlyAsksAndCannotClaimRevisionWasQueued()throws Exception{
+        try(var test=emptyReasonServer()){
+            String build=create(test);test.service.start();ObjectNode before=ready(test,build,"");long seq=lastSeq(before);
+            submit(test,build,before,"不通过","needs_reason");ObjectNode after=test.snapshot(build);
+            assertEquals(revision(before).path("id"),revision(after).path("id"));
+            assertEquals(1,replies(after,seq).size(),"缺原因只能追问，不能再追加模型声称已排队的回复");
+            assertFalse(replies(after,seq).get(0).contains("已排队"));
+            assertEquals(1,count(test,"ep_clarification",build,"status='open'"));
+        }
+    }
+    private ProductionTestServer emptyReasonServer()throws Exception{
+        var test=new ProductionTestServer(root);
+        ProductionModel model=(purpose,input,cancelled)->{
+            ObjectNode out=test.model.json(purpose,input,cancelled);
+            if(purpose.equals("interpret"))out.put("reason","").put("reply","新稿已排队，请等待。");
+            return out;
+        };
+        test.service=new ProductionService(test.db,model,test.legacy,test.redis,root.resolve("shared-fixture"));
+        test.services.add(test.service);test.base=test.serve(test.service);return test;
+    }
+
     private ProductionTestServer server(boolean clarify)throws Exception{
         var test=new ProductionTestServer(root);test.model.clarifyFirstAgent=clarify;
         ProductionModel model=(purpose,input,cancelled)->{

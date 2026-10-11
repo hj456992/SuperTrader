@@ -2,6 +2,8 @@ package dev.ailiao.expert;
 
 import com.fasterxml.jackson.databind.node.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductionContextTest {
@@ -18,6 +20,27 @@ class ProductionContextTest {
         assertTrue(context.path("snapshot").path("messages").findValuesAsText("id").contains("message-0"),"被回复消息不能因截取最近历史而消失");
         assertTrue(context.path("snapshot").path("messages").findValuesAsText("id").contains("message-299"));
         assertEquals("解释原文中的条件",context.path("message").path("content").asText());
+    }
+    @Test void fullBookDiscussionDoesNotRepeatAllLearningCitationDetails() {
+        ObjectNode input=Json.object(),snapshot=Json.object();ArrayNode artifacts=Json.array();
+        for(int batch=0;batch<11;batch++) {
+            ArrayNode refs=Json.array();
+            for(int i=0;i<32;i++)refs.add(Json.object().put("chunkId","source-"+batch+"-"+i).put("purpose","方法与章节的来源依据".repeat(35)).put("startOffset",0).put("endOffset",100));
+            ObjectNode revision=Json.object().put("id","learning-revision-"+batch);revision.set("sources",refs);revision.set("body",Json.object().put("summary","完整学习记录".repeat(1000)));
+            ObjectNode artifact=Json.object().put("id","learning-"+batch).put("kind","learning_unit");artifact.set("currentRevision",revision);artifacts.add(artifact);
+        }
+        ObjectNode current=Json.object().put("id","summary").put("kind","book_summary");
+        ObjectNode revision=Json.object().put("id","summary-v1").put("systemPrompt","当前完整提示词");revision.set("body",Json.object().put("summary","当前完整稿，含附录的外展推理，不能省略。"));
+        revision.set("sources",Json.array().add(Json.object().put("chunkId","current-source").put("purpose","当前稿依据").put("startOffset",0).put("endOffset",10)));
+        current.set("currentRevision",revision);current.set("revisions",Json.array().add(revision));artifacts.add(current);
+        snapshot.set("artifacts",artifacts);snapshot.set("currentArtifact",current);snapshot.set("messages",Json.array());snapshot.set("clarifications",Json.array());snapshot.set("jobs",Json.array());
+        input.set("snapshot",snapshot);input.set("message",Json.object().put("content","解释概要，不确认"));ObjectNode original=input.deepCopy();
+        ObjectNode context=assertDoesNotThrow(()->ProductionContext.interpretation(input,Json.array().add(Json.object().put("id","current-source").put("text","精确原文证据"))));
+        assertTrue(context.toString().length()<90000,"已聚焦当前稿的普通问题不应被无关批次的来源明细撑爆");
+        assertEquals(revision,context.path("snapshot").path("currentArtifact").path("currentRevision"),"当前审阅稿、完整提示词与精确来源不可裁剪");
+        assertEquals(12,context.path("snapshot").path("artifacts").size(),"仍需保留可供指代消解的成果目录");
+        assertTrue(context.path("sources").toString().contains("精确原文证据"));
+        assertEquals(original,input,"模型窗口不能修改数据库快照");
     }
     @Test void largeBookDoesNotRepeatEverySourceOrEveryApprovedPrompt() throws Exception {
         ObjectNode input=Json.object().put("kind","agent").put("agentRole","specialist");input.set("plan",Json.object().set("methodTitles",Json.array().add("方法0")));
@@ -36,8 +59,9 @@ class ProductionContextTest {
         assertFalse(compact.toString().contains("旧提示词旧提示词"));
         assertTrue(compact.path("relevantMethods").toString().contains("完整步骤"));
     }
-    @Test void bookSummaryIncludesRepresentativeMethodsAndVerbatimEvidenceAcrossAllBatches() {
-        ObjectNode input=unevenBook();
+    @ParameterizedTest @ValueSource(strings={"book_summary","qa_example"})
+    void wholeTeamArtifactsIncludeRepresentativeMethodsAndVerbatimEvidenceAcrossAllBatches(String kind) {
+        ObjectNode input=unevenBook().put("kind",kind);
         ObjectNode context=ProductionContext.generation(input);
         assertEquals(11,context.path("learningUnits").size());
         for(int batch=0;batch<11;batch++) {

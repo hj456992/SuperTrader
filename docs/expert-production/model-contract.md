@@ -13,7 +13,7 @@
 
 输入 `{buildId,name,responsibility,kind,agentRole,logicalKey,plan,learningUnits:[覆盖摘要及方法索引],relevantMethods:[完整方法],approvedArtifacts:[职责/边界摘要],sources:[{id,documentVersionId,pageNo,text}],previousRevision:revision|null,changeReason:string,contextCoverage:object}`。
 整书全文保存在PG，单次generate使用最多18000字符的相关完整方法和18000字符原文窗口；全部批次保留覆盖索引，省略或预览明确标注。已批准专家的完整prompt不在每轮重复注入；当前修订对象保留原完整稿。总输入超过90000字符拒绝调用并保留可重试状态，不能无界发送整书。`contextCoverage`记录原文总数、所选原文身份、学习批次数和本次完整方法数；输出只能引用实际进入本轮窗口的来源。
-概要生成的完整方法按学习批次轮转选择，原文先给各批代表方法分配窗口，避免前部章节挤占全部预算。窗口不足时保留原文的逐字Unicode码点前缀，并标明textIsPreview与原字符数；预览不能宣称全文已进入。各批coverage.limitations完整保留，超总预算明确失败。下游生成完整保留已确认概要body（包括概要尾部、outline、limitations、分工）以及关键词/问答配置body（含全部规则、问答、阈值及分支），以传递管理员修正；仍不重复注入所有已批准专家的完整提示词。提示词要求综合全部学习索引，区分整书学习覆盖和本次引用窗口；该约束不保证模型语义永不偏离，生成稿仍须逐项审核。
+概要与全团队问答生成的完整方法按学习批次轮转选择，原文先给各批代表方法分配窗口，避免前部章节挤占全部预算；单个专业专家仍优先保留目标方法及其完整原文。窗口不足时保留原文的逐字Unicode码点前缀，并标明textIsPreview与原字符数；预览不能宣称全文已进入。各批coverage.limitations完整保留，超总预算明确失败。下游生成完整保留已确认概要body（包括概要尾部、outline、limitations、分工）以及关键词/问答配置body（含全部规则、问答、阈值及分支），以传递管理员修正；仍不重复注入所有已批准专家的完整提示词。提示词要求综合全部学习索引，区分整书学习覆盖和本次引用窗口；该约束不保证模型语义永不偏离，生成稿仍须逐项审核。
 
 输出统一 `{body:object,systemPrompt:string,sources:[{chunkId,spanIds:[string],purpose}],clarifications:[string]}`。实际模型请求将每个所选来源的 `text` 转为 `citationSpans:[{id,text}]`，模型只选择该chunk内的句段编号。句段按原文码点生成；短句合并后按标点分段，较长内容继续切分，前后空白保留；预览只提供已入窗前缀，转换后仍校验90000字符总预算。服务端依据原始窗口重新计算同一组位置，对合法编号排序、相邻句段合并、不相邻分别保存，绝不补入未选择的中间文字。未知或重复编号、空选择、非字符串以及与quote/offset混用均拒绝。模型引用的语义是否支持职责仍由管理员核查，编号有效不等于内容正确。
 
@@ -29,10 +29,12 @@ clarifications为空代表模型无待澄清问题；非空逐条持久化，处
 
 ## interpret
 
-输入 `{buildId,message:{id,content,reviewContext,replyToMessageId},snapshot:工作快照,sources:[原文片段],contextCoverage:object}`，有action按钮时无需本purpose，程序以按钮表达且仍硬校验。工作快照保留当前完整稿、所有未决澄清、近期12条消息及被回复/待答消息，其余专家仅传摘要；管理员本条原话不裁剪，原文窗口限18000字符，总输入限90000字符。完整历史继续存在PG与管理API，不向模型声称全部历史都在上下文中。
+输入 `{buildId,message:{id,content,reviewContext,replyToMessageId},snapshot:工作快照,sources:[原文片段],contextCoverage:object}`，有action按钮时无需本purpose，程序以按钮表达且仍硬校验。工作快照保留当前完整稿、所有未决澄清、近期12条消息及被回复/待答消息，其余成果仅传摘要目录；目录中的来源只保留原引用总数 sourceCount 和去重 sourceChunkIds，不重复各学习批次的引用用途与码点明细，避免整书学习记录撑爆普通审阅对话。当前完整稿的正文、systemPrompt、精确来源仍完整保留在 currentArtifact.currentRevision，目录预览不代替当前稿；管理员本条原话不裁剪，原文窗口限18000字符，总输入限90000字符。完整历史继续存在PG与管理API，不向模型声称全部历史都在上下文中。
 输出 `{intent:"ask|read_source|approve|reject|revise|provide_reason|pause|resume|cancel|retry|focus",targetRevisionId:string,scope:string,rewrittenText:string,reason:string,reply:string,conditional:boolean,ambiguous:boolean,quoted:boolean,resolveClarificationIds:[id],sourceIds:[chunkId]}`。
 模型返回的`rewrittenText`缺失、null或空白文本时，程序逐字保留`message.content`并保存`rewritten=false`；非字符串拒绝，非空字符串保留原值并按与原话是否相同记录`rewritten`，不补猜语义。三个安全标志必须全部为明确的布尔false才可进入状态修改分支；任一为true、缺失、null或其他类型时仅回复澄清，不执行控制任务、审核/修订、焦点切换或问题关闭。显式按钮由服务构造明确意图，仍执行版本与范围校验。
-只有 unconditional + unambiguous + 非引文 + 完整scope + reviewContext真实展示 + 当前版本才可批准。无原因reject追问；provide_reason/revise必须实际reason，生成新版本pending；普通ask/read_source不推进。若管理员回答requirement/source_conflict，必须携带其展示上下文，按原话形成新修订并展示新的完整提示词后再审批；不能只关闭问题后批准未纳入答案的旧提示词。纯confirmation_scope澄清可以只解锁范围。reply是对管理员的公开回答，不是内部思考。多意图或不明对象必须ambiguous=true并追问，不能擅自批准。
+只有 unconditional + unambiguous + 非引文 + 完整scope + reviewContext真实展示 + 当前版本才可批准。无原因reject追问；provide_reason必须有实际reason；已明确授权的revise直接以管理员原话修订，即使模型reason漏填也不再次追问，生成新版本pending；普通ask/read_source不推进。若管理员回答requirement/source_conflict，必须携带其展示上下文，按原话形成新修订并展示新的完整提示词后再审批；不能只关闭问题后批准未纳入答案的旧提示词。纯confirmation_scope澄清可以只解锁范围。reply是对管理员的公开回答，不是内部思考。多意图或不明对象必须ambiguous=true并追问，不能擅自批准。
+
+修订、拒绝后重做和补充拒绝原因进入新稿时，`changeReason` 完整携带管理员原话作为修订依据，模型的 `reason` 仅作为辅助理解摘要；不能只把泛化的“已回答澄清、要求改稿”传给生成模型。无原因拒绝仍先追问，needs_reason仅返回程序追问，不追加模型声称已排队的reply。原有语义授权、展示身份和版本校验保持不变。
 
 当修订或影响定义的澄清实际排入新稿任务后，公开回复由程序按事务结果给出“新稿生成任务已排队，生成完成后请重新审核”，避免模型回复仍要求确认是否改稿。普通讨论、无原因否决的追问维持原流程。
 

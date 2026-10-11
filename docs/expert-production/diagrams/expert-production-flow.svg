@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="2840" viewBox="0 0 1680 2840" data-generator="fireworks-tech-graph" data-quality-profile="standard">
+<style>text{font-family:"PingFang SC","Microsoft YaHei",sans-serif;fill:#172033} .title{font-weight:600}</style>
+<defs>
+<marker id="arrow-main" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#365f91"/></marker>
+<marker id="arrow-loop" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#8261a8"/></marker>
+<marker id="arrow-data" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0 0L10 4L0 8Z" fill="#45866a"/></marker>
+</defs>
+<rect width="1680" height="2840" fill="#ffffff" data-graph-role="background"/>
+<text x="840" y="65" font-size="38" fill="#172033" text-anchor="middle" font-weight="600">爱聊 · 专家生产全流程</text>
+<text x="840" y="109" font-size="23" fill="#667085" text-anchor="middle" font-weight="400">管理员搭建流程｜依据当前实现绘制｜2026-10-12</text>
+<rect x="30" y="290" width="55" height="330" rx="10" fill="#edf5ff" stroke="#7d9cbc" stroke-width="1.5" data-graph-role="background"/>
+<text x="57" y="383.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">接</text>
+<text x="57" y="419.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">入</text>
+<text x="57" y="455.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">与</text>
+<text x="57" y="491.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">保</text>
+<text x="57" y="527.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">存</text>
+<rect x="30" y="680" width="55" height="650" rx="10" fill="#f0f7ed" stroke="#8baa78" stroke-width="1.5" data-graph-role="background"/>
+<text x="57" y="933.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">学</text>
+<text x="57" y="969.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">习</text>
+<text x="57" y="1005.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">与</text>
+<text x="57" y="1041.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">生</text>
+<text x="57" y="1077.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">成</text>
+<rect x="30" y="1380" width="55" height="650" rx="10" fill="#f5f0fb" stroke="#a08db8" stroke-width="1.5" data-graph-role="background"/>
+<text x="57" y="1651.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">人</text>
+<text x="57" y="1687.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">工</text>
+<text x="57" y="1723.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">审</text>
+<text x="57" y="1759.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">阅</text>
+<rect x="30" y="2070" width="55" height="560" rx="10" fill="#fff8e5" stroke="#cdb573" stroke-width="1.5" data-graph-role="background"/>
+<text x="57" y="2278.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">确</text>
+<text x="57" y="2314.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">认</text>
+<text x="57" y="2350.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">与</text>
+<text x="57" y="2386.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">完</text>
+<text x="57" y="2422.0" font-size="24" fill="#172033" text-anchor="middle" font-weight="400">成</text>
+<path data-graph-role="edge" data-source="start" data-target="api" d="M840.0 238 L840.0 310" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="api" data-target="persist" d="M840.0 416 L840.0 490" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="persist" data-target="learn" d="M840.0 600 L840.0 700" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="learn" data-target="generate" d="M840.0 842 L840.0 950" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="generate" data-target="validate" d="M840.0 1092 L840.0 1170" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="validate" data-target="display" d="M840.0 1320 L840.0 1400" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="display" data-target="intent" d="M840.0 1520 L840.0 1610" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="intent" data-target="decision" d="M840.0 1752 L840.0 1840" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="decision" data-target="approve" d="M840.0 2000 L840.0 2090" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="approve" data-target="more" d="M840.0 2210 L840.0 2300" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="more" data-target="done" d="M840.0 2440 L840.0 2530" fill="none" stroke="#365f91" stroke-width="2.2" marker-end="url(#arrow-main)"/>
+<path data-graph-role="edge" data-source="persist" data-target="database" d="M1080 545 L1200 545" fill="none" stroke="#45866a" stroke-width="2.2" marker-end="url(#arrow-data)"/>
+<path data-graph-role="edge" data-source="cluster" data-target="learn" d="M1200 785 L1080 785" fill="none" stroke="#45866a" stroke-width="2.2" marker-end="url(#arrow-data)"/>
+<path data-graph-role="edge" data-source="validate" data-target="browser" d="M1080 1250 L1140 1250 L1140 1460 L1200 1460" fill="none" stroke="#45866a" stroke-width="2.2" marker-end="url(#arrow-data)"/>
+<path data-graph-role="edge" data-source="browser" data-target="display" d="M1200 1500 L1080 1500" fill="none" stroke="#45866a" stroke-width="2.2" marker-end="url(#arrow-data)"/>
+<path data-graph-role="edge" data-source="decision" data-target="discuss" d="M630 1920 L500 1920" fill="none" stroke="#8261a8" stroke-width="2.2" marker-end="url(#arrow-loop)"/>
+<path data-graph-role="edge" data-source="decision" data-target="revise" d="M1050 1920 L1200 1920" fill="none" stroke="#8261a8" stroke-width="2.2" marker-end="url(#arrow-loop)"/>
+<path data-graph-role="edge" data-source="discuss" data-target="intent" d="M160 1920 L130 1920 L130 1680 L600 1680" fill="none" stroke="#8261a8" stroke-width="2.2" marker-end="url(#arrow-loop)"/>
+<path data-graph-role="edge" data-source="revise" data-target="generate" d="M1550 1920 L1590 1920 L1590 1020 L1080 1020" fill="none" stroke="#8261a8" stroke-width="2.2" marker-end="url(#arrow-loop)"/>
+<text x="1380" y="1003" font-size="21" fill="#8261a8" text-anchor="middle">原因完整后重做当前稿</text>
+<path data-graph-role="edge" data-source="more" data-target="generate" d="M650 2370 L110 2370 L110 1020 L600 1020" fill="none" stroke="#8261a8" stroke-width="2.2" marker-end="url(#arrow-loop)"/>
+<text x="352" y="2350" font-size="21" fill="#8261a8" text-anchor="middle">是：生成下一份</text>
+<g data-graph-role="node" data-node-id="start" data-graph-bounds="600 150 480 88"><rect x="600" y="150" width="480" height="88" rx="12" fill="#f4f0fa" stroke="#9682b0" stroke-width="1.6"/>
+<text x="840.0" y="187.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">管理员选择资料与版本</text>
+<text x="840.0" y="222.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">上传资料需先完成解析</text>
+</g>
+<g data-graph-role="node" data-node-id="api" data-graph-bounds="600 310 480 106"><rect x="600" y="310" width="480" height="106" rx="12" fill="#f2f7fc" stroke="#789abd" stroke-width="1.6"/>
+<text x="840.0" y="340.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">生产接口接收请求</text>
+<text x="840.0" y="375.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">LabHttp → ProductionHttp</text>
+<text x="840.0" y="407.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">Host / CSRF 校验；请求身份校验</text>
+</g>
+<g data-graph-role="node" data-node-id="persist" data-graph-bounds="600 490 480 110"><rect x="600" y="490" width="480" height="110" rx="12" fill="#f2f7fc" stroke="#789abd" stroke-width="1.6"/>
+<text x="840.0" y="522.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">先保存，再执行</text>
+<text x="840.0" y="557.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">构建、资料版本、成果占位和任务入库</text>
+<text x="840.0" y="589.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">初始状态：待生成 / 待确认</text>
+</g>
+<g data-graph-role="node" data-node-id="learn" data-graph-bounds="600 700 480 142"><rect x="600" y="700" width="480" height="142" rx="12" fill="#eef7eb" stroke="#8aac79" stroke-width="1.6"/>
+<text x="840.0" y="732.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">异步预学习</text>
+<text x="840.0" y="767.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">ProductionJobQueue → prelearn</text>
+<text x="840.0" y="799.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">逐批提炼方法、摘要和原文来源</text>
+<text x="840.0" y="831.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">每批校验并保存；恢复时复用已完成批次</text>
+</g>
+<g data-graph-role="node" data-node-id="generate" data-graph-bounds="600 950 480 142"><rect x="600" y="950" width="480" height="142" rx="12" fill="#eef7eb" stroke="#8aac79" stroke-width="1.6"/>
+<text x="840.0" y="982.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">生成当前待审稿</text>
+<text x="840.0" y="1017.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">ProductionContext + ModelCalls</text>
+<text x="840.0" y="1049.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">使用已保存学习成果和已确认上游</text>
+<text x="840.0" y="1081.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">按阶段生成完整内容与专家指令</text>
+</g>
+<g data-graph-role="node" data-node-id="validate" data-graph-bounds="600 1170 480 150"><rect x="600" y="1170" width="480" height="150" rx="12" fill="#eef7eb" stroke="#8aac79" stroke-width="1.6"/>
+<text x="840.0" y="1206.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">校验与封存</text>
+<text x="840.0" y="1241.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">ProductionRules / ProductionCitations</text>
+<text x="840.0" y="1273.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">原文句段 → 精确引用；字段与依赖校验</text>
+<text x="840.0" y="1305.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">失败不放行；保留记录供管理员重试</text>
+</g>
+<g data-graph-role="node" data-node-id="display" data-graph-bounds="600 1400 480 120"><rect x="600" y="1400" width="480" height="120" rx="12" fill="#f5effa" stroke="#a18bb7" stroke-width="1.6"/>
+<text x="840.0" y="1437.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">展示完整稿与原文</text>
+<text x="840.0" y="1472.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">当前版本、职责、边界、完整提示词</text>
+<text x="840.0" y="1504.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">可查看来源、修订差异和历史记录</text>
+</g>
+<g data-graph-role="node" data-node-id="intent" data-graph-bounds="600 1610 480 142"><rect x="600" y="1610" width="480" height="142" rx="12" fill="#f5effa" stroke="#a18bb7" stroke-width="1.6"/>
+<text x="840.0" y="1642.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">解析管理员审阅意见</text>
+<text x="840.0" y="1677.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">按钮：使用明确动作</text>
+<text x="840.0" y="1709.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">聊天：搭建 Master 识别意图、补全指代</text>
+<text x="840.0" y="1741.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">保留原话；条件、否定和引用不能变批准</text>
+</g>
+<g data-graph-role="node" data-node-id="decision" data-graph-bounds="630 1840 420 160"><path d="M840.0 1840L1050 1920.0L840.0 2000L630 1920.0Z" fill="#fff8df" stroke="#bca965" stroke-width="1.6"/>
+<text x="840.0" y="1929.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">这条意见如何处理？</text>
+</g>
+<g data-graph-role="node" data-node-id="discuss" data-graph-bounds="160 1830 340 180"><rect x="160" y="1830" width="340" height="180" rx="12" fill="#f5effa" stroke="#a18bb7" stroke-width="1.6"/>
+<text x="330.0" y="1881.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">讨论或需要澄清</text>
+<text x="330.0" y="1916.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">解释原文、一般提问</text>
+<text x="330.0" y="1948.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">条件认可 / 对象不明 → 追问</text>
+<text x="330.0" y="1980.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">当前阶段与确认状态不变</text>
+</g>
+<g data-graph-role="node" data-node-id="revise" data-graph-bounds="1200 1830 350 180"><rect x="1200" y="1830" width="350" height="180" rx="12" fill="#fff5e4" stroke="#cab16b" stroke-width="1.6"/>
+<text x="1375.0" y="1881.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">不通过或要求修改</text>
+<text x="1375.0" y="1916.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">无原因：追问具体原因</text>
+<text x="1375.0" y="1948.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">原因明确：创建未确认的新修订</text>
+<text x="1375.0" y="1980.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">保留旧稿；必要时标记下游失效</text>
+</g>
+<g data-graph-role="node" data-node-id="approve" data-graph-bounds="600 2090 480 120"><rect x="600" y="2090" width="480" height="120" rx="12" fill="#fff7e6" stroke="#c4aa69" stroke-width="1.6"/>
+<text x="840.0" y="2127.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">程序校验后记录确认</text>
+<text x="840.0" y="2162.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">版本、内容指纹、完整范围与展示身份</text>
+<text x="840.0" y="2194.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">必要澄清已解决；确认当前完整稿</text>
+</g>
+<g data-graph-role="node" data-node-id="more" data-graph-bounds="650 2300 380 140"><path d="M840.0 2300L1030 2370.0L840.0 2440L650 2370.0Z" fill="#fff8df" stroke="#bca965" stroke-width="1.6"/>
+<text x="840.0" y="2379.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">还有下一项待审？</text>
+</g>
+<g data-graph-role="node" data-node-id="done" data-graph-bounds="600 2530 480 120"><rect x="600" y="2530" width="480" height="120" rx="12" fill="#eef7eb" stroke="#8aac79" stroke-width="1.6"/>
+<text x="840.0" y="2567.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">团队生产完成</text>
+<text x="840.0" y="2602.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">最终成员快照与流程全部确认</text>
+<text x="840.0" y="2634.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">build = completed；关联团队完成版本</text>
+</g>
+<g data-graph-role="node" data-node-id="order" data-graph-bounds="160 310 340 500"><rect x="160" y="310" width="340" height="500" rx="12" fill="#fbfcfe" stroke="#c5ced8" stroke-width="1.6"/>
+<text x="330.0" y="441.0" font-size="26" fill="#172033" text-anchor="middle" font-weight="600">逐项审阅顺序</text>
+<text x="330.0" y="476.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">① 整本书概要</text>
+<text x="330.0" y="508.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">② 1–6 位专业子专家逐位审阅</text>
+<text x="330.0" y="540.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">③ 兜底专家</text>
+<text x="330.0" y="572.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">④ 只负责路由的主专家</text>
+<text x="330.0" y="604.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">⑤ 关键词规则</text>
+<text x="330.0" y="636.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">⑥ 问答示例与路由配置</text>
+<text x="330.0" y="668.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">⑦ 团队完整流程和成员清单</text>
+<text x="330.0" y="700.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">每位专家均有独立完整提示词</text>
+</g>
+<g data-graph-role="node" data-node-id="database" data-graph-bounds="1200 490 350 180"><rect x="1200" y="490" width="350" height="180" rx="12" fill="#edf7f1" stroke="#85a991" stroke-width="1.6"/>
+<text x="1375.0" y="541.0" font-size="27" fill="#172033" text-anchor="middle" font-weight="600">PostgreSQL</text>
+<text x="1375.0" y="576.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">构建 / 修订 / 引用 / 审核</text>
+<text x="1375.0" y="608.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">聊天原话 / 澄清 / 任务 / 事件</text>
+<text x="1375.0" y="640.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">作为持久事实与恢复依据</text>
+</g>
+<g data-graph-role="node" data-node-id="cluster" data-graph-bounds="1200 720 350 180"><rect x="1200" y="720" width="350" height="180" rx="12" fill="#edf7f1" stroke="#85a991" stroke-width="1.6"/>
+<text x="1375.0" y="771.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">任务与集群约束</text>
+<text x="1375.0" y="806.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">PG 行锁、SKIP LOCKED、任务租约</text>
+<text x="1375.0" y="838.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">Redis：模型调用共享额度</text>
+<text x="1375.0" y="870.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">失租、取消或过期结果不可提交</text>
+</g>
+<g data-graph-role="node" data-node-id="browser" data-graph-bounds="1200 1400 350 180"><rect x="1200" y="1400" width="350" height="180" rx="12" fill="#f2f7fc" stroke="#789abd" stroke-width="1.6"/>
+<text x="1375.0" y="1451.0" font-size="25" fill="#172033" text-anchor="middle" font-weight="600">浏览器同步状态</text>
+<text x="1375.0" y="1486.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">每 2.5 秒查询增量事件</text>
+<text x="1375.0" y="1518.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">有变化再读取构建快照</text>
+<text x="1375.0" y="1550.0" font-size="21" fill="#425166" text-anchor="middle" font-weight="400">当前为轮询，不是 SSE</text>
+</g>
+<text x="914" y="2050" font-size="21" fill="#365f91" text-anchor="start" font-weight="400">明确完整确认</text>
+<text x="914" y="2490" font-size="21" fill="#365f91" text-anchor="start" font-weight="400">无：最终审核通过</text>
+<text x="840" y="2710" font-size="23" fill="#596579" text-anchor="middle" font-weight="400">L1 关键词、L2 向量问答、L3 主专家路由：本流程生成并审核配置，尚未执行用户侧路由。</text>
+<text x="840" y="2753" font-size="22" fill="#596579" text-anchor="middle" font-weight="400">共享原始文件按资料版本保存；所有修改与确认都有对应修订，讨论不等于批准。</text>
+<text x="840" y="2803" font-size="21" fill="#596579" text-anchor="middle" font-weight="400">蓝线：主流程　　紫线：审阅反馈 / 重生成　　绿线：存储、额度与状态同步</text>
+</svg>

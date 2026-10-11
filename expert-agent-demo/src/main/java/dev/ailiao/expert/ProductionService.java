@@ -356,6 +356,7 @@ final class ProductionService implements AutoCloseable {
             review(c,b,message,request,a,"approve",null);execute(c,"UPDATE ep_artifact_revision SET review_status='completed',updated_at=now() WHERE id=?",r);advance(c,b,a);bump(c,b);
         }else if(Set.of("reject","revise","provide_reason").contains(type)){
             String reason=s(intent,"reason").trim();
+            if(type.equals("revise")&&reason.isBlank())reason="按管理员原话修订当前稿";
             if(type.equals("reject"))review(c,b,message,request,a,"reject",reason.isBlank()?null:reason);
             if(reason.isBlank()){
                 execute(c,"UPDATE ep_artifact_revision SET review_status='needs_reason' WHERE id=?",r);String question="请具体说明哪里不准确、遗漏了什么，或希望如何修改。";String q=addMessage(c,b,"assistant",null,question,Json.object(),"succeeded",message);
@@ -365,10 +366,10 @@ final class ProductionService implements AutoCloseable {
                 if(type.equals("provide_reason"))review(c,b,message,request,a,"reject",reason);
                 resolveClarifications(c,b,message,request,intent,true);
                 execute(c,"UPDATE ep_clarification SET status='resolved',answer=?,resolved_message_id=?,updated_at=now() WHERE revision_id=? AND kind='rejection_reason' AND status='open'",reason,message,r);
-                revise(c,b,a,reason);bump(c,b);result.put("type","revision_queued");
+                revise(c,b,a,"管理员原话（修订依据）：\n"+s(request,"content")+"\n\n模型理解摘要（仅供参考，不得代替原话）：\n"+reason);bump(c,b);result.put("type","revision_queued");
             }
         }else throw error(422,"UNKNOWN_INTENT","无法安全执行此意图，请明确对象和范围");
-        String answer="revision_queued".equals(s(result,"type"))?"已记录修改意见，新稿生成任务已排队；生成完成后请重新审核完整内容。":s(intent,"reply");
+        String answer="needs_reason".equals(s(result,"type"))?"":"revision_queued".equals(s(result,"type"))?"已记录修改意见，新稿生成任务已排队；生成完成后请重新审核完整内容。":s(intent,"reply");
         if(!answer.isBlank())addMessage(c,b,"assistant",null,answer,Json.object(),"succeeded",message);return result;
     }
     /** 构建锁内复用已有工作；新的clientId也不能为同一目标重复付费生成。 */
