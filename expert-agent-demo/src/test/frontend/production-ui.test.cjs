@@ -78,3 +78,21 @@ test('最终清单将后端成员身份解析为对应版本中文名称，不�
 test('来源修订对比保留新旧引用说明及原文引文',async()=>{
  const s=fixture();s.currentArtifact.currentRevision.sources=[{chunkId:'s',pageNo:2,purpose:'新引用说明',quote:'新引文'}];s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old',revisionNo:1,sources:[{chunkId:'s',pageNo:2,purpose:'旧引用说明',quote:'旧引文'}]}];const b=component(s);await b.ui.enter({buildId:'build-1'});const diff=b.dom.getElementById('ep-diff').textContent;for(const text of ['新引用说明','旧引用说明','新引文','旧引文'])assert.ok(diff.includes(text));
 });
+
+function summaryFixture(){const s=fixture();s.phase='summary';s.currentArtifact.kind='book_summary';s.currentArtifact.currentRevision.body={title:'全书理解草稿',summary:'全书核心观点',outline:[{title:'第2篇 思考的逻辑',summary:'这一篇讨论归纳与演绎。'}],specialists:[{key:'logic',name:'逻辑专家',responsibility:'核对推理'}],limitations:['目录仍待核对']};s.messages[0].presentation.scope='summary.full';s.artifacts=[{id:'unit-1',kind:'learning_unit',currentRevision:{id:'u1',revisionNo:1,body:{summary:'仅供后台的第一批笔记'},generationStatus:'succeeded',reviewStatus:'completed'}},s.currentArtifact];return s;}
+test('概要页不再提供独立阅读批次入口，旧批次链接回到概要',async()=>{
+ const s=summaryFixture(),b=component(s);await b.ui.enter({buildId:'build-1',artifactId:'unit-1',revisionId:'u1'});
+ const options=b.dom.getElementById('ep-artifact-select').querySelectorAll('option');assert.equal(options.length,1);assert.equal(options[0].value,'agent-1');assert.doesNotMatch(b.dom.getElementById('ep-stages').textContent,/预学习|阅读批次/);assert.match(b.dom.getElementById('ep-artifact-title').textContent,/全书理解草稿/);assert.doesNotMatch(b.dom.getElementById('ep-body').textContent,/后台的第一批/);
+ await b.dom.getElementById('ep-approve').fire('click');assert.equal(b.calls[0].reviewContext.revisionId,'rev-2');assert.equal(b.calls[0].action.scope,'summary.full');
+});
+test('概要按全书、篇章主题、分工与依据、理解边界顺序呈现，不把批次变为章节',async()=>{
+ const s=summaryFixture(),b=component(s);await b.ui.enter({buildId:'build-1'});const body=b.dom.getElementById('ep-body');const headings=body.children.map(x=>x.children[0].textContent);assert.deepEqual(headings,['全书概要','篇章与主题理解','专家分工与依据','待核对事项与理解边界']);assert.match(body.textContent,/第2篇 思考的逻辑/);assert.doesNotMatch(body.textContent,/第1章|第一批笔记/);
+});
+test('资料仍在阅读时显示等待概要，失败重试可用，不暴露学习稿或批准按钮',async()=>{
+ const s=summaryFixture();s.phase='prelearning';s.currentArtifact=s.artifacts[0];s.artifacts=[s.currentArtifact];s.jobs=[{kind:'prelearn',status:'failed',error:'读取失败'}];s.summary=null;s.messages=[];
+ const b=component(s);await b.ui.enter({buildId:'build-1',artifactId:'unit-1'});assert.match(b.dom.getElementById('ep-reading-status').textContent,/阅读资料/);assert.equal(b.dom.getElementById('ep-approve').disabled,true);assert.equal(b.dom.getElementById('ep-retry').disabled,false);assert.equal(b.dom.getElementById('ep-artifact-select').querySelectorAll('option').length,0);assert.doesNotMatch(b.dom.getElementById('ep-body').textContent,/后台的第一批/);
+});
+test('缺少篇章名称时标记待核对，查看旧概要仍保持旧稿身份且不可批准',async()=>{
+ const s=summaryFixture();s.currentArtifact.revisions=[{...s.currentArtifact.currentRevision,id:'old-summary',revisionNo:1,body:{summary:'旧概要',outline:[{summary:'未标明章节的已保存内容'}],specialists:[],limitations:[]}}];
+ const b=component(s);await b.ui.enter({buildId:'build-1',artifactId:'agent-1',revisionId:'old-summary'});const body=b.dom.getElementById('ep-body').textContent;assert.match(body,/未标明章节的已保存内容/);assert.match(body,/名称待核对/);assert.doesNotMatch(body,/第1章|第 1 章/);assert.equal(b.dom.getElementById('ep-approve').disabled,true);assert.match(b.dom.getElementById('ep-revision-meta').textContent,/第 1 版/);
+});

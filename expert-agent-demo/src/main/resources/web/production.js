@@ -5,7 +5,7 @@
   const fields={name:'名称',title:'标题',description:'描述',summary:'摘要',outline:'内容结构',duty:'职责',responsibility:'职责',model:'模型',tools:'工具',capabilities:'特色能力',boundaries:'边界',when:'适用场景',keywords:'关键词',matchOptions:'匹配规则',match_options:'匹配规则',questions:'问答',examples:'示例',question:'问题',answer:'回答',explanation:'说明',workflow:'完整工作流程',settings:'生产配置',limitations:'限制与覆盖缺口',origin:'内容来源类型',sourceIds:'来源片段',steps:'方法步骤',limits:'边界',members:'成员清单',routes:'路由配置',target:'目标',specialistKey:'目标专业分工',key:'分工标识',methodTitles:'对应方法',agentId:'目标专家',routesTo:'路由目标',dependencies:'依赖',coverage:'资料覆盖',specialists:'专业分工',specialistPlan:'专业分工计划',learningUnits:'学习成果',qa:'问答',rules:'规则',flow:'完整工作流程',chapters:'对应篇章',overlapAnalysis:'分工重叠与遗漏分析',multiMatch:'命中多个专家',noMatch:'未命中时',metric:'相似度算法',threshold:'阈值',comparison:'阈值比较方式',embeddingProvider:'向量模型提供方',schemaVersion:'结构版本',typicalQuestions:'典型问题',methods:'学习到的方法',noMethodReason:'未提取方法的原因',purpose:'引用说明',decision:'审核结果',reason:'原因',createdAt:'记录时间',scope:'确认范围',role:'角色',agentRole:'专家角色',generationStatus:'生成状态',reviewStatus:'审核状态',dependencyState:'依据状态',revisionNo:'版本',pageNo:'页码',chapterPath:'章节',text:'原文',quote:'引文'};
   const kindText={book_summary:'整本书概要',learning_unit:'预学习成果',agent:'专家稿',keyword_rule:'关键词规则',qa_example:'示例问答',team_manifest:'团队完整流程'};
   const technicalFields=new Set(['key','logicalKey','schemaVersion','processedSourceIds','stepsOriginal','id','artifactId','revisionId','documentVersionId','chunkId','contentSha256','textSha256','createdBy','actorId','messageId','presentedMessageId','reviewedSha256','basedOnRevisionId','startOffset','endOffset']);
-  const jobText={prelearn:'资料预学习',generate_summary:'生成概要',revise_summary:'修改概要',generate_artifact:'生成成果',revise_artifact:'修改成果',interpret_message:'理解审阅意见'};
+  const jobText={prelearn:'阅读资料',generate_summary:'生成概要',revise_summary:'修改概要',generate_artifact:'生成成果',revise_artifact:'修改成果',interpret_message:'理解审阅意见'};
   const scopeText={'artifact.full':'当前成果的完整内容','summary.full':'概要的完整内容','team.full':'团队的完整流程'};
   const fieldLabel=key=>fields[key]||'补充信息';
   const display=v=>typeof v==='string'?v:JSON.stringify(v,null,2);
@@ -33,7 +33,7 @@
     const detail=add('ep-detail');detail.hidden=true;
     const toolbar=el('div','ep-toolbar');const titlebox=el('div');titlebox.append(add('ep-build-title','h2'),add('ep-position','p','muted'));
     const controls=el('div','row');for(const [type,text] of [['pause','暂停生成'],['resume','恢复'],['retry','重试失败任务'],['cancel','取消构建']]){controls.append(button(text,'secondary',()=>type==='cancel'?nodes['ep-cancel-dialog'].showModal():submit(text,{type}),'ep-'+type));}
-    controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls);detail.append(toolbar,add('ep-jobs','div','ep-jobs'));
+    controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls);detail.append(toolbar,add('ep-reading-status','p','notice'),add('ep-jobs','div','ep-jobs'));
     const jobHistory=add('ep-job-history','details','ep-diff');jobHistory.hidden=true;jobHistory.append(add('ep-job-history-title','summary'),el('p','muted','以下是此前尝试的失败记录，不代表当前任务状态。'),add('ep-job-history-items'));detail.append(jobHistory);
     const grid=el('div','ep-grid');const nav=add('ep-stages','nav','ep-stages');nav.setAttribute('aria-label','专家生产阶段');
     const work=el('div','ep-work');const art=el('section','ep-artifact');
@@ -56,7 +56,11 @@
     input.addEventListener('input',()=>{if(!input.value)draftContext=null;else if(!draftContext&&state)draftContext={state,target:target()};});
     aselect.addEventListener('change',()=>selectFocus(aselect.value,''));rselect.addEventListener('change',()=>selectFocus(target()?.artifact.id||'',rselect.value));
     function notify(message,error=false){banner.textContent=message;banner.className='notice'+(error?' error':'');banner.hidden=!message;}
-    function target(){return A.target(state,focusArtifact,focusRevision);}
+    function target(){const selected=A.target(state,focusArtifact,focusRevision);return selected?.artifact.kind==='learning_unit'?null:selected;}
+    function normalizeFocus(){
+      if(!focusArtifact||A.target(state,focusArtifact)?.artifact.kind!=='learning_unit')return;
+      const summary=A.artifacts(state).find(a=>a.kind==='book_summary');focusArtifact=summary?.id||'';focusRevision='';onRoute(A.hashFor(buildId,focusArtifact));
+    }
     function selectFocus(a,r){focusArtifact=a;focusRevision=r;onRoute(A.hashFor(buildId,a,r));render();}
     async function loadList(){try{const result=await client.list();nodes['ep-list'].replaceChildren();const list=result.builds||[];if(!list.length){nodes['ep-list'].append(el('p','muted','还没有生产构建。请选择已有资料并新建。'));return;}for(const b of list){const item=button('','ep-build',()=>enter({buildId:b.buildId}));item.append(el('strong','',b.name||'未命名构建'),el('span','',`${A.phases.find(p=>p[0]===b.phase)?.[1]||b.phase} · ${statusText[b.status]||b.status}`),el('small','',b.updatedAt?new Date(b.updatedAt).toLocaleString('zh-CN'):'已保存'));nodes['ep-list'].append(item);}}catch(error){nodes['ep-list'].replaceChildren(el('p','ep-error',error.message));notify(error.message,true);}}
     async function enter(route={}) {
@@ -70,7 +74,7 @@
     async function poll(){const token=epoch;if(active&&buildId&&!posting&&!loading){try{const events=await client.events(buildId,state?.lastEventSeq||'0');if(token!==epoch)return;if(!state||needsReload||events.events?.length)await refreshSnapshot(token);}catch(error){if(token===epoch){needsReload=true;notify('连接暂时中断：'+error.message+'。审核已暂停，恢复后刷新状态。',true);render();}}}schedule();}
     async function refreshSnapshot(token=epoch) {
       if(!buildId)return;loading=true;
-      try {const next=await client.snapshot(buildId);if(token!==epoch||!active)return;state=next;needsReload=false;if(!older.length)olderCursor=next.olderMessagesBeforeSeq||'';render();}
+      try {const next=await client.snapshot(buildId);if(token!==epoch||!active)return;state=next;normalizeFocus();needsReload=false;if(!older.length)olderCursor=next.olderMessagesBeforeSeq||'';render();}
       catch(error){if(token===epoch){needsReload=true;notify(error.message,true);render();}}
       finally{if(token===epoch){loading=false;render();}}
     }
@@ -95,6 +99,11 @@
     function reviewContext(revision){
       const plans=state?.summary?.body?.specialists||[];
       return {review:true,render(key,value){
+        if(key==='outline'&&Array.isArray(value)){
+          const sections=el('div','ep-outline');
+          value.forEach((entry,index)=>{const section=el('section','ep-outline-item');if(entry&&typeof entry==='object'&&!Array.isArray(entry)){section.append(el('h4','',typeof entry.title==='string'&&entry.title.trim()?entry.title:`主题 ${index+1}（名称待核对）`));const {title,...content}=entry;section.append(valueNode(content,reviewContext(revision)));}else section.append(valueNode(entry));sections.append(section);});
+          if(!value.length)sections.append(el('p','muted','当前稿尚未提供篇章或主题说明，请提出补充意见。'));return sections;
+        }
         if(key==='members'&&Array.isArray(value)){
           const list=el('ul','ep-items');
           for(const member of value){const item=el('li');const artifact=A.artifacts(state).find(a=>a.id===member.artifactId);const saved=[artifact?.currentRevision,...(artifact?.revisions||[])].find(r=>r?.id===member.revisionId);item.append(el('strong','',saved?.body?.name||saved?.body?.title||'成员名称待核对'),el('p','muted',`${kindText[member.kind]||'团队成果'} · ${saved?'第 '+saved.revisionNo+' 版':'版本待核对（见技术详情）'}`));list.append(item);}if(!value.length)list.append(el('li','muted','未提供成员'));return list;
@@ -133,21 +142,26 @@
     }
     function render() {
       nodes['ep-resend'].hidden=!pendingRequest;nodes['ep-resend'].disabled=posting;
-      if(!state){jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-technical-body','ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','reject','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
-      const t=target(),a=t?.artifact,r=t?.revision,all=A.artifacts(state),current=state.currentArtifact;
+      if(!state){nodes['ep-reading-status'].hidden=true;jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-technical-body','ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','reject','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
+      const t=target(),a=t?.artifact,r=t?.revision,all=A.artifacts(state).filter(x=>x.kind!=='learning_unit'),current=state.currentArtifact;
       nodes['ep-build-title'].textContent=state.name||'生产构建';nodes['ep-position'].textContent=`${statusText[state.status]||state.status} · 当前阶段：${A.phases.find(p=>p[0]===state.phase)?.[1]||state.phase} · 查看：${t?currentName(t)+' v'+r.revisionNo:'等待稿件'}`;
-      nodes['ep-stages'].replaceChildren(...A.phases.map(([phase,label],i)=>{const available=all.filter(x=>A.phaseFor(x)===phase);const b=button('','ep-stage'+(state.phase===phase?' active':''),()=>{if(available.length)selectFocus(available[0].id,'');});b.disabled=!available.length;b.append(el('span','ep-step',String(i+1).padStart(2,'0')),el('span','',label),el('small','',available.length?`${available.length} 份成果`:state.phase===phase?'处理中':'待生成'));if(state.phase===phase)b.setAttribute('aria-current','step');return b;}));
+      nodes['ep-reading-status'].hidden=state.phase!=='prelearning';nodes['ep-reading-status'].textContent='阅读资料尚未完成。完成后将在这里展示全书概要、篇章与主题理解及专家分工；如任务失败，请查看原因后重试。';
+      nodes['ep-stages'].replaceChildren(...A.phases.filter(([phase])=>phase!=='prelearning').map(([phase,label],i)=>{const available=all.filter(x=>A.phaseFor(x)===phase);const b=button('','ep-stage'+(state.phase===phase?' active':''),()=>{if(available.length)selectFocus(available[0].id,'');});b.disabled=!available.length;b.append(el('span','ep-step',String(i+1).padStart(2,'0')),el('span','',label),el('small','',available.length?`${available.length} 份成果`:state.phase===phase?'处理中':'待生成'));if(state.phase===phase)b.setAttribute('aria-current','step');return b;}));
       const blocked=posting||needsReload||loading,retryable=renderJobs();
       nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!retryable;nodes['ep-send'].disabled=posting||needsReload||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
+      selectrow.hidden=!all.length;
       aselect.replaceChildren(...all.map(x=>{const o=el('option','',`${kindText[x.kind]||x.kind} · ${x.currentRevision?.body?.name||x.currentRevision?.body?.title||kindText[x.kind]||'待命名成果'}`);o.value=x.id;o.selected=x.id===a?.id;return o;}));
       const revisions=a?[a.currentRevision,...(a.revisions||[])].filter(Boolean).filter((x,i,list)=>list.findIndex(y=>y.id===x.id)===i).sort((x,y)=>Number(y.revisionNo)-Number(x.revisionNo)):[];
       rselect.replaceChildren(...revisions.map(v=>{const o=el('option','',`v${v.revisionNo} · ${statusText[v.reviewStatus]||v.reviewStatus}${v.id===a.currentRevision?.id?' · 当前稿':''}`);o.value=v.id;o.selected=v.id===r?.id;return o;}));
-      nodes['ep-artifact-title'].textContent=t?currentName(t):'等待稿件';nodes['ep-review-badge'].textContent=r?statusText[r.reviewStatus]||r.reviewStatus:'';
+      nodes['ep-artifact-title'].textContent=t?currentName(t):'等待全书概要';nodes['ep-review-badge'].textContent=r?statusText[r.reviewStatus]||r.reviewStatus:'';
       nodes['ep-revision-meta'].textContent=r?`第 ${r.revisionNo} 版 · ${statusText[r.reviewStatus]||'待核对'} · 生成：${statusText[r.generationStatus]||'待核对'} · 依据：${statusText[a.dependencyState]||'未说明'}`:'服务端正在准备当前阶段成果，已有草稿将保存并恢复。';
       const historical=!!t&&(a.id!==(current?.id||state.currentArtifactId)||r.id!==a.currentRevision?.id);nodes['ep-history-warning'].hidden=!historical;nodes['ep-history-warning'].textContent='正在回看其他成果或历史稿。生产待办未改变，不能用旧确认批准新稿。';
       nodes['ep-body'].replaceChildren();nodes['ep-prompt'].replaceChildren();nodes['ep-sources'].replaceChildren();nodes['ep-diff'].replaceChildren();
       nodes['ep-technical-body'].replaceChildren();
-      if(r){const context=reviewContext(r);nodes['ep-technical-body'].append(field('原始记录',display({artifactId:a.id,...r})));for(const [key,value] of Object.entries(r.body||{})){if(!technicalFields.has(key))nodes['ep-body'].append(field(fieldLabel(key),value,context,key));}
+      if(r){const context=reviewContext(r);nodes['ep-technical-body'].append(field('原始记录',display({artifactId:a.id,...r})));const body=r.body||{};
+        const summaryLabels={summary:'全书概要',outline:'篇章与主题理解',specialists:'专家分工与依据',limitations:'待核对事项与理解边界'};
+        const entries=a.kind==='book_summary'?[...Object.keys(summaryLabels).map(key=>[key,body[key]??(key==='summary'?'尚未提供全书概要':[])]),...Object.entries(body).filter(([key])=>key!=='title'&&!(key in summaryLabels))]:Object.entries(body);
+        for(const [key,value] of entries){if(!technicalFields.has(key))nodes['ep-body'].append(field(a.kind==='book_summary'?(summaryLabels[key]||fieldLabel(key)):fieldLabel(key),value,context,key));}
         if(a.kind==='agent'){nodes['ep-prompt'].append(field('完整业务提示词',r.systemPrompt||'尚未生成完整提示词，不能确认此专家。'));}
         else if(r.systemPrompt)nodes['ep-prompt'].append(field('完整业务提示词',r.systemPrompt));
         const sh=el('div','ep-sources');sh.append(el('h3','','资料来源'));if(!(r.sources||[]).length)sh.append(el('p','muted','此版本未返回直接来源片段；请核对上游依赖与覆盖说明。'));for(const [index,source] of (r.sources||[]).entries()){sh.append(sourceButton(source,index,r));if(source.purpose)sh.append(el('p','muted',source.purpose));if(source.qualityFlags?.length)sh.append(el('p','ep-warning','该原文存在质量提示，请结合原文件核对。'));}nodes['ep-sources'].append(sh);

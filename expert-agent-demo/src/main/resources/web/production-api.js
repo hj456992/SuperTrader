@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
   const BASE='/api/expert-production/v1';
-  const phases=[['prelearning','预学习'],['summary','概要审阅'],['specialists','专业子专家'],['fallback','兜底专家'],['router','主专家'],['production_config','关键词与问答'],['final_review','整体确认']];
+  const phases=[['prelearning','阅读资料'],['summary','概要审阅'],['specialists','专业子专家'],['fallback','兜底专家'],['router','主专家'],['production_config','关键词与问答'],['final_review','整体确认']];
   const scopeFor=a=>a?.kind==='book_summary'?'summary.full':a?.kind==='team_manifest'?'team.full':'artifact.full';
   function artifacts(s) {const all=[...(s?.artifacts||[])];if(s?.currentArtifact&&!all.some(a=>a.id===s.currentArtifact.id))all.push(s.currentArtifact);return all;}
   function target(s,artifactId,revisionId) {
