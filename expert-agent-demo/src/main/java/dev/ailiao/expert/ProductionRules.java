@@ -15,7 +15,11 @@ final class ProductionRules {
         for(JsonNode source:array(raw,"sources",true)){
             JsonNode chunk=byId.get(source.path("chunkId").asText());if(chunk==null)throw new IllegalArgumentException("来源片段不在本次原文窗口");
             String original=chunk.path("text").asText();int length=original.codePointCount(0,original.length()),start,end;
-            if(source.has("quote")){
+            if(source.has("spanIds")){
+                String purpose=Json.required(source,"purpose",1000);
+                for(int[] range:ProductionCitations.selectedRanges(source,original))normalized.add(Json.object().put("chunkId",source.path("chunkId").asText()).put("startOffset",range[0]).put("endOffset",range[1]).put("purpose",purpose));
+                continue;
+            }else if(source.has("quote")){
                 if(!source.path("quote").isTextual()||source.path("quote").asText().isBlank())throw new IllegalArgumentException("来源引文必须为非空逐字文本");
                 String quote=source.path("quote").asText();int found=original.indexOf(quote);
                 if(found<0)throw new IllegalArgumentException("来源引文未在指定片段逐字匹配");

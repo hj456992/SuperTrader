@@ -15,7 +15,9 @@
 整书全文保存在PG，单次generate使用最多18000字符的相关完整方法和18000字符原文窗口；全部批次保留覆盖索引，省略或预览明确标注。已批准专家的完整prompt不在每轮重复注入；当前修订对象保留原完整稿。总输入超过90000字符拒绝调用并保留可重试状态，不能无界发送整书。`contextCoverage`记录原文总数、所选原文身份、学习批次数和本次完整方法数；输出只能引用实际进入本轮窗口的来源。
 概要生成的完整方法按学习批次轮转选择，原文先给各批代表方法分配窗口，避免前部章节挤占全部预算。窗口不足时保留原文的逐字Unicode码点前缀，并标明textIsPreview与原字符数；预览不能宣称全文已进入。各批coverage.limitations完整保留，超总预算明确失败。下游生成完整保留已确认概要body（包括概要尾部、outline、limitations、分工）以及关键词/问答配置body（含全部规则、问答、阈值及分支），以传递管理员修正；仍不重复注入所有已批准专家的完整提示词。提示词要求综合全部学习索引，区分整书学习覆盖和本次引用窗口；该约束不保证模型语义永不偏离，生成稿仍须逐项审核。
 
-输出统一 `{body:object,systemPrompt:string,sources:[{chunkId,quote,purpose}],clarifications:[string]}`。quote必须逐字复制本轮指定chunk中的唯一原文，程序精确匹配后计算Unicode码点左闭右开范围，模型不手算offset。不匹配、多处匹配、未知chunk或切断码点均拒绝。兼容旧来源`{chunkId,startOffset,endOffset,purpose}`的合法整数偏移；若引文与偏移同时提供，二者必须完全一致，不自动夹边界或修正冲突。持久化与摘要使用规范化`{chunkId,startOffset,endOffset,purpose}`，原文通过不可变chunk可重建。sources非空、必须在本轮原文窗口。
+输出统一 `{body:object,systemPrompt:string,sources:[{chunkId,spanIds:[string],purpose}],clarifications:[string]}`。实际模型请求将每个所选来源的 `text` 转为 `citationSpans:[{id,text}]`，模型只选择该chunk内的句段编号。句段按原文码点生成；短句合并后按标点分段，较长内容继续切分，前后空白保留；预览只提供已入窗前缀，转换后仍校验90000字符总预算。服务端依据原始窗口重新计算同一组位置，对合法编号排序、相邻句段合并、不相邻分别保存，绝不补入未选择的中间文字。未知或重复编号、空选择、非字符串以及与quote/offset混用均拒绝。模型引用的语义是否支持职责仍由管理员核查，编号有效不等于内容正确。
+
+旧来源 `{chunkId,quote,purpose}` 保留严格逐字唯一匹配；旧 `{chunkId,startOffset,endOffset,purpose}` 保留整数码点范围校验。二者混用时必须完全一致，不采用模糊匹配、改写原文或夹边界。持久化、内容指纹及来源接口仍使用规范化 `{chunkId,startOffset,endOffset,purpose}`，文本从不可变chunk重建，sources非空且限于本轮窗口。此次无数据库或HTTP协议变更，历史已确认修订不回写。
 
 - kind=book_summary: body `{title,summary,outline:[object|string],limitations:[string],specialists:[{key,name,responsibility,methodTitles:[string]}]}`；specialists 1–6，key唯一。
 - kind=agent: body `{name,description,summary,responsibility,model,tools:[string],capabilities:[string],boundaries:[string],chapters:[string],overlapAnalysis:string}`；systemPrompt为完整业务提示词，非摘要。agentRole=specialist/fallback/router，router只负责路由。chapters必须为非空字符串列表；缺失、null或空数组时，程序仅从已验证引用指向的真实chunk生成`文档版本 {documentVersionId}：{chapterPath或未识别章节}，第{pageNo}页`，同位置去重，不修改原引用，不从未引用片段或模型猜测补章节。缺少有效版本/页码、外部来源、错误chapters类型仍拒绝。

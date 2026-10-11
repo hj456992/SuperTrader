@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProductionModelFailureTest {
     @Test void productionSelectsOneCompleteWorkbenchSummarySchemaAndBatchLocalPrelearnSources()throws Exception{
-        AtomicReference<String> instruction=new AtomicReference<>();
+        AtomicReference<String> instruction=new AtomicReference<>(),userInput=new AtomicReference<>();
         ModelRegistry registry=(config,signal)->CompletableFuture.completedFuture(new ModelRegistry.PreparedCall(){
             public Map<String,Object> config(){return config;}
             public Map<String,Object> adapterDefaults(){return Map.of();}
@@ -21,12 +21,19 @@ class ProductionModelFailureTest {
             public Flux<Map<String,Object>> stream(Map<String,Object> request){
                 var messages=(List<?>)request.get("messages");var system=(Map<?,?>)messages.get(0);
                 var content=(List<?>)system.get("content");instruction.set((String)((Map<?,?>)content.get(0)).get("text"));
+                var user=(Map<?,?>)messages.get(1);userInput.set((String)((Map<?,?>)((List<?>)user.get("content")).get(0)).get("text"));
                 return Flux.just(Map.of("type","text-delta","text","{}"),Map.of("type","finish","reason",Map.of("kind","stop")));
             }
         });
         ModelCalls calls=new ModelCalls(registry,"test-only","controlled-stream");
         calls.production("generate",Json.object().put("kind","book_summary").put("origin","workbench"),()->false);
         String workbench=instruction.get();
+        ObjectNode citationInput=Json.object().put("kind","agent");citationInput.set("sources",Json.array().add(Json.object().put("id","source-1").put("text",("原句".repeat(20)+"。").repeat(2))));
+        calls.production("generate",citationInput,()->false);
+        ObjectNode transmitted=Json.parse(userInput.get());assertFalse(transmitted.path("sources").get(0).has("text"));
+        assertEquals("s2",transmitted.path("sources").get(0).path("citationSpans").get(1).path("id").asText());
+        assertEquals("原句".repeat(20)+"。",transmitted.path("sources").get(0).path("citationSpans").get(1).path("text").asText());
+
         assertTrue(workbench.contains("specialists:[{key,name,responsibility,methodTitles:[],typicalQuestions:[],sourceIds:[]}]"));
         assertFalse(workbench.contains("specialists:[{key,name,responsibility,methodTitles:[]}]}"));
         calls.production("generate",Json.object().put("kind","book_summary"),()->false);

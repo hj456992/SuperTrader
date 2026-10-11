@@ -41,4 +41,51 @@ class ProductionSourceTest {
         var normalized=normalize(source().put("quote","乙").put("startOffset",1).put("endOffset",2),"甲乙").path("sources").get(0);
         assertEquals(1,normalized.path("startOffset").asInt());assertEquals(2,normalized.path("endOffset").asInt());
     }
+
+    @Test void selectedSpansExtractOriginalTextIncludingOcrSpacingAndUnicode() throws Exception {
+        ObjectNode raw=source();raw.set("spanIds",Json.array().add("s2").add("s3"));
+        var normalized=assertDoesNotThrow(()->normalize(raw,"前😀"+"甲".repeat(37)+"。核实 事实"+"乙".repeat(34)+"。\n再得结论"+"丙".repeat(34)+"！")).path("sources").get(0);
+        assertEquals(40,normalized.path("startOffset").asInt());assertEquals(120,normalized.path("endOffset").asInt());
+        assertEquals("论证依据",normalized.path("purpose").asText());assertFalse(normalized.has("spanIds"));
+    }
+    @Test void spanIdentityDisambiguatesRepeatedOriginalSentences() throws Exception {
+        ObjectNode raw=source();raw.set("spanIds",Json.array().add("s2"));
+        var normalized=assertDoesNotThrow(()->normalize(raw,("原句".repeat(20)+"。").repeat(2))).path("sources").get(0);
+        assertEquals(41,normalized.path("startOffset").asInt());assertEquals(82,normalized.path("endOffset").asInt());
+    }
+    @Test void invalidOrConflictingSpanSelectionsNeverFallBackToQuotes() throws Exception {
+        for(ArrayNode ids:new ArrayNode[]{Json.array(),Json.array().add("s99"),Json.array().add("s1").add("s1"),Json.array().add(1)}) {
+            ObjectNode raw=source();raw.set("spanIds",ids);rejects(raw,"甲。乙。丙。");
+        }
+        ObjectNode mixed=source().put("quote","甲。");mixed.set("spanIds",Json.array().add("s1"));rejects(mixed,"甲。乙。");
+        mixed.remove("quote");mixed.put("startOffset",0).put("endOffset",2);rejects(mixed,"甲。乙。");
+    }
+
+    @Test void modelOptionsPreserveOriginalPreviewAndLongUnicodeTextWithoutMutation() {
+        String text="😀".repeat(241)+"  原文。\n";ObjectNode chunk=Json.object().put("id","source-1").put("text",text).put("textIsPreview",true);
+        ObjectNode window=Json.object();window.set("sources",Json.array().add(chunk));
+        ObjectNode input=ProductionCitations.modelInput(window);var selected=input.path("sources").get(0);
+        assertFalse(selected.has("text"));assertTrue(selected.path("textIsPreview").asBoolean());
+        assertEquals(text,selected.path("citationSpans").findValuesAsText("text").stream().reduce("",String::concat));assertEquals(text,chunk.path("text").asText());
+        assertEquals(240,ProductionCitations.spans(text).get(0).end());
+        ObjectNode raw=source();raw.set("spanIds",Json.array().add("s2"));
+        ObjectNode out=Json.object();out.set("sources",Json.array().add(raw));
+        var range=ProductionRules.normalizeSources(out,(ArrayNode)window.path("sources")).path("sources").get(0);
+        assertEquals(240,range.path("startOffset").asInt());assertEquals(247,range.path("endOffset").asInt());
+        assertThrows(IllegalArgumentException.class,()->ProductionCitations.modelInput(window.deepCopy().put("oversize","大".repeat(90000))));
+    }
+
+    @Test void scatteredSelectionsProduceSeparateExactRangesWithoutFillingGaps() throws Exception {
+        ObjectNode raw=source();raw.set("spanIds",Json.array().add("s4").add("s1").add("s2"));
+        var refs=assertDoesNotThrow(()->normalize(raw,"甲".repeat(39)+"。"+"乙".repeat(39)+"。"+"不".repeat(39)+"。"+"丁".repeat(39)+"。")).path("sources");
+        assertEquals(2,refs.size());assertEquals(0,refs.get(0).path("startOffset").asInt());assertEquals(80,refs.get(0).path("endOffset").asInt());
+        assertEquals(120,refs.get(1).path("startOffset").asInt());assertEquals(160,refs.get(1).path("endOffset").asInt());
+        assertEquals("论证依据",refs.get(1).path("purpose").asText());
+    }
+
+    @Test void punctuationDenseSourceCannotExplodeCitationWindow() {
+        ObjectNode window=Json.object();window.set("sources",Json.array().add(Json.object().put("id","source-1").put("text","a;".repeat(4000))));
+        ObjectNode adapted=assertDoesNotThrow(()->ProductionCitations.modelInput(window));
+        assertTrue(adapted.toString().length()<18000);assertEquals("a;".repeat(4000),adapted.path("sources").get(0).path("citationSpans").findValuesAsText("text").stream().reduce("",String::concat));
+    }
 }
