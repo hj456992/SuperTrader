@@ -34,13 +34,13 @@
     const toolbar=el('div','ep-toolbar');const titlebox=el('div');titlebox.append(add('ep-build-title','h2'),add('ep-position','p','muted'));
     const controls=el('div','row');for(const [type,text] of [['pause','暂停生成'],['resume','恢复'],['retry','重试失败任务'],['cancel','取消构建']]){controls.append(button(text,'secondary',()=>type==='cancel'?nodes['ep-cancel-dialog'].showModal():submit(text,{type}),'ep-'+type));}
     controls.append(button('刷新状态','text-button',()=>refreshSnapshot(),'ep-refresh'));toolbar.append(titlebox,controls);detail.append(toolbar,add('ep-reading-status','p','notice'),add('ep-jobs','div','ep-jobs'));
-    const jobHistory=add('ep-job-history','details','ep-diff');jobHistory.hidden=true;jobHistory.append(add('ep-job-history-title','summary'),el('p','muted','以下是此前尝试的失败记录，不代表当前任务状态。'),add('ep-job-history-items'));detail.append(jobHistory);
+    const jobHistory=add('ep-job-history','details','ep-diff');jobHistory.hidden=true;jobHistory.append(add('ep-job-history-title','summary'),el('p','muted','以下是此前尝试的失败记录，不代表当前任务状态。'),add('ep-job-history-items'));
     const grid=el('div','ep-grid');const nav=add('ep-stages','nav','ep-stages');nav.setAttribute('aria-label','专家生产阶段');
     const work=el('div','ep-work');const art=el('section','ep-artifact');
     const artHead=el('div','ep-card-head');artHead.append(add('ep-artifact-title','h2'),add('ep-review-badge','span','tag'));art.append(artHead);
     const selectrow=el('div','ep-selectors');const alabel=el('label','','查看成果');const aselect=add('ep-artifact-select','select');aselect.setAttribute('aria-label','查看成果');alabel.append(aselect);const rlabel=el('label','','查看版本');const rselect=add('ep-revision-select','select');rselect.setAttribute('aria-label','查看版本');rlabel.append(rselect);selectrow.append(alabel,rlabel,button('回到当前待办','text-button',()=>selectFocus('',''),'ep-current'));
     art.append(selectrow,add('ep-revision-meta','div','ep-meta'),add('ep-history-warning','div','ep-warning'),add('ep-body'),add('ep-prompt'),add('ep-sources'));
-    const technical=add('ep-technical','details','ep-diff');technical.append(el('summary','','技术详情（内部标识与原始记录）'),add('ep-technical-body'));art.append(technical);
+    const technical=add('ep-technical','details','ep-diff');technical.append(el('summary','','技术详情（内部标识与原始记录）'),jobHistory,add('ep-technical-body'));art.append(technical);
     const history=el('details','ep-diff');history.append(el('summary','','修订差异与审核历史'),add('ep-diff'));art.append(history);
     const actions=el('div','ep-review-actions');actions.append(button('否决此版本','secondary',()=>{const t=target();return submit(`不通过${currentName(t)} v${t?.revision.revisionNo}`,{type:'reject'});},'ep-reject'),button('确认完整稿','primary',()=>{const t=target();return submit(`确认${currentName(t)} v${t?.revision.revisionNo} 的完整内容${t?.artifact.kind==='agent'?'及完整提示词':''}`,{type:'approve'});},'ep-approve'));
     art.append(actions,add('ep-scope','p','ep-meta'));
