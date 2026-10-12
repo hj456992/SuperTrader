@@ -20,9 +20,9 @@
   }
   function field(title,value,context={},key=''){const section=el('section','ep-field');section.append(el('h4','',title),valueNode(value,context,key));return section;}
   function currentName(t){return t?.revision.body?.name||t?.revision.body?.title||kindText[t?.artifact.kind]||'当前成果';}
-  function create({root,client,onRoute=()=>{},onNew=()=>{}}) {
+  function create({root,client,onRoute=()=>{},onNew=()=>{},refreshConnection}) {
     let state=null,buildId='',focusArtifact='',focusRevision='',epoch=0,timer=null,active=false,posting=false,loading=false,needsReload=false,pendingRequest=null,draftContext=null;
-    let older=[],olderCursor='',messageKey='',sourceRequest=0,regenerateContext=null;
+    let older=[],olderCursor='',messageKey='',sourceRequest=0,regenerateContext=null,connectionExpired=false,reconnecting=false;
     const nodes={};
     function button(text,cls,click,id){const node=makeButton(text,cls,click,id);if(id)nodes[id]=node;return node;}
     const add=(id,tag='div',cls='')=>{const node=el(tag,cls);node.id=id;nodes[id]=node;return node;};
@@ -47,9 +47,10 @@
     const chat=el('section','ep-chat');const chatHead=el('div','ep-card-head');chatHead.append(el('h2','','与搭建助手 审阅'),el('span','ep-meta','原话与处理结果由服务端保存'));chat.append(chatHead,add('ep-clarifications'),button('加载更早记录','text-button',()=>loadOlder(),'ep-older'),add('ep-messages','div','ep-messages'));
     nodes['ep-messages'].setAttribute('role','log');nodes['ep-messages'].setAttribute('aria-label','生产审阅聊天');
     const form=add('ep-chat-form','form','ep-composer');const label=el('label','sr-only','管理员审阅意见');label.setAttribute('for','ep-input');const input=add('ep-input','textarea');input.rows=4;input.placeholder='提出疑问、说明修改原因，或明确确认所见版本。';const foot=el('div','ep-composer-foot');foot.append(el('span','ep-meta','自由聊天由搭建助手 处理；讨论不等于确认。'),button('发送意见 ↑','primary',()=>{},'ep-send'));nodes['ep-send'].type='submit';form.append(label,input,foot);chat.append(form);
+    const sendStatus=add('ep-send-status','p','notice');sendStatus.setAttribute('role','status');sendStatus.hidden=true;form.append(sendStatus,button('更新连接（保留意见）','secondary',()=>reconnect(),'ep-reconnect'));nodes['ep-reconnect'].hidden=true;
     work.append(art,chat);grid.append(nav,work);detail.append(grid,add('ep-completion','div','ep-completion'));
     const resend=button('重发原请求（同一身份）','secondary',()=>resendPending(),'ep-resend');resend.hidden=true;
-    root.replaceChildren(head,banner,resend,listPanel,detail);
+    form.append(resend);root.replaceChildren(head,banner,listPanel,detail);
     const sourceDialog=add('ep-source-dialog','dialog');const sourceHead=el('div','dialog-heading');sourceHead.append(el('h2','','原文核对'),button('关闭','text-button',()=>sourceDialog.close()));const sourceTech=el('details','ep-diff');sourceTech.append(el('summary','','来源技术详情'),add('ep-source-technical','pre','ep-value'));sourceDialog.append(sourceHead,add('ep-source-meta','p','muted'),add('ep-source-text','pre'),add('ep-source-link','a'),sourceTech);root.append(sourceDialog);
     const cancelDialog=add('ep-cancel-dialog','dialog');cancelDialog.append(el('h2','','取消本次构建？'),el('p','','取消后不能恢复此构建。已保存的资料、修订和审核记录将保留；正在进行的外部调用可能无法撤销。'));const cancelActions=el('div','row');cancelActions.append(button('继续审阅','secondary',()=>cancelDialog.close()),button('确认取消构建','primary',async()=>{cancelDialog.close();await submit('取消本次构建',{type:'cancel'});}));cancelDialog.append(cancelActions);root.append(cancelDialog);
     const regenerateDialog=add('ep-regenerate-dialog','dialog');regenerateDialog.append(el('h2','','重新生成当前稿'),add('ep-regenerate-target','p'),el('p','','仅重做当前稿，保留旧稿供对比，不重新阅读整本书。不填修改要求时，按原要求重新生成。'));
@@ -58,10 +59,16 @@
     form.addEventListener('submit',e=>{e.preventDefault();return submit(input.value);});
     input.addEventListener('input',()=>{if(!input.value)draftContext=null;else if(!draftContext&&state)draftContext={state,target:target()};});
     aselect.addEventListener('change',()=>selectFocus(aselect.value,''));rselect.addEventListener('change',()=>selectFocus(target()?.artifact.id||'',rselect.value));
-    function notify(message,error=false){banner.textContent=message;banner.className='notice'+(error?' error':'');banner.hidden=!message;}
+    function notify(message,error=false){for(const notice of [banner,sendStatus]){notice.textContent=message;notice.className='notice'+(error?' error':'');notice.hidden=!message;}}
+    async function reconnect(){
+      if(reconnecting||!connectionExpired||!refreshConnection)return;const token=epoch;reconnecting=true;notify('正在更新连接，输入的意见会保留。');render();
+      try{await refreshConnection();if(token!==epoch||!active)return;await refreshSnapshot(token);if(token!==epoch||!active)return;if(needsReload)throw new Error('当前稿件暂时无法读取');connectionExpired=false;notify(pendingRequest?'连接已更新，请使用“重发原请求”核对原请求结果，避免重复提交。':'连接已更新，意见已保留。请核对当前稿后再次发送。');}
+      catch(error){if(token===epoch)notify('更新连接失败：'+error.message+'。意见已保留，可重试。',true);}
+      finally{if(token===epoch){reconnecting=false;render();}}
+    }
     function target(){const selected=A.target(state,focusArtifact,focusRevision);return selected?.artifact.kind==='learning_unit'?null:selected;}
     function hasPendingWork(){return !!pendingRequest||(state?.jobs||[]).some(j=>['queued','running'].includes(j.status));}
-    function canRegenerate(){const t=target();return !!t&&state.status==='active'&&!posting&&!needsReload&&!loading&&!hasPendingWork()&&t.artifact.id===(state.currentArtifact?.id||state.currentArtifactId)&&t.revision.id===t.artifact.currentRevision?.id&&t.revision.generationStatus==='succeeded'&&t.revision.reviewStatus!=='completed'&&t.artifact.dependencyState!=='stale'&&!!A.presentation(state,t);}
+    function canRegenerate(){const t=target();return !!t&&state.status==='active'&&!posting&&!connectionExpired&&!reconnecting&&!needsReload&&!loading&&!hasPendingWork()&&t.artifact.id===(state.currentArtifact?.id||state.currentArtifactId)&&t.revision.id===t.artifact.currentRevision?.id&&t.revision.generationStatus==='succeeded'&&t.revision.reviewStatus!=='completed'&&t.artifact.dependencyState!=='stale'&&!!A.presentation(state,t);}
     function openRegenerate(){if(!canRegenerate())return;const t=target();if(regenerateContext?.buildId!==buildId||regenerateContext?.target.artifact.id!==t.artifact.id||regenerateContext?.target.revision.id!==t.revision.id)nodes['ep-regenerate-reason'].value='';regenerateContext={state,target:t,buildId};nodes['ep-regenerate-target'].textContent=`当前稿：${currentName(regenerateContext.target)} · 第 ${regenerateContext.target.revision.revisionNo} 版`;nodes['ep-regenerate-error'].textContent='';regenerateDialog.showModal();}
     async function regenerate(){
       const context=regenerateContext,t=target();if(!context)return;
@@ -78,7 +85,7 @@
     function selectFocus(a,r){focusArtifact=a;focusRevision=r;onRoute(A.hashFor(buildId,a,r));render();}
     async function loadList(){try{const result=await client.list();nodes['ep-list'].replaceChildren();const list=result.builds||[];if(!list.length){nodes['ep-list'].append(el('p','muted','还没有生产构建。请选择已有资料并新建。'));return;}for(const b of list){const item=button('','ep-build',()=>enter({buildId:b.buildId}));item.append(el('strong','',b.name||'未命名构建'),el('span','',`${A.phases.find(p=>p[0]===b.phase)?.[1]||b.phase} · ${statusText[b.status]||b.status}`),el('small','',b.updatedAt?new Date(b.updatedAt).toLocaleString('zh-CN'):'已保存'));nodes['ep-list'].append(item);}}catch(error){nodes['ep-list'].replaceChildren(el('p','ep-error',error.message));notify(error.message,true);}}
     async function enter(route={}) {
-      regenerateDialog.close();regenerateContext=null;nodes['ep-regenerate-reason'].value='';active=true;const token=++epoch;clearTimeout(timer);buildId=route.buildId||'';focusArtifact=route.artifactId||'';focusRevision=route.revisionId||'';state=null;older=[];olderCursor='';pendingRequest=null;draftContext=null;input.value='';messageKey='';needsReload=true;posting=false;loading=false;detail.hidden=!buildId;nodes['ep-resend'].hidden=true;
+      regenerateDialog.close();regenerateContext=null;reconnecting=false;nodes['ep-regenerate-reason'].value='';active=true;const token=++epoch;clearTimeout(timer);buildId=route.buildId||'';focusArtifact=route.artifactId||'';focusRevision=route.revisionId||'';state=null;older=[];olderCursor='';pendingRequest=null;draftContext=null;input.value='';messageKey='';needsReload=true;posting=false;loading=false;detail.hidden=!buildId;nodes['ep-resend'].hidden=true;
       onRoute(A.hashFor(buildId,focusArtifact,focusRevision));notify('');render();
       await loadList();if(token!==epoch||!active)return;
       if(buildId)await refreshSnapshot(token);schedule();
@@ -155,17 +162,18 @@
       return retryable;
     }
     function render() {
-      nodes['ep-resend'].hidden=!pendingRequest;nodes['ep-resend'].disabled=posting;
+      nodes['ep-resend'].hidden=!pendingRequest;nodes['ep-resend'].disabled=posting||reconnecting||connectionExpired;
+      nodes['ep-reconnect'].hidden=!connectionExpired||!refreshConnection;nodes['ep-reconnect'].disabled=reconnecting;nodes['ep-send'].textContent=posting?'正在发送…':'发送意见 ↑';
       if(!state){nodes['ep-next-hint'].hidden=true;nodes['ep-approve'].hidden=true;nodes['ep-regenerate'].hidden=true;nodes['ep-reading-status'].hidden=true;jobHistory.hidden=true;nodes['ep-job-history-items'].replaceChildren();nodes['ep-completion'].hidden=true;nodes['ep-scope'].textContent='';nodes['ep-revision-meta'].textContent='';aselect.replaceChildren();rselect.replaceChildren();nodes['ep-older'].hidden=true;nodes['ep-build-title'].textContent=buildId?'正在读取构建…':'';nodes['ep-position'].textContent='';for(const id of ['ep-technical-body','ep-jobs','ep-stages','ep-body','ep-prompt','ep-sources','ep-diff','ep-clarifications','ep-messages'])nodes[id].replaceChildren();nodes['ep-artifact-title'].textContent='等待服务端状态';nodes['ep-review-badge'].textContent='';nodes['ep-history-warning'].hidden=true;for(const type of ['approve','regenerate','pause','resume','cancel','retry','send'])nodes['ep-'+type].disabled=true;return;}
       const t=target(),a=t?.artifact,r=t?.revision,all=A.artifacts(state).filter(x=>x.kind!=='learning_unit'),current=state.currentArtifact;
       nodes['ep-build-title'].textContent=state.name||'生产构建';nodes['ep-position'].textContent=`${statusText[state.status]||state.status} · 当前阶段：${A.phases.find(p=>p[0]===state.phase)?.[1]||state.phase} · 查看：${t?currentName(t)+' v'+r.revisionNo:'等待稿件'}`;
       nodes['ep-reading-status'].hidden=state.phase!=='prelearning';nodes['ep-reading-status'].textContent='阅读资料尚未完成。完成后将在这里展示全书概要、篇章与主题理解及专家分工；如任务失败，请查看原因后重试。';
       nodes['ep-stages'].replaceChildren(...A.phases.filter(([phase])=>phase!=='prelearning').map(([phase,label],i)=>{const available=all.filter(x=>A.phaseFor(x)===phase);const b=button('','ep-stage'+(state.phase===phase?' active':''),()=>{if(available.length)selectFocus(available[0].id,'');});b.disabled=!available.length;b.append(el('span','ep-step',String(i+1).padStart(2,'0')),el('span','',label),el('small','',available.length?`${available.length} 份成果`:state.phase===phase?'处理中':'待生成'));if(state.phase===phase)b.setAttribute('aria-current','step');return b;}));
-      const blocked=posting||needsReload||loading,retryable=renderJobs(),reviewReady=state.status==='active'&&state.phase!=='prelearning'&&A.target(state)?.artifact.kind!=='learning_unit'&&A.target(state)?.revision.generationStatus==='succeeded';
+      const blocked=posting||needsReload||loading||connectionExpired||reconnecting,retryable=renderJobs(),reviewReady=state.status==='active'&&state.phase!=='prelearning'&&A.target(state)?.artifact.kind!=='learning_unit'&&A.target(state)?.revision.generationStatus==='succeeded';
       for(const id of ['pause','resume','retry','refresh'])nodes['ep-'+id].hidden=reviewReady;
       nodes['ep-approve'].hidden=!reviewReady;nodes['ep-regenerate'].hidden=!reviewReady;nodes['ep-regenerate'].disabled=!canRegenerate();
       nodes['ep-next-hint'].hidden=!reviewReady;nodes['ep-next-hint'].textContent=a?.kind==='team_manifest'?'最后一步：点击“下一步”即确认完整团队流程并完成搭建。':'点击“下一步”即确认当前完整稿，并进入下一项审阅。';
-      nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!retryable;nodes['ep-send'].disabled=posting||needsReload||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
+      nodes['ep-pause'].disabled=blocked||state.status!=='active';nodes['ep-resume'].disabled=blocked||state.status!=='paused';nodes['ep-cancel'].disabled=blocked||['cancelled','completed'].includes(state.status);nodes['ep-retry'].disabled=blocked||state.status!=='active'||!retryable;nodes['ep-send'].disabled=blocked||!!pendingRequest||['cancelled','completed'].includes(state.status);input.disabled=posting||['cancelled','completed'].includes(state.status);
       selectrow.hidden=!all.length;
       aselect.replaceChildren(...all.map(x=>{const o=el('option','',`${kindText[x.kind]||x.kind} · ${x.currentRevision?.body?.name||x.currentRevision?.body?.title||kindText[x.kind]||'待命名成果'}`);o.value=x.id;o.selected=x.id===a?.id;return o;}));
       const revisions=a?[a.currentRevision,...(a.revisions||[])].filter(Boolean).filter((x,i,list)=>list.findIndex(y=>y.id===x.id)===i).sort((x,y)=>Number(y.revisionNo)-Number(x.revisionNo)):[];
@@ -202,13 +210,13 @@
       }catch(error){if(token===epoch&&request===sourceRequest)nodes['ep-source-text'].textContent='原文读取失败：'+error.message;}
     }
     async function submit(content,action) {
-      if(posting||!state||needsReload||!content.trim())return;
+      if(posting||pendingRequest||connectionExpired||reconnecting||!state||needsReload||!content.trim())return;
       const t=target();if(action?.type==='approve'&&(hasPendingWork()||!A.canReview(state,t))){notify('此稿尚不满足确认条件，请核对当前版本和待澄清事项。',true);return;}
       const context=!action&&draftContext?draftContext:{state,target:t};const request=A.messageRequest(context.state,context.target,content,crypto.randomUUID(),action);return sendRequest(request);
     }
-    async function sendRequest(request){const token=epoch,id=buildId;posting=true;pendingRequest=null;render();
+    async function sendRequest(request){const token=epoch,id=buildId,uncertain=pendingRequest?.request===request?pendingRequest:null;posting=true;pendingRequest=null;notify('正在发送意见…');render();
       try{const response=await client.message(id,request);if(token!==epoch)return;if(input.value===request.content){input.value='';draftContext=null;}pendingRequest=null;notify('意见已保存，正在读取服务端处理结果。');await refreshSnapshot(token);return response?.processingStatus!=='failed'&&!(response?.httpStatus>=400)&&!(response?.result?.httpStatus>=400);}
-      catch(error){if(token!==epoch)return;if(error.status===409){draftContext=null;await refreshSnapshot(token);notify(error.message+'。原话保留，请核对最新版本后重新发送；没有自动批准新稿。',true);}else{if(!error.status||error.status>=500)pendingRequest={buildId:id,request};notify(error.message+(pendingRequest?'。结果尚不确定，可按原身份重发；不会自动重复提交。':''),true);}}
+      catch(error){if(token!==epoch)return;if(error.status===403){connectionExpired=true;pendingRequest=uncertain;notify(error.message+(uncertain?'。此前请求结果仍不确定，原请求已保留，请更新连接后按原身份重发。':refreshConnection?'。意见尚未提交，原话已保留，请先更新连接。':'。意见尚未提交，请先复制保留输入内容。'),true);}else if(error.status===409){draftContext=null;await refreshSnapshot(token);notify(error.message+'。原话保留，请核对最新版本后重新发送；没有自动批准新稿。',true);}else{if(!error.status||error.status>=500)pendingRequest={buildId:id,request};notify(error.message+(pendingRequest?'。结果尚不确定，可按原身份重发；不会自动重复提交。':''),true);}}
       finally{if(token===epoch){posting=false;render();schedule();}}
     }
     async function resendPending(){if(pendingRequest&&!posting&&pendingRequest.buildId===buildId)return sendRequest(pendingRequest.request);}

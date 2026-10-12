@@ -7,6 +7,16 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProductionContextTest {
+    @Test void workbenchDiscussionDoesNotRepeatTheFullBookSourceCatalog() {
+        ObjectNode input=Json.object(),snapshot=Json.object(),proposal=Json.object();ArrayNode catalog=Json.array();
+        for(int i=0;i<313;i++)catalog.add(Json.object().put("chunkId","chunk-"+i).put("documentVersionId","version-1").put("pageNo",i+1).put("title","资料库书名".repeat(80)));
+        proposal.set("sources",catalog);proposal.set("documents",Json.array().add(Json.object().put("documentId","book-1").put("documentVersionId","version-1")));snapshot.set("proposal",proposal);
+        ObjectNode current=Json.object().put("id","expert").put("kind","agent");ObjectNode revision=Json.object().put("id","r1").put("systemPrompt","完整专家指令");revision.set("body",Json.object().put("description","协助用户撰写文章开头"));revision.set("sources",Json.array().add(Json.object().put("chunkId","chunk-59").put("startOffset",0).put("endOffset",7)));current.set("currentRevision",revision);
+        snapshot.set("currentArtifact",current);snapshot.set("artifacts",Json.array().add(current));snapshot.set("messages",Json.array());snapshot.set("jobs",Json.array());snapshot.set("clarifications",Json.array());input.set("snapshot",snapshot);input.set("message",Json.object().put("content","这位专家能帮用户做什么？"));ObjectNode original=input.deepCopy();
+        ObjectNode context=assertDoesNotThrow(()->ProductionContext.interpretation(input,Json.array().add(Json.object().put("id","chunk-59").put("pageNo",60).put("text","序言应交代背景。"))));
+        assertFalse(context.path("snapshot").path("proposal").has("sources"),"整书页码目录不应重复占用聊天窗口");assertEquals(313,context.path("snapshot").path("proposal").path("sourceCount").asInt());assertEquals(proposal.path("documents"),context.path("snapshot").path("proposal").path("documents"));
+        assertEquals(revision,context.path("snapshot").path("currentArtifact").path("currentRevision"));assertEquals("序言应交代背景。",context.path("sources").get(0).path("text").asText());assertEquals(original,input,"浏览器使用的完整来源目录不能被修改");assertTrue(context.toString().length()<90000);
+    }
     @Test void semanticConversationGetsRealEvidenceAndBoundedHistory() throws Exception {
         ObjectNode input=Json.object();ObjectNode snapshot=Json.object().put("phase","summary");
         ArrayNode messages=Json.array();for(int i=0;i<300;i++)messages.add(Json.object().put("id","message-"+i).put("content","旧会话".repeat(600)));

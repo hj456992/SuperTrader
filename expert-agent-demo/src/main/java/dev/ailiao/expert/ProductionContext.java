@@ -8,6 +8,7 @@ import java.util.*;
 final class ProductionContext {
     static ObjectNode interpretation(ObjectNode full,ArrayNode sourceChunks){
         ObjectNode out=full.deepCopy(),snapshot=(ObjectNode)out.path("snapshot");JsonNode old=snapshot.deepCopy();
+        if(snapshot.path("proposal") instanceof ObjectNode proposal){proposal.put("sourceCount",proposal.path("sources").size());proposal.remove("sources");}
         ArrayNode messages=Json.array();String replied=full.path("message").path("replyToMessageId").asText(),waiting=old.path("waitingQuestionMessageId").asText();
         JsonNode allMessages=old.path("messages");for(int i=0;i<allMessages.size();i++){JsonNode m=allMessages.get(i);boolean referenced=m.path("id").asText().equals(replied)||m.path("id").asText().equals(waiting);
             if(i>=allMessages.size()-12||referenced){ObjectNode view=Json.object().put("id",m.path("id").asText()).put("role",m.path("role").asText()).put("content",referenced?m.path("content").asText():preview(m.path("content").asText(),1600));if(m.has("presentation"))view.set("presentation",m.path("presentation"));messages.add(view);}}

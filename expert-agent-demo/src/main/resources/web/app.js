@@ -27,7 +27,7 @@ function showView(name, route) {
     }else workbenchPage?.leave();
   }else workbenchPage?.leave();
   if (name === 'production') {
-    if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts',{mode:'new'})});
+    if (!productionPage) productionPage = ProductionUI.create({root:$('view-production'),client:productionClient,refreshConnection:async()=>{const fresh=await api('/api/state');if(typeof fresh.csrf!=='string'||!fresh.csrf)throw new Error('未取得有效页面连接');csrf=fresh.csrf;},onRoute:hash=>history.replaceState(null,'',hash),onNew:()=>showView('experts',{mode:'new'})});
     productionPage.enter(route || {buildId:''});
   } else {
     productionPage?.leave();
