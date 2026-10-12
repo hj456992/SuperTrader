@@ -12,6 +12,10 @@
 
 L1关键词、L2问答/余弦严格大于0.90、多个专家命中交L3等作为待审生产配置保存；本轮未执行最终用户侧路由、向量调用或入向量索引。
 
+[![专家生产全流程](diagrams/expert-production-flow.png)](diagrams/expert-production-flow.svg)
+
+[放大查看 SVG](diagrams/expert-production-flow.svg) · [下载 PNG](diagrams/expert-production-flow.png) · [浏览器完整验收记录](flow-test-report.md)
+
 ## 运行
 
 在仓库 `expert-agent-demo` 中构建，再使用已有DSH宿主启动：
